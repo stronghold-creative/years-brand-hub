@@ -82,6 +82,20 @@ function block_types(): array
             ],
         ],
 
+        'download_list' => [
+            'label'  => 'Downloads',
+            'hint'   => 'Lists every asset carrying a tag, so uploading a new file adds it here automatically.',
+            'fields' => [
+                'heading'   => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
+                'tag'       => ['type' => 'text', 'label' => 'Asset tag, for example: logo'],
+                'intro'     => ['type' => 'textarea', 'label' => 'Intro', 'optional' => true],
+                'bundle'    => ['type' => 'select', 'label' => 'Download all button', 'options' => [
+                    'yes' => 'Show it',
+                    'no'  => 'Hide it',
+                ]],
+            ],
+        ],
+
         'callout' => [
             'label'  => 'Callout',
             'hint'   => 'One thing people keep getting wrong.',

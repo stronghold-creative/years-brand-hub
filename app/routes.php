@@ -331,6 +331,166 @@ if (preg_match('#^/admin/users/(\d+)/delete$#', $path, $m) && $method === 'POST'
 
 // ------------------------------------------------------------------ settings
 
+// -------------------------------------------------------------------- assets
+
+if ($path === '/admin/assets') {
+    require_editor();
+    $assets = db_all(
+        'SELECT a.*, (SELECT COUNT(*) FROM downloads d WHERE d.asset_id = a.id) AS downloads
+           FROM assets a ORDER BY a.label, a.original_name'
+    );
+    view('admin/assets', [
+        'title'  => 'Assets',
+        'assets' => $assets,
+        'tags'   => asset_all_tags(),
+        'notice' => $_GET['notice'] ?? null,
+    ], 'admin/layout');
+    exit;
+}
+
+if ($path === '/admin/assets/upload' && $method === 'POST') {
+    require_editor();
+    csrf_check();
+    $file = $_FILES['file'] ?? [];
+    $error = asset_validation_error($file);
+    if ($error) {
+        redirect('/admin/assets?notice=' . urlencode($error));
+    }
+
+    $stored = asset_stored_name((string) $file['name']);
+    if (!is_dir(asset_storage_dir())) {
+        @mkdir(asset_storage_dir(), 0775, true);
+    }
+    if (!move_uploaded_file((string) $file['tmp_name'], asset_storage_dir() . '/' . $stored)) {
+        redirect('/admin/assets?notice=' . urlencode('Could not save the file. Check storage permissions.'));
+    }
+
+    db_run(
+        'INSERT INTO assets (stored_name, original_name, label, mime, bytes, version, tags, uploaded_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+            $stored,
+            basename((string) $file['name']),
+            trim($_POST['label'] ?? '') ?: pathinfo((string) $file['name'], PATHINFO_FILENAME),
+            asset_detect_mime(asset_storage_dir() . '/' . $stored),
+            (int) $file['size'],
+            trim($_POST['version'] ?? '') ?: '1.0',
+            asset_tags_string($_POST['tags'] ?? ''),
+            current_user()['id'],
+        ]
+    );
+    asset_clear_bundles();
+    redirect('/admin/assets?notice=' . urlencode('Uploaded.'));
+}
+
+if (preg_match('#^/admin/assets/(\d+)/update$#', $path, $m) && $method === 'POST') {
+    require_editor();
+    csrf_check();
+    $asset = db_one('SELECT id FROM assets WHERE id = ?', [$m[1]]);
+    if (!$asset) {
+        not_found();
+    }
+    db_run(
+        'UPDATE assets SET label = ?, tags = ?, version = ? WHERE id = ?',
+        [
+            trim($_POST['label'] ?? '') ?: 'Untitled',
+            asset_tags_string($_POST['tags'] ?? ''),
+            trim($_POST['version'] ?? '') ?: '1.0',
+            $asset['id'],
+        ]
+    );
+    asset_clear_bundles();
+    redirect('/admin/assets?notice=' . urlencode('Saved.'));
+}
+
+// Replacing keeps the same asset id, so links in pages never break.
+if (preg_match('#^/admin/assets/(\d+)/replace$#', $path, $m) && $method === 'POST') {
+    require_editor();
+    csrf_check();
+    $asset = db_one('SELECT * FROM assets WHERE id = ?', [$m[1]]);
+    if (!$asset) {
+        not_found();
+    }
+    $file = $_FILES['file'] ?? [];
+    $error = asset_validation_error($file);
+    if ($error) {
+        redirect('/admin/assets?notice=' . urlencode($error));
+    }
+
+    $stored = asset_stored_name((string) $file['name']);
+    if (!move_uploaded_file((string) $file['tmp_name'], asset_storage_dir() . '/' . $stored)) {
+        redirect('/admin/assets?notice=' . urlencode('Could not save the replacement file.'));
+    }
+    $old = asset_path($asset);
+
+    db_run(
+        'UPDATE assets SET stored_name = ?, original_name = ?, mime = ?, bytes = ?, version = ?, uploaded_at = NOW(), uploaded_by = ? WHERE id = ?',
+        [
+            $stored,
+            basename((string) $file['name']),
+            asset_detect_mime(asset_storage_dir() . '/' . $stored),
+            (int) $file['size'],
+            trim($_POST['version'] ?? '') ?: $asset['version'],
+            current_user()['id'],
+            $asset['id'],
+        ]
+    );
+    if (is_file($old)) {
+        @unlink($old);
+    }
+    asset_clear_bundles();
+    redirect('/admin/assets?notice=' . urlencode('Replaced. Anywhere this file is linked now serves the new version.'));
+}
+
+if (preg_match('#^/admin/assets/(\d+)/delete$#', $path, $m) && $method === 'POST') {
+    require_editor();
+    csrf_check();
+    $asset = db_one('SELECT * FROM assets WHERE id = ?', [$m[1]]);
+    if (!$asset) {
+        not_found();
+    }
+    $file = asset_path($asset);
+    db_run('DELETE FROM assets WHERE id = ?', [$asset['id']]);
+    if (is_file($file)) {
+        @unlink($file);
+    }
+    asset_clear_bundles();
+    redirect('/admin/assets?notice=' . urlencode('Removed.'));
+}
+
+// ----------------------------------------------------------------- downloads
+
+// Every file is served through here, so gating and logging always apply.
+if (preg_match('#^/d/(\d+)#', $path, $m)) {
+    if (site_is_private($config) && !current_user()) {
+        redirect('/admin/sign-in');
+    }
+    $asset = db_one('SELECT * FROM assets WHERE id = ?', [$m[1]]);
+    if (!$asset) {
+        not_found();
+    }
+    asset_record_download((int) $asset['id'], current_user()['id'] ?? null);
+    asset_send_file(asset_path($asset), $asset['original_name'], $asset['mime']);
+}
+
+if (preg_match('#^/bundle/([a-z0-9\-]+)$#', $path, $m)) {
+    if (site_is_private($config) && !current_user()) {
+        redirect('/admin/sign-in');
+    }
+    if (!asset_zip_supported()) {
+        http_response_code(501);
+        exit('Bundles are not available on this server.');
+    }
+    $bundle = asset_bundle_path($m[1]);
+    if (!$bundle) {
+        not_found();
+    }
+    foreach (assets_by_tag($m[1]) as $asset) {
+        asset_record_download((int) $asset['id'], current_user()['id'] ?? null);
+    }
+    asset_send_file($bundle, 'years-' . $m[1] . '.zip', 'application/zip');
+}
+
 if ($path === '/admin/migrate' && $method === 'POST') {
     require_admin();
     csrf_check();

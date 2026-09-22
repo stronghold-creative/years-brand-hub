@@ -12,6 +12,7 @@
   <a class="bar__mark" href="/admin">Years brand hub</a>
   <nav class="bar__nav">
     <a href="/admin">Pages</a>
+    <a href="/admin/assets">Assets</a>
 <?php if ((current_user()['role'] ?? '') === 'admin'): ?>
     <a href="/admin/users">People</a>
     <a href="/admin/settings">Settings</a>
