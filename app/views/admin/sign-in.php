@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Sign in</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/admin.css">
+<link rel="stylesheet" href="<?= e(asset_url('/assets/css/admin.css')) ?>">
 </head>
 <body class="signin">
 <form method="post" class="signin__card">

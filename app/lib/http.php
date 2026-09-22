@@ -66,3 +66,14 @@ function str_trim_to(string $text, int $limit): string
     }
     return substr($text, 0, $limit);
 }
+
+/**
+ * A URL for a file in public_html, carrying its modification time, so browsers
+ * fetch the new copy the moment it is deployed rather than serving a cached one.
+ */
+function asset_url(string $path): string
+{
+    $file = ROOT_DIR . '/public_html' . $path;
+    $stamp = is_file($file) ? filemtime($file) : time();
+    return $path . '?v=' . $stamp;
+}

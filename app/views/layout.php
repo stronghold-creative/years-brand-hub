@@ -7,7 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="<?= e(asset_url('/assets/css/site.css')) ?>">
 </head>
 <body>
 <header class="masthead">
@@ -26,6 +26,6 @@
 <footer class="foot">
   <p><?= e((string) setting('footer_note', 'Questions about anything here, or something missing, speak to the brand team.')) ?></p>
 </footer>
-<script src="/assets/js/site.js"></script>
+<script src="<?= e(asset_url('/assets/js/site.js')) ?>"></script>
 </body>
 </html>

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Preview</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/site.css">
+<link rel="stylesheet" href="<?= e(asset_url('/assets/css/site.css')) ?>">
 </head>
 <body class="is-preview">
 <main class="reader__body">
@@ -13,6 +13,6 @@
   <?php if (!empty($page['summary'])): ?><p class="reader__summary"><?= e($page['summary']) ?></p><?php endif; ?>
   <?php render_blocks($blocks); ?>
 </main>
-<script src="/assets/js/site.js"></script>
+<script src="<?= e(asset_url('/assets/js/site.js')) ?>"></script>
 </body>
 </html>

@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title><?= e($title ?? 'Admin') ?> &middot; Years brand hub</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/assets/css/admin.css">
+<link rel="stylesheet" href="<?= e(asset_url('/assets/css/admin.css')) ?>">
 </head>
 <body class="admin">
 <header class="bar">
@@ -24,6 +24,6 @@
 </header>
 <?= $content ?>
 <script>window.CSRF = <?= json_encode(csrf_token()) ?>;</script>
-<script src="/assets/js/editor.js"></script>
+<script src="<?= e(asset_url('/assets/js/editor.js')) ?>"></script>
 </body>
 </html>
