@@ -19,6 +19,15 @@ if (!empty($config['debug'])) {
     ini_set('display_errors', '0');
 }
 
+// Storage is excluded from deploys so uploads can never be overwritten by a
+// push. That means it may not exist yet, so create it on first run.
+foreach (['assets', 'cache'] as $dir) {
+    $path = ($config['paths']['storage'] ?? ROOT_DIR . '/storage') . '/' . $dir;
+    if (!is_dir($path)) {
+        @mkdir($path, 0775, true);
+    }
+}
+
 require APP_DIR . '/lib/db.php';
 require APP_DIR . '/lib/http.php';
 require APP_DIR . '/lib/auth.php';
