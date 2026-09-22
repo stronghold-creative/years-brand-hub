@@ -34,6 +34,7 @@ require APP_DIR . '/lib/http.php';
 require APP_DIR . '/lib/auth.php';
 require APP_DIR . '/lib/view.php';
 require APP_DIR . '/lib/blocks.php';
+require APP_DIR . '/lib/settings.php';
 
 session_set_cookie_params([
     'httponly' => true,

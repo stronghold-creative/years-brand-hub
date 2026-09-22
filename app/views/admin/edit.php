@@ -42,6 +42,7 @@ foreach (array_keys(block_types()) as $type) {
   <aside class="editor__preview">
     <div class="editor__status">
       <span id="save-state">All changes saved</span>
+      <a href="/admin/pages/<?= (int) $page['id'] ?>/versions">History</a>
       <a href="/g/<?= e($page['slug']) ?>" target="_blank" rel="noopener">Open page</a>
     </div>
     <iframe id="preview" src="/admin/pages/<?= (int) $page['id'] ?>/preview" title="Preview"></iframe>

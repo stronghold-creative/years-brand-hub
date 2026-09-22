@@ -24,7 +24,7 @@
 </header>
 <?= $content ?>
 <footer class="foot">
-  <p>Questions about anything here, or something missing, speak to the brand team.</p>
+  <p><?= e((string) setting('footer_note', 'Questions about anything here, or something missing, speak to the brand team.')) ?></p>
 </footer>
 <script src="/assets/js/site.js"></script>
 </body>

@@ -207,3 +207,36 @@ a { color: var(--purple-700); }
   .editor { grid-template-columns: 1fr; height: auto; }
   .editor__preview { border-left: 0; border-top: 1px solid var(--rule); height: 70vh; }
 }
+
+/* ------------------------------------------------- admin additions: people,
+   settings, version history, section ordering */
+
+.sectionblock { margin-bottom: 2.5rem; }
+.sectionblock__head { display: flex; align-items: baseline; gap: 1rem; margin-bottom: .5rem; }
+.sectionblock__head h2 { margin: 0; font-size: 1rem; font-weight: 600; color: #5B3FA3; }
+.rename { margin-left: auto; }
+.rename input { border: 1px solid transparent; background: none; padding: .25rem .375rem; font-size: .8125rem; }
+.rename input:hover, .rename input:focus { border-color: #E4DCCC; background: #fff; }
+
+.inline { display: inline-flex; gap: .375rem; align-items: center; margin: 0; }
+.order { white-space: nowrap; }
+
+.linkbutton { background: none; border: 0; color: #7257B7; cursor: pointer; padding: .125rem .375rem; font-size: .8125rem; }
+.linkbutton:hover { text-decoration: underline; }
+.linkbutton[disabled] { color: #CFCFCF; cursor: default; text-decoration: none; }
+.linkbutton.danger { color: #B63631; }
+
+.panel { background: #fff; border: 1px solid #E4DCCC; padding: 1.5rem; margin-top: 2rem; max-width: 46rem; }
+.panel h2 { margin: 0 0 1rem; font-size: 1rem; font-weight: 600; }
+.panel button[type='submit'] { background: #7257B7; color: #fff; border: 0; padding: .5rem .875rem; cursor: pointer; }
+.grid4 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 1rem; align-items: end; }
+.grid4 button { grid-column: 1 / -1; justify-self: start; margin-top: .5rem; }
+
+.check { display: flex; gap: .625rem; align-items: start; margin: 1.5rem 0; }
+.check input { margin-top: .25rem; }
+.check strong { display: block; font-weight: 600; font-size: .9375rem; }
+
+.notice { background: #FFF6E5; border-left: 3px solid #FFD47A; padding: .75rem 1rem; font-size: .875rem; }
+.hint { color: #777; font-size: .8125rem; }
+.backlink { margin-left: auto; font-size: .875rem; }
+.pages td form { display: inline; }
