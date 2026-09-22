@@ -1,0 +1,32 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check PHP syntax
+        run: find app public_html tools -name '*.php' -print0 | xargs -0 -n1 php -l
+
+      - name: Upload application files
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_HOST }}
+          username: ${{ secrets.FTP_USER }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps
+          local-dir: ./
+          server-dir: ${{ secrets.FTP_REMOTE_DIR }}
+          # Never let a deploy touch config or uploaded assets.
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            app/config.php
+            storage/**

@@ -1,0 +1,5 @@
+app/config.php
+storage/assets/*
+storage/cache/*
+!storage/**/.gitkeep
+.DS_Store
