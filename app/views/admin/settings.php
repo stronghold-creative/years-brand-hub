@@ -1,38 +1,44 @@
-<main class="wrap">
-  <div class="wrap__head"><h1>Settings</h1></div>
+<main class="m3-page m3-page--narrow">
+  <header class="m3-page__head"><h1>Settings</h1></header>
 
-  <?php if ($notice): ?><p class="notice"><?= e($notice) ?></p><?php endif; ?>
+  <?php if ($notice): ?><p class="m3-banner"><?= e($notice) ?></p><?php endif; ?>
 
   <?php if (!empty($pending)): ?>
-    <section class="panel">
-      <h2>Database updates waiting</h2>
-      <p class="hint">These come with new features and need applying once: <?= e(implode(', ', $pending)) ?></p>
+    <section class="m3-card">
+      <h2 class="m3-card__title">Database updates waiting</h2>
+      <p class="m3-body-medium">These arrive with new features and need applying once: <?= e(implode(', ', $pending)) ?></p>
       <form method="post" action="/admin/migrate">
         <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
-        <button type="submit">Apply updates</button>
+        <button class="m3-button m3-button--tonal m3-state" type="submit">Apply updates</button>
       </form>
     </section>
   <?php endif; ?>
 
-  <form method="post" class="panel">
+  <form method="post" class="m3-card">
     <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
 
-    <label class="field">Site name
-      <input type="text" name="site_name" value="<?= e((string) setting('site_name', $config['site']['name'] ?? 'Years brand hub')) ?>">
-    </label>
+    <div class="m3-field">
+      <input class="m3-field__input" type="text" name="site_name" id="site_name" placeholder=" "
+             value="<?= e((string) setting('site_name', $config['site']['name'] ?? 'Years brand hub')) ?>">
+      <label class="m3-field__label" for="site_name">Site name</label>
+    </div>
 
-    <label class="field">Footer note
-      <input type="text" name="footer_note" value="<?= e((string) setting('footer_note', 'Questions about anything here, or something missing, speak to the brand team.')) ?>">
-    </label>
+    <div class="m3-field">
+      <input class="m3-field__input" type="text" name="footer_note" id="footer_note" placeholder=" "
+             value="<?= e((string) setting('footer_note', 'Questions about anything here, or something missing, speak to the brand team.')) ?>">
+      <label class="m3-field__label" for="footer_note">Footer note</label>
+    </div>
 
-    <label class="check">
-      <input type="checkbox" name="require_login_to_view" value="1"<?= site_is_private($config) ? ' checked' : '' ?>>
-      <span>
+    <label class="m3-switch">
+      <input class="m3-switch__input" type="checkbox" name="require_login_to_view" value="1"
+             role="switch"<?= site_is_private($config) ? ' checked' : '' ?>>
+      <span class="m3-switch__track"><span class="m3-switch__handle"></span></span>
+      <span class="m3-switch__text">
         <strong>Require a sign-in to read the site</strong>
-        <span class="hint">Off means anyone with the link can read the guidelines. On means only people with an account can. Editing always requires signing in either way.</span>
+        <span>Off means anyone with the link can read the guidelines. On means only people with an account can. Editing always requires signing in either way.</span>
       </span>
     </label>
 
-    <button type="submit">Save settings</button>
+    <button class="m3-button m3-button--filled m3-state" type="submit">Save settings</button>
   </form>
 </main>

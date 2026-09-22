@@ -35,10 +35,10 @@
     const overlay = document.createElement('div');
     overlay.className = 'picker';
     overlay.innerHTML =
-      '<div class="picker__panel" role="dialog" aria-label="Choose an image">' +
+      '<div class="picker__panel" role="dialog" aria-modal="true" aria-label="Choose an image">' +
         '<header class="picker__head">' +
           '<input class="picker__search" type="search" placeholder="Search by name or tag" aria-label="Search images">' +
-          '<button type="button" class="picker__close" aria-label="Close">Close</button>' +
+          '<button type="button" class="picker__close m3-state" aria-label="Close">Close</button>' +
         '</header>' +
         '<div class="picker__grid" aria-live="polite">Loading</div>' +
         '<p class="picker__hint">Images come from the asset library. Upload new ones under Assets.</p>' +
@@ -63,7 +63,7 @@
       images.forEach((image) => {
         const tile = document.createElement('button');
         tile.type = 'button';
-        tile.className = 'picker__tile';
+        tile.className = 'picker__tile m3-state';
         tile.innerHTML =
           '<span class="picker__thumb"><img src="' + image.url + '" alt="" loading="lazy"></span>' +
           '<span class="picker__label"></span>';
@@ -102,7 +102,7 @@
       const choose = button(id ? 'Change' : 'Choose an image', () => {
         openPicker((image) => { onInput(String(image.id)); paint(String(image.id)); });
       });
-      choose.className = 'assetpick__choose';
+      choose.className = 'assetpick__choose m3-state';
 
       if (id) {
         loadImages().then((images) => {
@@ -122,7 +122,7 @@
           }
         });
         const clear = button('Remove', () => { onInput(''); paint(''); });
-        clear.className = 'assetpick__clear';
+        clear.className = 'assetpick__clear m3-state';
         shown.append(choose, clear);
       } else {
         shown.append(choose);
@@ -139,26 +139,34 @@
     if (def.type === 'asset') {
       return assetField(def, value, onInput);
     }
-    const wrap = document.createElement('label');
-    wrap.className = 'field';
-    wrap.append(def.label + (def.optional ? ' (optional)' : ''));
 
+    // Material outlined text field: the control comes first, the label second,
+    // so the label can float using the sibling selector in CSS.
+    const wrap = document.createElement('div');
+    wrap.className = 'm3-field';
+    const id = 'f' + Math.random().toString(36).slice(2, 9);
     let input;
+
     if (def.type === 'longtext' || def.type === 'textarea') {
       input = document.createElement('textarea');
-      input.rows = def.type === 'longtext' ? 6 : 2;
+      input.className = 'm3-field__textarea';
+      input.rows = def.type === 'longtext' ? 5 : 2;
+      input.placeholder = ' ';
       input.value = value || '';
     } else if (def.type === 'select') {
+      wrap.classList.add('m3-field--select');
       input = document.createElement('select');
+      input.className = 'm3-field__select';
       Object.entries(def.options).forEach(([key, label]) => {
-        const opt = new Option(label, key, false, key === value);
-        input.append(opt);
+        input.append(new Option(label, key, false, String(key) === String(value)));
       });
     } else if (def.type === 'colour') {
       input = document.createElement('input');
       input.type = 'text';
-      input.className = 'field__colour';
+      input.className = 'm3-field__input';
+      input.placeholder = ' ';
       input.value = value || '#7257B7';
+
       const chip = document.createElement('input');
       chip.type = 'color';
       chip.className = 'field__chip';
@@ -168,18 +176,33 @@
         if (/^#[0-9a-f]{6}$/i.test(input.value)) chip.value = input.value;
         onInput(input.value);
       });
-      wrap.classList.add('field--colour');
-      wrap.append(input, chip);
+
+      input.id = id;
+      const label = document.createElement('label');
+      label.className = 'm3-field__label';
+      label.htmlFor = id;
+      label.textContent = def.label + (def.optional ? ' (optional)' : '');
+      wrap.classList.add('m3-field--colour');
+      wrap.append(input, label, chip);
       return wrap;
     } else {
       input = document.createElement('input');
       input.type = 'text';
+      input.className = 'm3-field__input';
+      input.placeholder = ' ';
       input.value = value || '';
     }
 
+    input.id = id;
     input.addEventListener('input', () => onInput(input.value));
     input.addEventListener('change', () => onInput(input.value));
-    wrap.append(input);
+
+    const label = document.createElement('label');
+    label.className = 'm3-field__label';
+    label.htmlFor = id;
+    label.textContent = def.label + (def.optional ? ' (optional)' : '');
+
+    wrap.append(input, label);
     return wrap;
   }
 
@@ -291,7 +314,7 @@
     list.innerHTML = '';
     if (!blocks.length) {
       const empty = document.createElement('p');
-      empty.className = 'empty';
+      empty.className = 'm3-empty';
       empty.textContent = 'This page is empty. Add a block to start.';
       list.append(empty);
       return;

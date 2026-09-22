@@ -1,70 +1,85 @@
-<main class="wrap">
-  <div class="wrap__head"><h1>Assets</h1></div>
+<main class="m3-page">
+  <header class="m3-page__head">
+    <h1>Assets</h1>
+    <p class="m3-page__meta"><?= count($assets) ?> <?= count($assets) === 1 ? 'file' : 'files' ?></p>
+  </header>
 
-  <?php if ($notice): ?><p class="notice"><?= e($notice) ?></p><?php endif; ?>
+  <?php if ($notice): ?><p class="m3-banner"><?= e($notice) ?></p><?php endif; ?>
 
-  <section class="panel">
-    <h2>Upload a file</h2>
-    <form method="post" action="/admin/assets/upload" enctype="multipart/form-data" class="grid4">
+  <section class="m3-card">
+    <h2 class="m3-card__title">Upload a file</h2>
+    <form method="post" action="/admin/assets/upload" enctype="multipart/form-data">
       <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
-      <label class="field">File<input type="file" name="file" required></label>
-      <label class="field">Label<input type="text" name="label" placeholder="Primary logo, white"></label>
-      <label class="field">Tags, comma separated<input type="text" name="tags" placeholder="logo, print"></label>
-      <label class="field">Version<input type="text" name="version" value="1.0"></label>
-      <button type="submit">Upload</button>
+      <div class="m3-field">
+        <input class="m3-field__input" type="file" name="file" id="a-file" required style="padding:.875rem 1rem">
+        <span class="m3-field__support">SVG, PNG, JPG, WEBP, GIF, PDF, EPS, AI, ZIP, OTF, TTF, WOFF, WOFF2, PPTX, DOCX, XLSX, MP4. Up to 50 MB.</span>
+      </div>
+      <div class="m3-editor__metarow">
+        <div class="m3-field">
+          <input class="m3-field__input" type="text" name="label" id="a-label" placeholder=" ">
+          <label class="m3-field__label" for="a-label">Label</label>
+        </div>
+        <div class="m3-field">
+          <input class="m3-field__input" type="text" name="version" id="a-version" placeholder=" " value="1.0">
+          <label class="m3-field__label" for="a-version">Version</label>
+        </div>
+      </div>
+      <div class="m3-field">
+        <input class="m3-field__input" type="text" name="tags" id="a-tags" placeholder=" ">
+        <label class="m3-field__label" for="a-tags">Tags</label>
+        <span class="m3-field__support">Comma separated. Download blocks pull files in by tag, for example: logo, print</span>
+      </div>
+      <button class="m3-button m3-button--filled m3-state" type="submit">Upload</button>
     </form>
-    <p class="hint">Accepted: SVG, PNG, JPG, WEBP, GIF, PDF, EPS, AI, ZIP, OTF, TTF, WOFF, WOFF2, PPTX, DOCX, XLSX, MP4. Up to 50 MB.</p>
   </section>
 
   <?php if ($tags): ?>
-    <p class="hint tagline">Tags in use:
+    <div class="m3-tags">
       <?php foreach ($tags as $tag => $count): ?>
-        <span class="tag"><?= e($tag) ?> <span class="tag__count"><?= (int) $count ?></span></span>
+        <span class="m3-chip m3-chip--assist"><?= e($tag) ?> <span class="m3-chip__count"><?= (int) $count ?></span></span>
       <?php endforeach; ?>
-    </p>
+    </div>
   <?php endif; ?>
 
   <?php if (!$assets): ?>
-    <p class="empty">No assets yet. Upload the logo files first, they are what people come for.</p>
+    <p class="m3-empty">No assets yet. Upload the logo files first, they are what people come for.</p>
   <?php else: ?>
-    <table class="pages assets">
-      <thead>
-        <tr><th>File</th><th>Label and tags</th><th>Size</th><th>Downloads</th><th></th></tr>
-      </thead>
+    <table class="m3-table">
+      <thead><tr><th>File</th><th>Label, tags and version</th><th>Size</th><th>Downloads</th><th></th></tr></thead>
       <tbody>
       <?php foreach ($assets as $asset): ?>
         <tr>
           <td>
-            <a href="/d/<?= (int) $asset['id'] ?>"><?= e($asset['original_name']) ?></a>
-            <span class="hint">v<?= e($asset['version']) ?>, <?= e(date('j M Y', strtotime($asset['uploaded_at']))) ?></span>
+            <a href="/d/<?= (int) $asset['id'] ?>"><?= e($asset['original_name']) ?></a><br>
+            <span class="m3-body-small"><?= e(date('j M Y', strtotime($asset['uploaded_at']))) ?></span>
           </td>
           <td>
-            <form method="post" action="/admin/assets/<?= (int) $asset['id'] ?>/update" class="stack">
+            <form method="post" action="/admin/assets/<?= (int) $asset['id'] ?>/update" class="m3-inline">
               <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
               <input type="text" name="label" value="<?= e($asset['label']) ?>" aria-label="Label">
               <input type="text" name="tags" value="<?= e((string) $asset['tags']) ?>" aria-label="Tags" placeholder="tags">
-              <input type="text" name="version" value="<?= e($asset['version']) ?>" aria-label="Version" size="4">
-              <button class="linkbutton" type="submit">Save</button>
+              <input type="text" name="version" value="<?= e($asset['version']) ?>" aria-label="Version" size="4" style="max-width:5rem">
+              <button class="m3-button m3-button--text m3-state" type="submit">Save</button>
             </form>
           </td>
           <td><?= e(asset_human_size((int) $asset['bytes'])) ?></td>
           <td><?= (int) $asset['downloads'] ?></td>
-          <td class="rowactions">
-            <form method="post" action="/admin/assets/<?= (int) $asset['id'] ?>/replace" enctype="multipart/form-data" class="stack">
+          <td>
+            <form method="post" action="/admin/assets/<?= (int) $asset['id'] ?>/replace" enctype="multipart/form-data" class="m3-inline">
               <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
               <input type="file" name="file" required aria-label="Replacement file">
-              <button class="linkbutton" type="submit">Replace</button>
+              <button class="m3-button m3-button--text m3-state" type="submit">Replace</button>
             </form>
             <form method="post" action="/admin/assets/<?= (int) $asset['id'] ?>/delete"
-                  onsubmit="return confirm('Remove <?= e($asset['label']) ?>? Any page linking to it will stop showing it.')">
+                  onsubmit="return confirm('Remove <?= e($asset['label']) ?>? Any page using it will stop showing it.')">
               <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
-              <button class="linkbutton danger" type="submit">Remove</button>
+              <button class="m3-button m3-button--text m3-button--danger m3-state" type="submit">Remove</button>
             </form>
           </td>
         </tr>
       <?php endforeach; ?>
       </tbody>
     </table>
-    <p class="hint">Replacing a file keeps its link, so pages and bundles pick up the new version straight away.</p>
+    <p class="m3-empty">Replacing a file keeps its link, so pages and bundles pick up the new version straight away.</p>
   <?php endif; ?>
 </main>
