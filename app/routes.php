@@ -48,7 +48,11 @@ if (preg_match('#^/g/([a-z0-9\-]+)$#', $path, $m)) {
     if (!$page || ($page['status'] !== 'published' && !can_edit())) {
         not_found();
     }
-    $nav = db_all("SELECT slug, title, section FROM pages WHERE status = 'published' ORDER BY section, sort_order, title");
+    $nav = db_all(
+        can_edit()
+            ? "SELECT slug, title, section, status FROM pages ORDER BY section, sort_order, title"
+            : "SELECT slug, title, section, status FROM pages WHERE status = 'published' ORDER BY section, sort_order, title"
+    );
     view('page', [
         'title'  => $page['title'],
         'page'   => $page,

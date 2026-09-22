@@ -131,6 +131,17 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--purple-700); ou
 .reader__nav a:hover { color: var(--purple-700); }
 .reader__nav a[aria-current='page'] { border-left-color: var(--pink-600); color: var(--purple-800); font-weight: 600; }
 
+.reader--solo { grid-template-columns: minmax(0, 1fr); max-width: 52rem; margin: 0 auto; }
+.reader--solo .reader__nav { display: none; }
+.reader__draftdot {
+  display: inline-block;
+  width: .375rem;
+  height: .375rem;
+  margin-left: .375rem;
+  vertical-align: middle;
+  background: var(--yellow-500);
+  border-radius: 50%;
+}
 .reader__body { max-width: 44rem; padding-bottom: 4rem; }
 .reader__body h1 {
   font-family: var(--display);
