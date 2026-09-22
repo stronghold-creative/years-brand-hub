@@ -21,15 +21,13 @@ foreach ($pages as $page) {
 
   <?php foreach ($bySection as $section => $rows): ?>
     <section class="sectionblock">
-      <div class="sectionblock__head">
-        <h2><?= e($section) ?></h2>
-        <form method="post" action="/admin/sections/rename" class="inline rename">
-          <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
-          <input type="hidden" name="from" value="<?= e($section) ?>">
-          <input type="text" name="to" value="<?= e($section) ?>" aria-label="Rename section">
-          <button class="linkbutton" type="submit">Rename section</button>
-        </form>
-      </div>
+      <form method="post" action="/admin/sections/rename" class="sectionblock__head">
+        <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
+        <input type="hidden" name="from" value="<?= e($section) ?>">
+        <input class="sectionblock__name" type="text" name="to" value="<?= e($section) ?>"
+               aria-label="Section name, edit to rename">
+        <button class="linkbutton" type="submit">Save name</button>
+      </form>
 
       <table class="pages">
         <thead><tr><th>Title</th><th>Status</th><th>Updated</th><th>Order</th><th></th></tr></thead>
