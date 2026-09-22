@@ -254,3 +254,44 @@ function asset_send_file(string $path, string $downloadName, string $mime = 'app
     readfile($path);
     exit;
 }
+
+/** Image types that are safe to render inline in a page. */
+function asset_is_inline_image(array $asset): bool
+{
+    return in_array($asset['mime'], ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/svg+xml'], true);
+}
+
+/**
+ * Streams an image for display rather than download. SVG is served with a
+ * restrictive CSP, because an SVG can carry script and is same-origin here.
+ */
+function asset_send_inline(array $asset): never
+{
+    $path = asset_path($asset);
+    if (!is_file($path)) {
+        not_found();
+    }
+    header('Content-Type: ' . $asset['mime']);
+    header('Content-Length: ' . filesize($path));
+    header('X-Content-Type-Options: nosniff');
+    header('Content-Security-Policy: default-src \'none\'; style-src \'unsafe-inline\'; sandbox');
+    // Cache hard, but the URL carries the version so a replacement busts it.
+    header('Cache-Control: private, max-age=604800');
+
+    while (ob_get_level()) {
+        ob_end_clean();
+    }
+    readfile($path);
+    exit;
+}
+
+/** The URL for showing an asset inline, versioned so replacements take effect. */
+function asset_image_url(array $asset): string
+{
+    return '/i/' . (int) $asset['id'] . '?v=' . rawurlencode((string) $asset['version']);
+}
+
+function asset_find(int $id): ?array
+{
+    return db_one('SELECT * FROM assets WHERE id = ?', [$id]);
+}

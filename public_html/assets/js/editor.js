@@ -18,9 +18,127 @@
 
   const clone = (value) => JSON.parse(JSON.stringify(value));
 
+
+  // ---------------------------------------------------------- image picker
+
+  let imageCache = null;
+
+  async function loadImages() {
+    if (imageCache) return imageCache;
+    const response = await fetch('/admin/assets.json', { headers: { 'Accept': 'application/json' } });
+    const data = await response.json();
+    imageCache = data.images || [];
+    return imageCache;
+  }
+
+  function openPicker(onPick) {
+    const overlay = document.createElement('div');
+    overlay.className = 'picker';
+    overlay.innerHTML =
+      '<div class="picker__panel" role="dialog" aria-label="Choose an image">' +
+        '<header class="picker__head">' +
+          '<input class="picker__search" type="search" placeholder="Search by name or tag" aria-label="Search images">' +
+          '<button type="button" class="picker__close" aria-label="Close">Close</button>' +
+        '</header>' +
+        '<div class="picker__grid" aria-live="polite">Loading</div>' +
+        '<p class="picker__hint">Images come from the asset library. Upload new ones under Assets.</p>' +
+      '</div>';
+    document.body.append(overlay);
+
+    const grid = overlay.querySelector('.picker__grid');
+    const search = overlay.querySelector('.picker__search');
+    const close = () => { overlay.remove(); document.removeEventListener('keydown', onKey); };
+    const onKey = (event) => { if (event.key === 'Escape') close(); };
+
+    overlay.querySelector('.picker__close').addEventListener('click', close);
+    overlay.addEventListener('click', (event) => { if (event.target === overlay) close(); });
+    document.addEventListener('keydown', onKey);
+
+    function draw(images) {
+      grid.innerHTML = '';
+      if (!images.length) {
+        grid.textContent = 'No images yet. Upload some under Assets first.';
+        return;
+      }
+      images.forEach((image) => {
+        const tile = document.createElement('button');
+        tile.type = 'button';
+        tile.className = 'picker__tile';
+        tile.innerHTML =
+          '<span class="picker__thumb"><img src="' + image.url + '" alt="" loading="lazy"></span>' +
+          '<span class="picker__label"></span>';
+        tile.querySelector('.picker__label').textContent = image.label || image.file;
+        tile.addEventListener('click', () => { onPick(image); close(); });
+        grid.append(tile);
+      });
+    }
+
+    loadImages().then((images) => {
+      draw(images);
+      search.focus();
+      search.addEventListener('input', () => {
+        const term = search.value.trim().toLowerCase();
+        draw(!term ? images : images.filter((image) =>
+          (image.label + ' ' + image.file + ' ' + image.tags).toLowerCase().includes(term)
+        ));
+      });
+    }).catch(() => { grid.textContent = 'Could not load the image library.'; });
+  }
+
+  function assetField(def, value, onInput) {
+    const wrap = document.createElement('div');
+    wrap.className = 'field field--asset';
+    const label = document.createElement('span');
+    label.className = 'field__label';
+    label.textContent = def.label;
+    wrap.append(label);
+
+    const shown = document.createElement('div');
+    shown.className = 'assetpick';
+    wrap.append(shown);
+
+    function paint(id) {
+      shown.innerHTML = '';
+      const choose = button(id ? 'Change' : 'Choose an image', () => {
+        openPicker((image) => { onInput(String(image.id)); paint(String(image.id)); });
+      });
+      choose.className = 'assetpick__choose';
+
+      if (id) {
+        loadImages().then((images) => {
+          const match = images.find((image) => String(image.id) === String(id));
+          const preview = document.createElement('span');
+          preview.className = 'assetpick__preview';
+          if (match) {
+            preview.innerHTML = '<img src="' + match.url + '" alt="">';
+            const name = document.createElement('span');
+            name.className = 'assetpick__name';
+            name.textContent = match.label || match.file;
+            shown.prepend(preview, name);
+          } else {
+            preview.textContent = 'That image was removed from the library.';
+            preview.classList.add('is-missing');
+            shown.prepend(preview);
+          }
+        });
+        const clear = button('Remove', () => { onInput(''); paint(''); });
+        clear.className = 'assetpick__clear';
+        shown.append(choose, clear);
+      } else {
+        shown.append(choose);
+      }
+    }
+
+    paint(value || '');
+    return wrap;
+  }
+
   // ------------------------------------------------------------ field markup
 
   function field(def, value, onInput) {
+    if (def.type === 'asset') {
+      return assetField(def, value, onInput);
+    }
     const wrap = document.createElement('label');
     wrap.className = 'field';
     wrap.append(def.label + (def.optional ? ' (optional)' : ''));

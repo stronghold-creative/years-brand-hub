@@ -250,7 +250,13 @@ if ($path === '/admin/sections/rename' && $method === 'POST') {
     $from = trim($_POST['from'] ?? '');
     $to   = trim($_POST['to'] ?? '');
     if ($from !== '' && $to !== '') {
-        db_run('UPDATE pages SET section = ? WHERE section = ?', [$to, $from]);
+        if ($from !== $to) {
+            db_run('UPDATE pages SET section = ? WHERE section = ?', [$to, $from]);
+        }
+        section_icon_rename($from, $to);
+        if (isset($_POST['icon'])) {
+            section_icon_save($to, (string) $_POST['icon']);
+        }
     }
     redirect('/admin');
 }
@@ -330,6 +336,38 @@ if (preg_match('#^/admin/users/(\d+)/delete$#', $path, $m) && $method === 'POST'
 }
 
 // ------------------------------------------------------------------ settings
+
+// Images shown inside pages. Separate from /d/ because these display rather
+// than download, and are not counted as downloads.
+if (preg_match('#^/i/(\\d+)#', $path, $m)) {
+    if (site_is_private($config) && !current_user()) {
+        not_found();
+    }
+    $asset = asset_find((int) $m[1]);
+    if (!$asset || !asset_is_inline_image($asset)) {
+        not_found();
+    }
+    asset_send_inline($asset);
+}
+
+// Feeds the image picker in the editor.
+if ($path === '/admin/assets.json') {
+    require_editor();
+    $out = [];
+    foreach (db_all('SELECT * FROM assets ORDER BY uploaded_at DESC') as $asset) {
+        if (!asset_is_inline_image($asset)) {
+            continue;
+        }
+        $out[] = [
+            'id'    => (int) $asset['id'],
+            'label' => $asset['label'],
+            'file'  => $asset['original_name'],
+            'url'   => asset_image_url($asset),
+            'tags'  => (string) $asset['tags'],
+        ];
+    }
+    json_out(['images' => $out]);
+}
 
 // -------------------------------------------------------------------- assets
 

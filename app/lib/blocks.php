@@ -82,6 +82,74 @@ function block_types(): array
             ],
         ],
 
+        'image' => [
+            'label'  => 'Image',
+            'hint'   => 'One image from the asset library, with a caption. Replacing the file updates this automatically.',
+            'fields' => [
+                'asset'   => ['type' => 'asset', 'label' => 'Image'],
+                'alt'     => ['type' => 'text', 'label' => 'Alt text, describing the image for screen readers'],
+                'caption' => ['type' => 'text', 'label' => 'Caption', 'optional' => true],
+                'width'   => ['type' => 'select', 'label' => 'Width', 'options' => [
+                    'text' => 'Text width',
+                    'wide' => 'Wider than the text',
+                    'half' => 'Half width',
+                ]],
+                'frame'   => ['type' => 'select', 'label' => 'Background', 'options' => [
+                    'none'  => 'None',
+                    'light' => 'Light panel',
+                    'dark'  => 'Dark panel',
+                ]],
+            ],
+        ],
+
+        'image_grid' => [
+            'label'  => 'Image grid',
+            'hint'   => 'Several images side by side. Good for do and do not comparisons, or a set of examples.',
+            'fields' => [
+                'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
+                'columns' => ['type' => 'select', 'label' => 'Columns', 'options' => [
+                    '2' => 'Two',
+                    '3' => 'Three',
+                    '4' => 'Four',
+                ]],
+                'items' => [
+                    'type'   => 'repeater',
+                    'label'  => 'Images',
+                    'item'   => 'Image',
+                    'fields' => [
+                        'asset'   => ['type' => 'asset', 'label' => 'Image'],
+                        'alt'     => ['type' => 'text', 'label' => 'Alt text'],
+                        'caption' => ['type' => 'text', 'label' => 'Caption', 'optional' => true],
+                        'stance'  => ['type' => 'select', 'label' => 'Mark as', 'options' => [
+                            'none' => 'Nothing',
+                            'do'   => 'Do',
+                            'dont' => 'Do not',
+                        ]],
+                    ],
+                ],
+            ],
+        ],
+
+        'comparison_table' => [
+            'label'  => 'Comparison table',
+            'hint'   => 'Two columns, for this-not-that guidance. Words we use against words we avoid, for example.',
+            'fields' => [
+                'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
+                'left'    => ['type' => 'text', 'label' => 'Left column heading'],
+                'right'   => ['type' => 'text', 'label' => 'Right column heading'],
+                'rows'    => [
+                    'type'   => 'repeater',
+                    'label'  => 'Rows',
+                    'item'   => 'Row',
+                    'fields' => [
+                        'left'  => ['type' => 'text', 'label' => 'Left'],
+                        'right' => ['type' => 'text', 'label' => 'Right'],
+                        'note'  => ['type' => 'text', 'label' => 'Note', 'optional' => true],
+                    ],
+                ],
+            ],
+        ],
+
         'download_list' => [
             'label'  => 'Downloads',
             'hint'   => 'Lists every asset carrying a tag, so uploading a new file adds it here automatically.',
@@ -120,8 +188,9 @@ function block_defaults(string $type): array
     foreach ($def['fields'] as $key => $field) {
         $data[$key] = match ($field['type']) {
             'repeater' => [],
-            'select'   => array_key_first($field['options']),
+            'select'   => (string) array_key_first($field['options']),
             'colour'   => '#7257B7',
+            'asset'    => '',
             default    => '',
         };
     }
@@ -147,13 +216,25 @@ function sanitise_blocks(array $blocks): array
                 foreach (is_array($value) ? $value : [] as $row) {
                     $clean_row = [];
                     foreach ($field['fields'] as $subKey => $subField) {
-                        $clean_row[$subKey] = trim((string) ($row[$subKey] ?? ''));
+                        $value = $row[$subKey] ?? '';
+                        if ($subField['type'] === 'asset') {
+                            $clean_row[$subKey] = (string) (int) $value;
+                        } elseif ($subField['type'] === 'select') {
+                            $clean_row[$subKey] = (string) (isset($subField['options'][$value]) ? $value : array_key_first($subField['options']));
+                        } else {
+                            $clean_row[$subKey] = trim((string) $value);
+                        }
                     }
                     $rows[] = $clean_row;
                 }
                 $data[$key] = $rows;
             } elseif ($field['type'] === 'select') {
-                $data[$key] = isset($field['options'][$value]) ? $value : array_key_first($field['options']);
+                // Cast to string: PHP turns numeric option keys into integers,
+                // and stored JSON should hold one consistent type.
+                $data[$key] = (string) (isset($field['options'][$value]) ? $value : array_key_first($field['options']));
+            } elseif ($field['type'] === 'asset') {
+                // Store the id only. A missing or bogus id renders as nothing.
+                $data[$key] = (string) (int) $value;
             } else {
                 $data[$key] = trim((string) $value);
             }
