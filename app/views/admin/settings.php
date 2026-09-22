@@ -3,6 +3,17 @@
 
   <?php if ($notice): ?><p class="notice"><?= e($notice) ?></p><?php endif; ?>
 
+  <?php if (!empty($pending)): ?>
+    <section class="panel">
+      <h2>Database updates waiting</h2>
+      <p class="hint">These come with new features and need applying once: <?= e(implode(', ', $pending)) ?></p>
+      <form method="post" action="/admin/migrate">
+        <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
+        <button type="submit">Apply updates</button>
+      </form>
+    </section>
+  <?php endif; ?>
+
   <form method="post" class="panel">
     <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
 

@@ -331,6 +331,18 @@ if (preg_match('#^/admin/users/(\d+)/delete$#', $path, $m) && $method === 'POST'
 
 // ------------------------------------------------------------------ settings
 
+if ($path === '/admin/migrate' && $method === 'POST') {
+    require_admin();
+    csrf_check();
+    try {
+        $ran = migrations_run();
+        $notice = $ran ? 'Applied ' . implode(', ', $ran) : 'Nothing to apply.';
+    } catch (Throwable $e) {
+        $notice = 'Migration failed: ' . $e->getMessage();
+    }
+    redirect('/admin/settings?notice=' . urlencode($notice));
+}
+
 if ($path === '/admin/settings') {
     require_admin();
     if ($method === 'POST') {
@@ -344,6 +356,7 @@ if ($path === '/admin/settings') {
         'title'   => 'Settings',
         'config'  => $config,
         'notice'  => $_GET['notice'] ?? null,
+        'pending' => migrations_pending(),
     ], 'admin/layout');
     exit;
 }

@@ -48,7 +48,8 @@ if ($dbReady) {
 
 if ($userExists) {
     http_response_code(403);
-    exit('Setup has already run. Delete this file from public_html and sign in at /admin/sign-in');
+    exit('Setup has already run. Delete this file from public_html and sign in at /admin/sign-in. '
+       . 'Database updates are applied from Settings in the admin, not here.');
 }
 
 // ------------------------------------------------------------------ run setup
