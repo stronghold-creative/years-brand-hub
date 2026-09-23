@@ -187,6 +187,10 @@ a:hover { color: var(--accent-deep); }
 .card__art--tint-green  .card__glyph { background: #CFE5DE; color: #1F5A4D; }
 .card__art--tint-lilac  .card__glyph { background: #E3DBF8; color: #563C96; }
 
+/* A very wide display gets another column rather than enormous cards. */
+@media (min-width: 110rem) { .cards { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
+@media (min-width: 150rem) { .cards { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
+
 @media (max-width: 78rem) { .cards { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (max-width: 60rem) { .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 42rem) {

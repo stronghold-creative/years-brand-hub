@@ -551,14 +551,24 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 
 /* -------------------------------------------------------------- content */
 
-/* One container for every screen. Left aligned rather than centred, so the
-   content sits next to the drawer instead of floating in the middle, and
-   capped so long lines never run the full width of a large display. */
-.m3-page { max-width: 78rem; margin: 0; padding: 0 2.5rem 6rem; }
-.m3-page__bar { max-width: 78rem; }
-/* Forms are constrained by their card, not by the page, so every screen keeps
-   the same left edge. */
+/* One container for every screen, fluid up to a generous cap so a large
+   display is actually used, with the gutter growing alongside it. Reading
+   width is protected at the component level instead: cards, forms and lists
+   each carry their own comfortable maximum. */
+.m3-page {
+  max-width: min(112rem, 100%);
+  margin: 0;
+  padding: 0 clamp(1.25rem, 3vw, 4rem) 6rem;
+}
+.m3-page__bar { max-width: min(112rem, 100%); padding-left: 0; padding-right: 0; }
+
+/* Forms stay readable no matter how wide the window is. */
 .m3-card { max-width: 56rem; }
+
+/* A list row with its actions pinned to the far right of a 4K display would
+   put a long way between a page title and its buttons, so the list keeps a
+   sensible measure and the space goes to the content that benefits. */
+.m3-list, .m3-section, .m3-list + .m3-addrow { max-width: 84rem; }
 
 /* The page bar holds the title and the one primary action for that screen,
    so the primary action is in the same place on every screen. */
@@ -629,7 +639,7 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 .m3-list-item:hover .m3-button--text,
 .m3-list-item:focus-within .m3-button--text { color: var(--md-sys-color-primary); }
 
-.m3-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+.m3-table { width: 100%; max-width: 84rem; border-collapse: collapse; font-size: .875rem; }
 .m3-table th {
   text-align: left;
   font-size: .75rem;
@@ -1028,6 +1038,10 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
   gap: 1rem;
+}
+/* On a large display, fewer and bigger tiles beats a wall of small ones. */
+@media (min-width: 100rem) {
+  .m3-assets { grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 1.25rem; }
 }
 .m3-asset[hidden] { display: none; }
 .m3-asset__button {
