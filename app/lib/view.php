@@ -15,6 +15,10 @@ function view(string $template, array $data = [], ?string $layout = 'layout'): v
     require APP_DIR . '/views/' . $layout . '.php';
 }
 
+/**
+ * Renders a template inside another, with no layout. Unused at the moment, but
+ * part of the view API that block renderers would reach for.
+ */
 function partial(string $template, array $data = []): void
 {
     extract($data, EXTR_SKIP);

@@ -470,7 +470,7 @@
       }, true));
     });
     const note = document.createElement('p');
-    note.className = 'insp__hint';
+    note.className = 'insp__note';
     note.textContent = 'Anything set to "Site default" follows Appearance in the admin.';
     place.append(note);
     inspector.append(place);
@@ -524,52 +524,89 @@
 
   // ========================================================== adding blocks
 
-  function openBlockMenu(index, anchorEl) {
-    document.querySelectorAll('.blockmenu').forEach((el) => el.remove());
+  /**
+   * The block chooser. Always a centred dialog rather than a popover, because
+   * it is opened from three places, the outline, the canvas and the keyboard,
+   * and a popover anchored to any of them either clips or lands off screen.
+   */
+  function openBlockMenu(index) {
+    closeBlockMenu();
+
+    const scrim = document.createElement('div');
+    scrim.className = 'blockmenu__scrim';
 
     const menu = document.createElement('div');
     menu.className = 'blockmenu';
-    menu.innerHTML = '<p class="blockmenu__title">Add a block</p>';
+    menu.setAttribute('role', 'dialog');
+    menu.setAttribute('aria-modal', 'true');
+    menu.setAttribute('aria-label', 'Add a block');
+    menu.innerHTML =
+      '<header class="blockmenu__head">' +
+        '<p class="blockmenu__title">Add a block</p>' +
+        '<input class="blockmenu__search" type="search" placeholder="Search blocks" aria-label="Search blocks">' +
+      '</header><div class="blockmenu__list"></div>';
 
-    Object.entries(schema).forEach(([type, def]) => {
-      const item = document.createElement('button');
-      item.type = 'button';
-      item.className = 'blockmenu__item';
-      item.innerHTML = '<span class="blockmenu__label"></span><span class="blockmenu__hint"></span>';
-      item.querySelector('.blockmenu__label').textContent = def.label;
-      item.querySelector('.blockmenu__hint').textContent = def.hint || '';
-      item.addEventListener('click', () => {
-        blocks.splice(index, 0, {
-          type: type,
-          data: copy(defaults[type]),
-          settings: copy(settingsBlank),
-          options: copy(optionDefaults[type] || {}),
+    const list = menu.querySelector('.blockmenu__list');
+
+    function draw(term) {
+      list.innerHTML = '';
+      const entries = Object.entries(schema).filter(([, def]) =>
+        !term || (def.label + ' ' + (def.hint || '')).toLowerCase().includes(term));
+
+      if (!entries.length) {
+        const none = document.createElement('p');
+        none.className = 'blockmenu__none';
+        none.textContent = 'Nothing matches that.';
+        list.append(none);
+        return;
+      }
+
+      entries.forEach(([type, def]) => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'blockmenu__item';
+        item.innerHTML = '<span class="blockmenu__label"></span><span class="blockmenu__hint"></span>';
+        item.querySelector('.blockmenu__label').textContent = def.label;
+        item.querySelector('.blockmenu__hint').textContent = def.hint || '';
+        item.addEventListener('click', () => {
+          blocks.splice(index, 0, {
+            type: type,
+            data: copy(defaults[type]),
+            settings: copy(settingsBlank),
+            options: copy(optionDefaults[type] || {}),
+          });
+          closeBlockMenu();
+          select(index);
+          queueSave();
         });
-        menu.remove();
-        select(index);
-        queueSave();
+        list.append(item);
       });
-      menu.append(item);
-    });
+    }
 
-    (anchorEl || document.body).append(menu);
-    if (!anchorEl) menu.classList.add('blockmenu--centred');
+    draw('');
+    scrim.append(menu);
+    document.body.append(scrim);
 
-    const close = (event) => {
-      if (!menu.contains(event.target)) { menu.remove(); document.removeEventListener('click', close); }
-    };
-    setTimeout(() => document.addEventListener('click', close), 0);
-    document.addEventListener('keydown', function esc(event) {
-      if (event.key === 'Escape') { menu.remove(); document.removeEventListener('keydown', esc); }
-    });
+    const search = menu.querySelector('.blockmenu__search');
+    search.focus();
+    search.addEventListener('input', () => draw(search.value.trim().toLowerCase()));
+
+    scrim.addEventListener('click', (event) => { if (event.target === scrim) closeBlockMenu(); });
+    document.addEventListener('keydown', onMenuKey);
+  }
+
+  function closeBlockMenu() {
+    document.querySelectorAll('.blockmenu__scrim').forEach((el) => el.remove());
+    document.removeEventListener('keydown', onMenuKey);
+  }
+
+  function onMenuKey(event) {
+    if (event.key === 'Escape') { event.stopPropagation(); closeBlockMenu(); }
   }
 
   const outlineAdd = document.getElementById('outline-add');
   if (outlineAdd) {
-    outlineAdd.addEventListener('click', (event) => {
-      event.stopPropagation();
-      openBlockMenu(blocks.length, outlineAdd.parentElement);
-    });
+    outlineAdd.addEventListener('click', () => openBlockMenu(blocks.length));
   }
 
   function renderAll() {
@@ -714,7 +751,7 @@
 
   // Escape returns to page settings; that is the only shortcut for now.
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && selected !== null && !document.querySelector('.picker, .blockmenu')) {
+    if (event.key === 'Escape' && selected !== null && !document.querySelector('.picker, .blockmenu__scrim')) {
       select(null);
     }
   });

@@ -71,9 +71,21 @@ Hostinger. Set these repository secrets: `FTP_HOST`, `FTP_USER`, `FTP_PASSWORD`,
 `FTP_REMOTE_DIR`. The workflow excludes `app/config.php` and `storage/`, so a
 deploy can never overwrite your credentials or uploaded files.
 
+## What is built
+
+- Block editor: outline, live canvas, contextual inspector
+- Nine block types, each with its own options, inheriting from global settings
+- Appearance: numeric global styling, colours, widths, type scale
+- Assets: upload, versioning, replace in place, ZIP bundles, gated downloads
+- Pages: sections, ordering, drafts, version history with restore
+- People and roles, settings, site logo, area toggle
+
 ## Not built yet
 
-- Asset uploads, downloads and ZIP bundles (tables already exist in the schema)
-- Version restore in the admin
-- User management screen; use `tools/create-user.php` for now
-- `/tokens.css` currently exports colours only, not type
+- Search across pages
+- The Components area, beyond a placeholder
+- Ten block types the page inventory will need: clearspace diagram, spacing
+  scale, icon grid, contrast pairs, before and after, video embed, spec table,
+  link list, contacts, checklist
+- `/tokens.css` exports colours only, not type
+- Inline text editing on the canvas; text is edited in the inspector
