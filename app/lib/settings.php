@@ -48,3 +48,57 @@ function site_is_private(array $config): bool
 {
     return setting_bool('require_login_to_view', !empty($config['site']['require_login_to_view']));
 }
+
+/** The order sections appear in, as chosen in the admin. */
+function section_order(): array
+{
+    $raw = json_decode((string) setting('section_order', '[]'), true);
+    return is_array($raw) ? array_values(array_filter(array_map('strval', $raw))) : [];
+}
+
+/**
+ * Sorts a section-keyed array by the chosen order. Anything not in the list
+ * follows, alphabetically, so a new section never disappears.
+ */
+function sort_sections(array $bySection): array
+{
+    $order = section_order();
+    $known = [];
+    foreach ($order as $name) {
+        if (array_key_exists($name, $bySection)) {
+            $known[$name] = $bySection[$name];
+            unset($bySection[$name]);
+        }
+    }
+    ksort($bySection);
+    return $known + $bySection;
+}
+
+function section_order_save(array $names): void
+{
+    setting_save('section_order', json_encode(array_values($names)));
+}
+
+/** Moves one section up or down, keeping every other section's position. */
+function section_move(string $name, string $direction, array $allSections): void
+{
+    $order = section_order();
+    // Start from the current display order so a never-ordered list still moves.
+    foreach ($allSections as $section) {
+        if (!in_array($section, $order, true)) {
+            $order[] = $section;
+        }
+    }
+    $order = array_values(array_filter($order, fn($s) => in_array($s, $allSections, true)));
+
+    $index = array_search($name, $order, true);
+    if ($index === false) {
+        return;
+    }
+    $target = $direction === 'up' ? $index - 1 : $index + 1;
+    if ($target < 0 || $target >= count($order)) {
+        return;
+    }
+    array_splice($order, $target, 0, array_splice($order, $index, 1));
+    section_order_save($order);
+}

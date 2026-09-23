@@ -26,14 +26,7 @@ $isAdmin = (current_user()['role'] ?? '') === 'admin';
         Hide preview
       </button>
       <a class="m3-button m3-button--text m3-state" href="/admin/pages/<?= (int) $page['id'] ?>/versions">History</a>
-      <a class="m3-button m3-button--text m3-state" href="/g/<?= e($page['slug']) ?>" target="_blank" rel="noopener">Open</a>
-      <?php if ($isAdmin): ?>
-        <form method="post" action="/admin/pages/<?= (int) $page['id'] ?>/delete" class="m3-editor__delete"
-              data-confirm="Delete &quot;<?= e($page['title']) ?>&quot; and everything on it? This cannot be undone.">
-          <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
-          <button class="m3-button m3-button--text m3-button--danger m3-state" type="submit">Delete page</button>
-        </form>
-      <?php endif; ?>
+      <a class="m3-button m3-button--text m3-state" href="/s/<?= e(slugify($page['section'])) ?>#<?= e($page['slug']) ?>" target="_blank" rel="noopener">Open</a>
     </span>
   </header>
 
@@ -66,6 +59,24 @@ $isAdmin = (current_user()['role'] ?? '') === 'admin';
       </div>
 
       <div id="f-cover" data-cover="<?= (int) ($page['cover_asset_id'] ?? 0) ?>"></div>
+
+      <label class="m3-switch">
+        <input class="m3-switch__input" type="checkbox" id="f-home" role="switch"
+               <?= !isset($page['show_on_home']) || $page['show_on_home'] ? ' checked' : '' ?>>
+        <span class="m3-switch__track"><span class="m3-switch__handle"></span></span>
+        <span class="m3-switch__text">
+          <strong>Show on the front grid</strong>
+          <span>Off keeps the page in its section but hides its card on the home page.</span>
+        </span>
+      </label>
+
+      <?php if ($isAdmin): ?>
+        <form method="post" action="/admin/pages/<?= (int) $page['id'] ?>/delete" class="m3-editor__danger"
+              data-confirm="Delete &quot;<?= e($page['title']) ?>&quot; and everything on it? This cannot be undone.">
+          <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
+          <button class="m3-button m3-button--text m3-button--danger m3-state" type="submit">Delete this page</button>
+        </form>
+      <?php endif; ?>
     </section>
 
     <div class="blocks" id="blocks"></div>

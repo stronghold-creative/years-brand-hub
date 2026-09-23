@@ -3,6 +3,8 @@ $bySection = [];
 foreach ($pages as $page) {
     $bySection[$page['section']][] = $page;
 }
+$bySection = sort_sections($bySection);
+$sectionNames = array_keys($bySection);
 $drafts = count(array_filter($pages, fn($p) => $p['status'] !== 'published'));
 $stale  = count(array_filter($pages, fn($p) => strtotime($p['updated_at']) < strtotime('-6 months')));
 ?>
@@ -45,6 +47,21 @@ $stale  = count(array_filter($pages, fn($p) => strtotime($p['updated_at']) < str
         <button class="m3-button m3-button--text m3-state m3-section__save" type="submit">Save section</button>
       </form>
 
+      <span class="m3-section__move">
+        <?php foreach (['up' => '&uarr;', 'down' => '&darr;'] as $dir => $glyph): ?>
+          <?php
+            $at = array_search($section, $sectionNames, true);
+            $off = ($dir === 'up' && $at === 0) || ($dir === 'down' && $at === count($sectionNames) - 1);
+          ?>
+          <form method="post" action="/admin/sections/move/<?= $dir ?>">
+            <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
+            <input type="hidden" name="section" value="<?= e($section) ?>">
+            <button class="m3-icon-button m3-state" type="submit"<?= $off ? ' disabled' : '' ?>
+                    aria-label="Move <?= e($section) ?> <?= $dir ?>"><?= $glyph ?></button>
+          </form>
+        <?php endforeach; ?>
+      </span>
+
       <div class="m3-list-head">
         <span>Page</span>
         <span>Summary</span>
@@ -72,14 +89,7 @@ $stale  = count(array_filter($pages, fn($p) => strtotime($p['updated_at']) < str
 
             <span class="m3-list-item__actions">
               <a class="m3-button m3-button--text m3-state" href="/admin/pages/<?= (int) $page['id'] ?>/versions">History</a>
-              <a class="m3-button m3-button--text m3-state" href="/g/<?= e($page['slug']) ?>" target="_blank" rel="noopener">View</a>
-              <?php if ((current_user()['role'] ?? '') === 'admin'): ?>
-                <form method="post" action="/admin/pages/<?= (int) $page['id'] ?>/delete"
-                      data-confirm="Delete &quot;<?= e($page['title']) ?>&quot; and everything on it? This cannot be undone.">
-                  <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
-                  <button class="m3-button m3-button--text m3-button--danger m3-state" type="submit">Delete</button>
-                </form>
-              <?php endif; ?>
+              <a class="m3-button m3-button--text m3-state" href="/s/<?= e(slugify($page['section'])) ?>#<?= e($page['slug']) ?>" target="_blank" rel="noopener">View</a>
               <?php foreach (['up' => '&uarr;', 'down' => '&darr;'] as $dir => $glyph): ?>
                 <?php $off = ($dir === 'up' && $i === 0) || ($dir === 'down' && $i === count($rows) - 1); ?>
                 <form method="post" action="/admin/pages/<?= (int) $page['id'] ?>/move/<?= $dir ?>">
@@ -88,6 +98,20 @@ $stale  = count(array_filter($pages, fn($p) => strtotime($p['updated_at']) < str
                           aria-label="Move <?= e($page['title']) ?> <?= $dir ?>"><?= $glyph ?></button>
                 </form>
               <?php endforeach; ?>
+
+              <?php if ((current_user()['role'] ?? '') === 'admin'): ?>
+                <span class="m3-more">
+                  <button class="m3-icon-button m3-state" type="button" data-more
+                          aria-label="More actions for <?= e($page['title']) ?>" aria-expanded="false">&#8942;</button>
+                  <span class="m3-more__menu" hidden>
+                    <form method="post" action="/admin/pages/<?= (int) $page['id'] ?>/delete"
+                          data-confirm="Delete &quot;<?= e($page['title']) ?>&quot; and everything on it? This cannot be undone.">
+                      <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
+                      <button class="m3-more__item m3-more__item--danger" type="submit">Delete page</button>
+                    </form>
+                  </span>
+                </span>
+              <?php endif; ?>
             </span>
           </li>
         <?php endforeach; ?>

@@ -12,11 +12,14 @@ if ($path === '/') {
     if (site_is_private($config) && !current_user()) {
         redirect('/admin/sign-in');
     }
-    $pages = db_all("SELECT slug, title, section, summary, cover_asset_id FROM pages WHERE status = 'published' ORDER BY section, sort_order, title");
+    $pages = db_all("SELECT slug, title, section, summary, cover_asset_id FROM pages
+                      WHERE status = 'published' AND show_on_home = 1
+                      ORDER BY sort_order, title");
     $sections = [];
     foreach ($pages as $page) {
         $sections[$page['section']][] = $page;
     }
+    $sections = sort_sections($sections);
     view('home', ['title' => $config['site']['name'], 'sections' => $sections, 'config' => $config]);
     exit;
 }
@@ -40,6 +43,43 @@ if ($path === '/tokens.css') {
     exit;
 }
 
+// A whole section on one page. Each page within it is an anchor, so the rail
+// scrolls rather than navigating, which is how people actually read guidelines.
+if (preg_match('#^/s/([a-z0-9\\-]+)$#', $path, $m)) {
+    if (site_is_private($config) && !current_user()) {
+        redirect('/admin/sign-in');
+    }
+
+    $visible = can_edit()
+        ? db_all('SELECT * FROM pages ORDER BY sort_order, title')
+        : db_all("SELECT * FROM pages WHERE status = 'published' ORDER BY sort_order, title");
+
+    $bySection = [];
+    foreach ($visible as $row) {
+        $bySection[$row['section']][] = $row;
+    }
+    $bySection = sort_sections($bySection);
+
+    $current = null;
+    foreach (array_keys($bySection) as $name) {
+        if (slugify($name) === $m[1]) {
+            $current = $name;
+        }
+    }
+    if ($current === null) {
+        not_found();
+    }
+
+    view('section', [
+        'title'   => $current,
+        'section' => $current,
+        'pages'   => $bySection[$current],
+        'nav'     => $bySection,
+        'config'  => $config,
+    ]);
+    exit;
+}
+
 if (preg_match('#^/g/([a-z0-9\-]+)$#', $path, $m)) {
     if (site_is_private($config) && !current_user()) {
         redirect('/admin/sign-in');
@@ -48,19 +88,9 @@ if (preg_match('#^/g/([a-z0-9\-]+)$#', $path, $m)) {
     if (!$page || ($page['status'] !== 'published' && !can_edit())) {
         not_found();
     }
-    $nav = db_all(
-        can_edit()
-            ? "SELECT slug, title, section, status FROM pages ORDER BY section, sort_order, title"
-            : "SELECT slug, title, section, status FROM pages WHERE status = 'published' ORDER BY section, sort_order, title"
-    );
-    view('page', [
-        'title'  => $page['title'],
-        'page'   => $page,
-        'blocks' => json_decode($page['blocks'], true) ?: [],
-        'nav'    => $nav,
-        'config' => $config,
-    ]);
-    exit;
+    // Old links, and links from the index, land at the right point in the
+    // section rather than on a page of their own.
+    redirect('/s/' . slugify($page['section']) . '#' . $page['slug']);
 }
 
 // ---------------------------------------------------------------------- admin
@@ -138,13 +168,14 @@ if (preg_match('#^/admin/pages/(\d+)/save$#', $path, $m) && $method === 'POST') 
     db()->beginTransaction();
     $cover = (int) ($payload['cover'] ?? 0);
     db_run(
-        'UPDATE pages SET title = ?, section = ?, summary = ?, status = ?, cover_asset_id = ?, blocks = ?, updated_by = ? WHERE id = ?',
+        'UPDATE pages SET title = ?, section = ?, summary = ?, status = ?, cover_asset_id = ?, show_on_home = ?, blocks = ?, updated_by = ? WHERE id = ?',
         [
             $title,
             trim($payload['section'] ?? '') ?: 'General',
             str_trim_to(trim($payload['summary'] ?? ''), 400),
             ($payload['status'] ?? 'draft') === 'published' ? 'published' : 'draft',
             $cover > 0 ? $cover : null,
+            !empty($payload['show_on_home']) ? 1 : 0,
             $blocks,
             $userId,
             $page['id'],
@@ -244,6 +275,15 @@ if (preg_match('#^/admin/pages/(\d+)/move/(up|down)$#', $path, $m) && $method ==
     foreach ($ids as $position => $id) {
         db_run('UPDATE pages SET sort_order = ? WHERE id = ?', [$position, $id]);
     }
+    redirect('/admin');
+}
+
+if (preg_match('#^/admin/sections/move/(up|down)$#', $path, $m) && $method === 'POST') {
+    require_editor();
+    csrf_check();
+    $names = array_column(db_all('SELECT DISTINCT section FROM pages ORDER BY section'), 'section');
+    $bySection = array_fill_keys($names, []);
+    section_move(trim($_POST['section'] ?? ''), $m[1], array_keys(sort_sections($bySection)));
     redirect('/admin');
 }
 

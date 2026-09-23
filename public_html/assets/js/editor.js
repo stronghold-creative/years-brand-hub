@@ -559,6 +559,7 @@
           summary: document.getElementById('f-summary').value,
           status:  document.getElementById('f-status').value,
           cover:   coverId || 0,
+          show_on_home: document.getElementById('f-home') ? document.getElementById('f-home').checked : true,
           blocks:  payload,
         }),
       });
@@ -583,7 +584,7 @@
     });
   }
 
-  ['f-title', 'f-section', 'f-summary', 'f-status'].forEach((id) => {
+  ['f-title', 'f-section', 'f-summary', 'f-status', 'f-home'].forEach((id) => {
     const el = document.getElementById(id);
     if (!el) return;
     el.addEventListener('input', queueSave);

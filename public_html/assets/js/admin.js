@@ -199,6 +199,24 @@
     });
   });
 
+  // --------------------------------------------------------- overflow menus
+
+  document.addEventListener('click', (event) => {
+    const trigger = event.target.closest('[data-more]');
+    document.querySelectorAll('.m3-more__menu').forEach((menu) => {
+      const owner = menu.parentElement.querySelector('[data-more]');
+      const isThis = trigger && owner === trigger;
+      const opening = isThis && menu.hasAttribute('hidden');
+      if (opening) { menu.removeAttribute('hidden'); } else { menu.setAttribute('hidden', ''); }
+      if (owner) owner.setAttribute('aria-expanded', String(opening));
+    });
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key !== 'Escape') return;
+    document.querySelectorAll('.m3-more__menu').forEach((menu) => menu.setAttribute('hidden', ''));
+  });
+
   // ------------------------------------------------------- scroll shadow
 
   const bar = document.querySelector('.m3-page__bar');

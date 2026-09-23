@@ -187,10 +187,6 @@ a:hover { color: var(--accent-deep); }
 .card__art--tint-green  .card__glyph { background: #CFE5DE; color: #1F5A4D; }
 .card__art--tint-lilac  .card__glyph { background: #E3DBF8; color: #563C96; }
 
-/* A very wide display gets another column rather than enormous cards. */
-@media (min-width: 110rem) { .cards { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
-@media (min-width: 150rem) { .cards { grid-template-columns: repeat(7, minmax(0, 1fr)); } }
-
 @media (max-width: 78rem) { .cards { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
 @media (max-width: 60rem) { .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 @media (max-width: 42rem) {
@@ -495,3 +491,63 @@ a:hover { color: var(--accent-deep); }
   .zone--w-wide, .zone--w-full { width: 100%; max-width: 100%; }
   .zone--sp-loose { margin-bottom: 4rem; }
 }
+
+/* ===========================================================================
+   Section reading view
+
+   One section is one long page. The rail lists its chapters as anchors and
+   highlights whichever is on screen.
+   =========================================================================== */
+
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
+.reader__nav h2 a { color: inherit; text-decoration: none; }
+.reader__nav h2 a:hover { color: var(--accent); }
+.reader__link {
+  display: block;
+  padding: .3125rem 0 .3125rem .875rem;
+  border-left: 1px solid var(--rule);
+  text-decoration: none;
+  color: var(--ink-soft);
+  font-size: .875rem;
+}
+.reader__link:hover { color: var(--accent); border-left-color: var(--rule-firm); }
+.reader__link.is-current {
+  border-left-color: var(--accent);
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.reader__sectionhead { margin-bottom: 4rem; }
+.reader__sectionhead h1 {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(2.5rem, 5vw, 3.5rem);
+  line-height: 1.05;
+  margin: 0 0 .5rem;
+}
+.reader__count { margin: 0; color: var(--ink-faint); font-size: .875rem; }
+
+.chapter {
+  padding-bottom: 5rem;
+  margin-bottom: 5rem;
+  border-bottom: 1px solid var(--rule);
+  /* Clears the sticky masthead when jumped to from the rail. */
+  scroll-margin-top: 6rem;
+}
+.chapter:last-child { border-bottom: 0; }
+.chapter__title {
+  font-family: var(--display);
+  font-weight: 400;
+  font-size: clamp(1.875rem, 3.5vw, 2.5rem);
+  line-height: 1.1;
+  margin: 0 0 .75rem;
+}
+.chapter__summary {
+  font-size: 1.0625rem;
+  color: var(--ink-soft);
+  max-width: 48ch;
+  margin: 0 0 3rem;
+}
+.chapter__updated { margin-top: 3rem; font-size: .8125rem; color: var(--ink-faint); }
