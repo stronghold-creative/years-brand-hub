@@ -72,9 +72,20 @@ function style_fields(): array
                 'css' => '--s-headweight',
             ],
             'measure' => [
-                'label' => 'Reading width', 'type' => 'number', 'unit' => 'ch',
-                'default' => 66, 'min' => 40, 'max' => 110, 'step' => 1,
+                'label' => 'Paragraph width', 'type' => 'number', 'unit' => 'ch',
+                'default' => 70, 'min' => 40, 'max' => 110, 'step' => 1,
                 'css' => '--s-measure',
+                'help' => 'How wide a line of body text runs. Around 70 characters is comfortable.',
+            ],
+        ],
+
+        'Layout' => [
+            'content_width' => [
+                'label' => 'Content width', 'type' => 'number', 'unit' => 'rem',
+                'default' => 72, 'min' => 36, 'max' => 110, 'step' => 1,
+                'css' => '--s-content',
+                'presets' => ['Narrow' => 48, 'Standard' => 72, 'Wide' => 88],
+                'help' => 'The column everything sits in. Paragraphs stay narrower than this.',
             ],
         ],
 

@@ -208,7 +208,9 @@ a:hover { color: var(--accent-deep); }
   border-radius: 50%;
 }
 
-.reader__body { width: 100%; max-width: 46rem; padding-bottom: 5rem; }
+/* The container. Blocks that benefit from width, grids, tables, images, use
+   all of it; paragraphs are constrained separately by --s-measure. */
+.reader__body { width: 100%; max-width: var(--s-content, 72rem); padding-bottom: 5rem; }
 .reader__body h1 {
   font-family: var(--display);
   font-weight: 400;
@@ -216,7 +218,7 @@ a:hover { color: var(--accent-deep); }
   line-height: 1.08;
   margin: 0 0 1rem;
 }
-.reader__summary { font-size: 1.125rem; color: var(--ink-soft); max-width: 48ch; margin: 0 0 3.5rem; }
+.reader__summary { font-size: 1.125rem; color: var(--ink-soft); max-width: min(var(--s-measure, 70ch), 52ch); margin: 0 0 3.5rem; }
 .reader__updated {
   margin-top: 5rem;
   padding-top: 1.25rem;
@@ -430,14 +432,11 @@ a:hover { color: var(--accent-deep); }
 .zone { position: relative; }
 .zone > .block { margin-bottom: 0; }
 
-/* Width. "Wider" and "full" break out of the reading column using a negative
-   margin, so blocks stay in normal flow rather than needing a wrapper. */
-.zone--w-text { max-width: 100%; }
-/* Wider than the text column, without escaping the reading area entirely. */
-.zone--w-wide {
-  width: min(64rem, calc(100vw - 2 * var(--gutter)));
-  margin-inline: calc((100% - min(64rem, 100vw - 2 * var(--gutter))) / 2);
-}
+/* Text column: as wide as a paragraph should run.
+   Wider: the full content column.
+   Full: breaks out of the content column to the edge of the page. */
+.zone--w-text { max-width: var(--s-measure, 70ch); }
+.zone--w-wide { max-width: 100%; }
 .zone--w-full {
   width: calc(100vw - 2 * var(--gutter) - 16rem);
   max-width: calc(100vw - 2 * var(--gutter) - 16rem);
@@ -519,7 +518,9 @@ html { scroll-behavior: smooth; }
   scroll-margin-top: 6rem;
 }
 .chapter:last-child { border-bottom: 0; }
+/* A long heading on one line is hard to scan, so headings keep a measure too. */
 .chapter__title {
+  max-width: 24ch;
   font-family: var(--display);
   font-weight: 400;
   font-size: clamp(1.875rem, 3.5vw, 2.5rem);
@@ -529,7 +530,7 @@ html { scroll-behavior: smooth; }
 .chapter__summary {
   font-size: 1.0625rem;
   color: var(--ink-soft);
-  max-width: 48ch;
+  max-width: min(var(--s-measure, 70ch), 52ch);
   margin: 0 0 3rem;
 }
 .chapter__updated { margin-top: 3rem; font-size: .8125rem; color: var(--ink-faint); }
