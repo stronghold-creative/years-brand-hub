@@ -396,6 +396,7 @@
           section: document.getElementById('f-section').value,
           summary: document.getElementById('f-summary').value,
           status:  document.getElementById('f-status').value,
+          cover:   coverId || 0,
           blocks:  blocks
         })
       });
@@ -410,6 +411,18 @@
     } finally {
       saving = false;
     }
+  }
+
+  // Cover image, shown on the index card for this page.
+  let coverId = '';
+  const coverMount = document.getElementById('f-cover');
+  if (coverMount) {
+    coverId = coverMount.dataset.cover && coverMount.dataset.cover !== '0' ? coverMount.dataset.cover : '';
+    coverMount.append(assetField(
+      { label: 'Cover image, shown on the index', type: 'asset' },
+      coverId,
+      (value) => { coverId = value; queueSave(); }
+    ));
   }
 
   const editorTitle = document.getElementById('editor-title');

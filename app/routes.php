@@ -12,7 +12,7 @@ if ($path === '/') {
     if (site_is_private($config) && !current_user()) {
         redirect('/admin/sign-in');
     }
-    $pages = db_all("SELECT slug, title, section, summary FROM pages WHERE status = 'published' ORDER BY section, sort_order, title");
+    $pages = db_all("SELECT slug, title, section, summary, cover_asset_id FROM pages WHERE status = 'published' ORDER BY section, sort_order, title");
     $sections = [];
     foreach ($pages as $page) {
         $sections[$page['section']][] = $page;
@@ -136,13 +136,15 @@ if (preg_match('#^/admin/pages/(\d+)/save$#', $path, $m) && $method === 'POST') 
     $userId = current_user()['id'];
 
     db()->beginTransaction();
+    $cover = (int) ($payload['cover'] ?? 0);
     db_run(
-        'UPDATE pages SET title = ?, section = ?, summary = ?, status = ?, blocks = ?, updated_by = ? WHERE id = ?',
+        'UPDATE pages SET title = ?, section = ?, summary = ?, status = ?, cover_asset_id = ?, blocks = ?, updated_by = ? WHERE id = ?',
         [
             $title,
             trim($payload['section'] ?? '') ?: 'General',
             str_trim_to(trim($payload['summary'] ?? ''), 400),
             ($payload['status'] ?? 'draft') === 'published' ? 'published' : 'draft',
+            $cover > 0 ? $cover : null,
             $blocks,
             $userId,
             $page['id'],

@@ -15,3 +15,20 @@ document.addEventListener('click', async (event) => {
     // Clipboard blocked, leave the value visible for manual selection.
   }
 });
+
+// Index filters: show only the chosen section, without a page load.
+(function () {
+  const filters = document.querySelectorAll('.filter');
+  const items = document.querySelectorAll('.cards__item');
+  if (!filters.length || !items.length) return;
+
+  filters.forEach((button) => {
+    button.addEventListener('click', () => {
+      const wanted = button.dataset.filter;
+      filters.forEach((other) => other.classList.toggle('is-on', other === button));
+      items.forEach((item) => {
+        item.hidden = wanted !== 'all' && item.dataset.section !== wanted;
+      });
+    });
+  });
+})();

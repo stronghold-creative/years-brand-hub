@@ -45,8 +45,11 @@ foreach (array_keys(block_types()) as $type) {
       <div class="m3-field">
         <input class="m3-field__input" type="text" id="f-summary" placeholder=" " value="<?= e($page['summary'] ?? '') ?>">
         <label class="m3-field__label" for="f-summary">Summary</label>
-        <span class="m3-field__support">One line, shown on the index.</span>
+        <span class="m3-field__support">One line, shown on the index card.</span>
       </div>
+
+      <!-- Cover image for this page's card on the index. -->
+      <div id="f-cover" data-cover="<?= (int) ($page['cover_asset_id'] ?? 0) ?>"></div>
     </div>
 
     <div class="blocks" id="blocks"></div>
