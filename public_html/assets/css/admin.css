@@ -492,9 +492,13 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 .m3-shell { display: grid; grid-template-columns: 17.5rem minmax(0, 1fr); min-height: 100vh; }
 .m3-shell__body { display: flex; flex-direction: column; min-width: 0; min-height: 100vh; }
 .m3-shell__main { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
-.m3-shell__main > .ed { flex: 1; }
-/* A screen holding the editor should not scroll as a whole. */
-.m3-shell--full .m3-shell__main { overflow: hidden; }
+.m3-shell__main > .ed { flex: 1; min-height: 0; }
+
+/* A screen holding the editor pins itself to the viewport, so the page never
+   scrolls as a whole and each column scrolls inside itself instead. */
+.m3-shell--full { height: 100vh; overflow: hidden; }
+.m3-shell--full .m3-shell__body { min-height: 0; height: 100%; }
+.m3-shell--full .m3-shell__main { overflow: hidden; min-height: 0; }
 
 .m3-skip {
   position: absolute;
@@ -785,6 +789,7 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
    =========================================================================== */
 
 .ed {
+  position: relative;
   display: grid;
   grid-template-columns: 17rem minmax(0, 1fr) 21rem;
   grid-template-rows: auto minmax(0, 1fr);
@@ -818,22 +823,29 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
   display: flex;
   flex-direction: column;
   min-height: 0;
+  /* Deliberately a different surface from the navigation drawer, with its own
+     edge, so the two panels either side of the sidebar do not read as one. */
+  background: var(--md-sys-color-surface);
+  border-left: 1px solid var(--md-sys-color-outline-variant);
   border-right: 1px solid var(--md-sys-color-outline-variant);
-  background: var(--md-sys-color-surface-container-low);
 }
+
 .ed__outlinehead {
   display: flex;
   align-items: baseline;
   gap: .5rem;
-  padding: 1rem 1rem .5rem;
+  padding: .875rem 1rem;
+  margin-bottom: .25rem;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
   font-size: .75rem;
   font-weight: 500;
   letter-spacing: .04167em;
   color: var(--md-sys-color-on-surface-variant);
+  flex: none;
 }
 .ed__count { margin-left: auto; font-weight: 400; }
 
-.outline { list-style: none; margin: 0; padding: 0 .5rem; overflow-y: auto; flex: 1; min-height: 0; }
+.outline { list-style: none; margin: 0; padding: 0 .5rem; overflow-y: auto; overscroll-behavior: contain; flex: 1; min-height: 0; }
 .outline__row {
   display: grid;
   grid-template-columns: 1rem minmax(0, 1fr) auto;
@@ -904,14 +916,18 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 
 /* -------------------------------------------------------------- canvas */
 
-.ed__canvas { min-height: 0; background: var(--md-sys-color-surface-container); display: flex; }
+.ed__canvas { min-height: 0; overflow: hidden; background: var(--md-sys-color-surface-container); display: flex; }
 #preview { flex: 1; width: 100%; border: 0; background: #fff; margin: 0 auto; }
 
 /* ----------------------------------------------------------- inspector */
 
+/* The inspector scrolls inside itself, so a long settings panel never moves
+   the page and the effect of a change stays in view. */
 .ed__inspector {
   min-height: 0;
+  height: 100%;
   overflow-y: auto;
+  overscroll-behavior: contain;
   border-left: 1px solid var(--md-sys-color-outline-variant);
   background: var(--md-sys-color-surface);
 }
