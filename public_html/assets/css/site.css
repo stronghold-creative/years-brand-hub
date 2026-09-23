@@ -1,3 +1,5 @@
+/* Years' own faces are still available to type specimens on the Typography
+   page; they are not the interface type. */
 @font-face {
   font-family: 'More Years';
   src: url('/assets/fonts/MoreYears-Regular.woff2') format('woff2');
@@ -25,8 +27,10 @@
   --positive:    #2F7566;
   --negative:    #A8322D;
 
-  --display: 'More Years', 'Poppins', system-ui, sans-serif;
-  --body:    'Poppins', system-ui, sans-serif;
+  /* The hub runs on Plus Jakarta Sans. The Years brand faces are documented
+     inside the guidelines rather than used as the interface type. */
+  --display: 'Plus Jakarta Sans', system-ui, sans-serif;
+  --body:    'Plus Jakarta Sans', system-ui, sans-serif;
   --measure: 66ch;
 
   --gutter: clamp(1.25rem, 5vw, 4.5rem);
@@ -699,3 +703,39 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 .imagegrid--gap-normal { gap: 1.5rem; }
 .imagegrid--fit-natural img { aspect-ratio: auto; object-fit: cover; }
 .block--spec-beside .specimen { grid-template-columns: minmax(0, 1fr) 13rem; }
+
+/* ------------------------------------------------- masthead logo and areas */
+
+.masthead__mark { display: inline-flex; align-items: center; }
+.masthead__logo { display: block; height: 1.75rem; width: auto; }
+.masthead__wordmark { font-family: var(--display); font-size: 1.25rem; font-weight: 700; color: var(--mark); }
+
+/* The area toggle sits centred, like a segmented control. */
+.areas {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: .25rem;
+  padding: .25rem;
+  background: var(--raised);
+  border-radius: 999px;
+}
+.masthead { position: relative; }
+.area {
+  padding: .4375rem 1.125rem;
+  border-radius: 999px;
+  font-size: .875rem;
+  font-weight: 600;
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+.area:hover { color: var(--ink); }
+.area.is-on { background: var(--accent); color: #fff; }
+
+.index__note { font-size: .875rem; color: var(--ink-faint); }
+
+@media (max-width: 56rem) {
+  .areas { position: static; transform: none; margin-left: auto; }
+  .masthead__title { display: none; }
+}

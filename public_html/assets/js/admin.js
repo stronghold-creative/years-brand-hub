@@ -217,6 +217,116 @@
     document.querySelectorAll('.m3-more__menu').forEach((menu) => menu.setAttribute('hidden', ''));
   });
 
+  // ------------------------------------------------------- section headers
+
+  // The save control stays hidden until something has actually changed, so an
+  // unchanged section header has nothing to click by accident.
+  document.querySelectorAll('[data-autosave]').forEach((form) => {
+    const initial = new FormData(form);
+    const isDirty = () => {
+      const now = new FormData(form);
+      for (const [key, value] of now.entries()) {
+        if (key === '_csrf') continue;
+        if (String(initial.get(key)) !== String(value)) return true;
+      }
+      return false;
+    };
+    const update = () => form.classList.toggle('is-dirty', isDirty());
+    form.addEventListener('input', update);
+    form.addEventListener('change', update);
+    update();
+  });
+
+  // ------------------------------------------------------------ logo picker
+
+  // Reuses the same asset library dialog as the block editor.
+  const logoMount = document.getElementById('logo-picker');
+  if (logoMount) {
+    const hidden = document.getElementById('site_logo');
+    let images = null;
+
+    const load = async () => {
+      if (images) return images;
+      const response = await fetch('/admin/assets.json', { headers: { Accept: 'application/json' } });
+      images = (await response.json()).images || [];
+      return images;
+    };
+
+    const paint = async (id) => {
+      logoMount.innerHTML = '<span class="field__label">Logo, shown in the top bar</span>';
+      const row = document.createElement('div');
+      row.className = 'assetpick';
+
+      const list = await load();
+      const match = list.find((image) => String(image.id) === String(id));
+      if (match) {
+        const thumb = document.createElement('span');
+        thumb.className = 'assetpick__preview';
+        thumb.innerHTML = '<img src="' + match.url + '" alt="">';
+        const name = document.createElement('span');
+        name.className = 'assetpick__name';
+        name.textContent = match.label || match.file;
+        row.append(thumb, name);
+      }
+
+      const choose = document.createElement('button');
+      choose.type = 'button';
+      choose.className = 'assetpick__choose m3-state';
+      choose.textContent = match ? 'Change' : 'Choose an image';
+      choose.addEventListener('click', () => openLogoPicker(list));
+      row.append(choose);
+
+      if (match) {
+        const clear = document.createElement('button');
+        clear.type = 'button';
+        clear.className = 'assetpick__clear m3-state';
+        clear.textContent = 'Remove';
+        clear.addEventListener('click', () => { hidden.value = '0'; paint('0'); });
+        row.append(clear);
+      }
+      logoMount.append(row);
+    };
+
+    function openLogoPicker(list) {
+      const overlay = document.createElement('div');
+      overlay.className = 'picker';
+      overlay.innerHTML =
+        '<div class="picker__panel" role="dialog" aria-modal="true" aria-label="Choose a logo">' +
+          '<header class="picker__head">' +
+            '<input class="picker__search" type="search" placeholder="Search" aria-label="Search images">' +
+            '<button type="button" class="picker__close m3-state">Close</button>' +
+          '</header><div class="picker__grid"></div>' +
+          '<p class="picker__hint">Upload the logo under Assets first. SVG works best.</p></div>';
+      document.body.append(overlay);
+
+      const grid = overlay.querySelector('.picker__grid');
+      const close = () => overlay.remove();
+      overlay.querySelector('.picker__close').addEventListener('click', close);
+      overlay.addEventListener('click', (event) => { if (event.target === overlay) close(); });
+
+      const draw = (items) => {
+        grid.innerHTML = items.length ? '' : 'No images yet. Upload one under Assets.';
+        items.forEach((image) => {
+          const tile = document.createElement('button');
+          tile.type = 'button';
+          tile.className = 'picker__tile m3-state';
+          tile.innerHTML = '<span class="picker__thumb"><img src="' + image.url + '" alt=""></span><span class="picker__label"></span>';
+          tile.querySelector('.picker__label').textContent = image.label || image.file;
+          tile.addEventListener('click', () => { hidden.value = String(image.id); paint(String(image.id)); close(); });
+          grid.append(tile);
+        });
+      };
+      draw(list);
+      const search = overlay.querySelector('.picker__search');
+      search.addEventListener('input', () => {
+        const term = search.value.trim().toLowerCase();
+        draw(!term ? list : list.filter((i) => (i.label + ' ' + i.file + ' ' + i.tags).toLowerCase().includes(term)));
+      });
+    }
+
+    paint(logoMount.dataset.cover || '0');
+  }
+
   // ------------------------------------------------------- scroll shadow
 
   const bar = document.querySelector('.m3-page__bar');

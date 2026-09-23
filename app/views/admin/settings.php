@@ -31,6 +31,9 @@
       <label class="m3-field__label" for="footer_note">Footer note</label>
     </div>
 
+    <div class="m3-field field--asset" id="logo-picker" data-cover="<?= (int) setting('site_logo', 0) ?>"></div>
+    <input type="hidden" name="site_logo" id="site_logo" value="<?= (int) setting('site_logo', 0) ?>">
+
     <label class="m3-switch">
       <input class="m3-switch__input" type="checkbox" name="require_login_to_view" value="1"
              role="switch"<?= site_is_private($config) ? ' checked' : '' ?>>
@@ -42,5 +45,44 @@
     </label>
 
     <button class="m3-button m3-button--filled m3-state" type="submit">Save settings</button>
+  </form>
+
+  <form method="post" class="m3-card">
+    <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
+    <input type="hidden" name="site_name" value="<?= e((string) setting('site_name', 'Years brand hub')) ?>">
+    <input type="hidden" name="footer_note" value="<?= e((string) setting('footer_note', '')) ?>">
+    <input type="hidden" name="site_logo" value="<?= (int) setting('site_logo', 0) ?>">
+    <?php if (site_is_private($config)): ?>
+      <input type="hidden" name="require_login_to_view" value="1">
+    <?php endif; ?>
+
+    <h2 class="m3-card__title">Areas</h2>
+    <p class="m3-body-medium">The toggle in the middle of the top bar. Brand is these guidelines.
+       Components is for documenting web components for design and development.</p>
+
+    <div class="m3-editor__metarow">
+      <div class="m3-field">
+        <input class="m3-field__input" type="text" name="area_one_label" id="area_one_label" placeholder=" "
+               value="<?= e((string) setting('area_one_label', 'Brand')) ?>">
+        <label class="m3-field__label" for="area_one_label">First area</label>
+      </div>
+      <div class="m3-field">
+        <input class="m3-field__input" type="text" name="area_two_label" id="area_two_label" placeholder=" "
+               value="<?= e((string) setting('area_two_label', 'Components')) ?>">
+        <label class="m3-field__label" for="area_two_label">Second area</label>
+      </div>
+    </div>
+
+    <label class="m3-switch">
+      <input class="m3-switch__input" type="checkbox" name="components_enabled" value="1"
+             role="switch"<?= components_enabled() ? ' checked' : '' ?>>
+      <span class="m3-switch__track"><span class="m3-switch__handle"></span></span>
+      <span class="m3-switch__text">
+        <strong>Show the areas toggle</strong>
+        <span>Leave this off until the components area has something in it. While it is off the top bar reads Brand guidelines.</span>
+      </span>
+    </label>
+
+    <button class="m3-button m3-button--filled m3-state" type="submit">Save areas</button>
   </form>
 </div>

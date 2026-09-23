@@ -102,3 +102,32 @@ function section_move(string $name, string $direction, array $allSections): void
     array_splice($order, $target, 0, array_splice($order, $index, 1));
     section_order_save($order);
 }
+
+/** The uploaded logo for the masthead, if one has been chosen. */
+function site_logo(): ?array
+{
+    $id = (int) setting('site_logo', 0);
+    if ($id <= 0 || !function_exists('asset_find')) {
+        return null;
+    }
+    $asset = asset_find($id);
+    return ($asset && asset_is_inline_image($asset)) ? $asset : null;
+}
+
+/**
+ * The areas in the masthead toggle. Brand is the guidelines; Components is for
+ * documenting web components for design and development, and is switched off
+ * until there is something in it.
+ */
+function site_areas(): array
+{
+    return [
+        ['href' => '/',           'label' => (string) setting('area_one_label', 'Brand'),      'key' => 'brand'],
+        ['href' => '/components', 'label' => (string) setting('area_two_label', 'Components'), 'key' => 'components'],
+    ];
+}
+
+function components_enabled(): bool
+{
+    return setting_bool('components_enabled', false);
+}

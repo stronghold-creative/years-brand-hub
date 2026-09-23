@@ -33,34 +33,38 @@ $stale  = count(array_filter($pages, fn($p) => strtotime($p['updated_at']) < str
 
   <?php foreach ($bySection as $section => $rows): ?>
     <section class="m3-section">
-      <form method="post" action="/admin/sections/rename" class="m3-section__head">
-        <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
-        <input type="hidden" name="from" value="<?= e($section) ?>">
-        <span class="m3-section__icon"><?= icon(section_icon($section), 'icon') ?></span>
-        <input class="m3-section__name" type="text" name="to" value="<?= e($section) ?>"
-               aria-label="Section name, edit to rename">
-        <select class="m3-section__icons" name="icon" aria-label="Section icon">
-          <?php foreach (icon_set() as $key => $meta): ?>
-            <option value="<?= e($key) ?>"<?= section_icon($section) === $key ? ' selected' : '' ?>><?= e($meta['label']) ?></option>
-          <?php endforeach; ?>
-        </select>
-        <button class="m3-button m3-button--text m3-state m3-section__save" type="submit">Save section</button>
-      </form>
+      <div class="m3-section__head">
+        <form method="post" action="/admin/sections/rename" class="m3-section__form" data-autosave>
+          <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
+          <input type="hidden" name="from" value="<?= e($section) ?>">
+          <span class="m3-section__icon"><?= icon(section_icon($section), 'icon') ?></span>
+          <input class="m3-section__name" type="text" name="to" value="<?= e($section) ?>"
+                 aria-label="Section name, edit to rename">
+          <select class="m3-section__icons" name="icon" aria-label="Section icon">
+            <?php foreach (icon_set() as $key => $meta): ?>
+              <option value="<?= e($key) ?>"<?= section_icon($section) === $key ? ' selected' : '' ?>><?= e($meta['label']) ?></option>
+            <?php endforeach; ?>
+          </select>
+          <button class="m3-button m3-button--text m3-state m3-section__save" type="submit">Save name</button>
+        </form>
 
-      <span class="m3-section__move">
-        <?php foreach (['up' => '&uarr;', 'down' => '&darr;'] as $dir => $glyph): ?>
-          <?php
-            $at = array_search($section, $sectionNames, true);
-            $off = ($dir === 'up' && $at === 0) || ($dir === 'down' && $at === count($sectionNames) - 1);
-          ?>
-          <form method="post" action="/admin/sections/move/<?= $dir ?>">
-            <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
-            <input type="hidden" name="section" value="<?= e($section) ?>">
-            <button class="m3-icon-button m3-state" type="submit"<?= $off ? ' disabled' : '' ?>
-                    aria-label="Move <?= e($section) ?> <?= $dir ?>"><?= $glyph ?></button>
-          </form>
-        <?php endforeach; ?>
-      </span>
+        <span class="m3-section__move">
+          <?php foreach (['up' => '&uarr;', 'down' => '&darr;'] as $dir => $glyph): ?>
+            <?php
+              $at = array_search($section, $sectionNames, true);
+              $off = ($dir === 'up' && $at === 0) || ($dir === 'down' && $at === count($sectionNames) - 1);
+            ?>
+            <form method="post" action="/admin/sections/move/<?= $dir ?>">
+              <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
+              <input type="hidden" name="section" value="<?= e($section) ?>">
+              <button class="m3-icon-button m3-state" type="submit"<?= $off ? ' disabled' : '' ?>
+                      aria-label="Move <?= e($section) ?> <?= $dir ?>"><?= $glyph ?></button>
+            </form>
+          <?php endforeach; ?>
+        </span>
+
+        <span class="m3-section__count"><?= count($rows) ?> <?= count($rows) === 1 ? 'page' : 'pages' ?></span>
+      </div>
 
       <div class="m3-list-head">
         <span>Page</span>

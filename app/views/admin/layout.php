@@ -27,7 +27,7 @@ $isCurrent = function (array $item) use ($path): bool {
 <meta name="color-scheme" content="light dark">
 <title><?= e($title ?? 'Admin') ?> &middot; Years brand hub</title>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="<?= e(asset_url('/assets/css/admin.css')) ?>">
 </head>
 <body class="m3-shell<?= !empty($fullBleed) ? ' m3-shell--full' : '' ?>">

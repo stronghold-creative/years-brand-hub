@@ -43,6 +43,17 @@ if ($path === '/tokens.css') {
     exit;
 }
 
+if ($path === '/components') {
+    if (site_is_private($config) && !current_user()) {
+        redirect('/admin/sign-in');
+    }
+    if (!components_enabled()) {
+        not_found();
+    }
+    view('components', ['title' => 'Components', 'currentArea' => 'components', 'config' => $config]);
+    exit;
+}
+
 // A whole section on one page. Each page within it is an anchor, so the rail
 // scrolls rather than navigating, which is how people actually read guidelines.
 if (preg_match('#^/s/([a-z0-9\\-]+)$#', $path, $m)) {
@@ -604,6 +615,10 @@ if ($path === '/admin/settings') {
         setting_save('require_login_to_view', isset($_POST['require_login_to_view']) ? '1' : '0');
         setting_save('site_name', trim($_POST['site_name'] ?? '') ?: 'Years brand hub');
         setting_save('footer_note', trim($_POST['footer_note'] ?? ''));
+        setting_save('site_logo', (string) (int) ($_POST['site_logo'] ?? 0));
+        setting_save('components_enabled', isset($_POST['components_enabled']) ? '1' : '0');
+        setting_save('area_one_label', trim($_POST['area_one_label'] ?? '') ?: 'Brand');
+        setting_save('area_two_label', trim($_POST['area_two_label'] ?? '') ?: 'Components');
         redirect('/admin/settings?notice=Saved.');
     }
     view('admin/settings', [
