@@ -327,13 +327,38 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 .m3-list { list-style: none; margin: 0; padding: 0; }
 .m3-list-item {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-columns: minmax(10rem, 20fr) minmax(0, 32fr) 6rem 7rem auto;
   align-items: center;
-  gap: 1rem;
+  gap: 1.5rem;
   min-height: 3.5rem;
   padding: .5rem 1rem;
   border-radius: var(--md-sys-shape-s);
 }
+.m3-list-item__summary {
+  font-size: .875rem;
+  color: var(--md-sys-color-on-surface-variant);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.m3-list-item__state { justify-self: start; }
+.m3-list-item__date {
+  font-size: .8125rem;
+  color: var(--md-sys-color-on-surface-variant);
+  white-space: nowrap;
+}
+/* A header row, so the columns are labelled like any other table. */
+.m3-list-head {
+  display: grid;
+  grid-template-columns: minmax(10rem, 20fr) minmax(0, 32fr) 6rem 7rem auto;
+  gap: 1.5rem;
+  padding: 0 1rem .625rem;
+  font-size: .75rem;
+  font-weight: 500;
+  letter-spacing: .04167em;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.m3-list-head span:last-child { text-align: right; }
 .m3-list-item__headline { font-size: 1rem; line-height: 1.5rem; text-decoration: none; color: var(--md-sys-color-on-surface); }
 .m3-list-item__support { font-size: .875rem; line-height: 1.25rem; color: var(--md-sys-color-on-surface-variant); }
 .m3-divider { height: 1px; background: var(--md-sys-color-outline-variant); border: 0; margin: 0; }
@@ -551,24 +576,19 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 
 /* -------------------------------------------------------------- content */
 
-/* One container for every screen, fluid up to a generous cap so a large
-   display is actually used, with the gutter growing alongside it. Reading
-   width is protected at the component level instead: cards, forms and lists
-   each carry their own comfortable maximum. */
+/* One container for every screen, filling the window. Lists and tables use
+   the full width, which is why they carry a summary column: width is only
+   worth having if there is something to put in it. Prose-shaped forms keep
+   their own reading measure. */
 .m3-page {
-  max-width: min(112rem, 100%);
+  width: 100%;
   margin: 0;
-  padding: 0 clamp(1.25rem, 3vw, 4rem) 6rem;
+  padding: 0 clamp(1.25rem, 2.5vw, 3rem) 6rem;
 }
-.m3-page__bar { max-width: min(112rem, 100%); padding-left: 0; padding-right: 0; }
+.m3-page__bar { padding-left: 0; padding-right: 0; }
 
 /* Forms stay readable no matter how wide the window is. */
-.m3-card { max-width: 56rem; }
-
-/* A list row with its actions pinned to the far right of a 4K display would
-   put a long way between a page title and its buttons, so the list keeps a
-   sensible measure and the space goes to the content that benefits. */
-.m3-list, .m3-section, .m3-list + .m3-addrow { max-width: 84rem; }
+.m3-card { max-width: 52rem; }
 
 /* The page bar holds the title and the one primary action for that screen,
    so the primary action is in the same place on every screen. */
@@ -639,7 +659,7 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 .m3-list-item:hover .m3-button--text,
 .m3-list-item:focus-within .m3-button--text { color: var(--md-sys-color-primary); }
 
-.m3-table { width: 100%; max-width: 84rem; border-collapse: collapse; font-size: .875rem; }
+.m3-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
 .m3-table th {
   text-align: left;
   font-size: .75rem;
@@ -932,6 +952,13 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
   .m3-page__bar { padding-top: .5rem; flex-wrap: wrap; }
   .m3-page__action { margin-left: 0; width: 100%; }
   .m3-table { display: block; overflow-x: auto; white-space: nowrap; }
+}
+
+/* Below this the summary column has no room to be useful. */
+@media (max-width: 68rem) {
+  .m3-list-head { display: none; }
+  .m3-list-item { grid-template-columns: minmax(0, 1fr) 6rem auto; gap: .75rem; }
+  .m3-list-item__summary, .m3-list-item__date { display: none; }
 }
 
 @media (max-width: 40rem) {

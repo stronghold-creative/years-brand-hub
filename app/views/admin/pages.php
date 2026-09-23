@@ -45,18 +45,30 @@ $stale  = count(array_filter($pages, fn($p) => strtotime($p['updated_at']) < str
         <button class="m3-button m3-button--text m3-state m3-section__save" type="submit">Save section</button>
       </form>
 
+      <div class="m3-list-head">
+        <span>Page</span>
+        <span>Summary</span>
+        <span>Status</span>
+        <span>Edited</span>
+        <span>Actions</span>
+      </div>
       <hr class="m3-divider">
       <ul class="m3-list">
         <?php foreach ($rows as $i => $page): ?>
           <li class="m3-list-item m3-state">
             <a class="m3-list-item__headline" href="/admin/pages/<?= (int) $page['id'] ?>"><?= e($page['title']) ?></a>
 
-            <span class="m3-list-item__support">
+            <span class="m3-list-item__summary"><?= e($page['summary'] ?? '') ?></span>
+
+            <span class="m3-list-item__state">
               <?php if ($page['status'] !== 'published'): ?>
                 <span class="m3-chip m3-chip--draft">Draft</span>
+              <?php else: ?>
+                <span class="m3-list-item__date">Published</span>
               <?php endif; ?>
-              Edited <?= e(date('j M', strtotime($page['updated_at']))) ?>
             </span>
+
+            <span class="m3-list-item__date">Edited <?= e(date('j M', strtotime($page['updated_at']))) ?></span>
 
             <span class="m3-list-item__actions">
               <a class="m3-button m3-button--text m3-state" href="/admin/pages/<?= (int) $page['id'] ?>/versions">History</a>
