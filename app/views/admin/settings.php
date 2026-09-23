@@ -1,4 +1,4 @@
-<div class="m3-page m3-page--narrow">
+<div class="m3-page">
   <div class="m3-page__bar">
     <div class="m3-page__titles"><h1>Settings</h1></div>
   </div>

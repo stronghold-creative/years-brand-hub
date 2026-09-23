@@ -20,14 +20,24 @@
         <td><?= e($user['name']) ?><?= (int) $user['id'] === (int) ($me['id'] ?? 0) ? ' <span class="m3-body-small">(you)</span>' : '' ?></td>
         <td><?= e($user['email']) ?></td>
         <td>
-          <form method="post" action="/admin/users/<?= (int) $user['id'] ?>/update" class="m3-inline">
+          <form method="post" action="/admin/users/<?= (int) $user['id'] ?>/update" class="m3-rowform">
             <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
-            <select name="role" aria-label="Role">
-              <?php foreach (['admin' => 'Admin', 'editor' => 'Editor', 'viewer' => 'Viewer'] as $value => $label): ?>
-                <option value="<?= $value ?>"<?= $user['role'] === $value ? ' selected' : '' ?>><?= $label ?></option>
-              <?php endforeach; ?>
-            </select>
-            <input type="password" name="password" placeholder="New password, optional" autocomplete="new-password" aria-label="New password">
+
+            <div class="m3-field m3-field--dense m3-field--select">
+              <select class="m3-field__select" name="role" id="role-<?= (int) $user['id'] ?>">
+                <?php foreach (['admin' => 'Admin', 'editor' => 'Editor', 'viewer' => 'Viewer'] as $value => $label): ?>
+                  <option value="<?= $value ?>"<?= $user['role'] === $value ? ' selected' : '' ?>><?= $label ?></option>
+                <?php endforeach; ?>
+              </select>
+              <label class="m3-field__label" for="role-<?= (int) $user['id'] ?>">Role</label>
+            </div>
+
+            <div class="m3-field m3-field--dense">
+              <input class="m3-field__input" type="password" name="password" id="pw-<?= (int) $user['id'] ?>"
+                     placeholder=" " autocomplete="new-password">
+              <label class="m3-field__label" for="pw-<?= (int) $user['id'] ?>">New password</label>
+            </div>
+
             <button class="m3-button m3-button--text m3-state" type="submit">Save</button>
           </form>
         </td>

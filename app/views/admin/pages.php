@@ -6,7 +6,7 @@ foreach ($pages as $page) {
 $drafts = count(array_filter($pages, fn($p) => $p['status'] !== 'published'));
 $stale  = count(array_filter($pages, fn($p) => strtotime($p['updated_at']) < strtotime('-6 months')));
 ?>
-<div class="m3-page m3-page--narrow">
+<div class="m3-page">
   <div class="m3-page__bar">
     <div class="m3-page__titles">
       <h1>Pages</h1>
