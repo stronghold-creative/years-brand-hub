@@ -443,3 +443,55 @@ a:hover { color: var(--accent-deep); }
 .comparison__yes { color: var(--ink); }
 .comparison__no  { color: var(--ink-soft); text-decoration: line-through; text-decoration-color: var(--negative); }
 .comparison__noterow td { padding-top: 0; font-size: .8125rem; color: var(--ink-faint); border-bottom: 1px solid var(--rule); }
+
+/* ===========================================================================
+   Block zones
+
+   Every block is wrapped in a zone carrying its width, background and spacing
+   settings, so appearance is controlled per block from the editor rather than
+   being baked into each block type.
+   =========================================================================== */
+
+.zone { position: relative; }
+.zone > .block { margin-bottom: 0; }
+
+/* Width. "Wider" and "full" break out of the reading column using a negative
+   margin, so blocks stay in normal flow rather than needing a wrapper. */
+.zone--w-text { max-width: 100%; }
+.zone--w-wide {
+  width: min(58rem, calc(100vw - 2 * var(--gutter)));
+}
+.zone--w-full {
+  width: calc(100vw - 2 * var(--gutter));
+  max-width: calc(100vw - 2 * var(--gutter));
+}
+
+/* Spacing below. */
+.zone--sp-tight  { margin-bottom: 1.5rem; }
+.zone--sp-normal { margin-bottom: 4rem; }
+.zone--sp-loose  { margin-bottom: 7rem; }
+
+/* Backgrounds pad themselves so content never touches the edge. */
+.zone--bg-tint,
+.zone--bg-purple,
+.zone--bg-dark { padding: clamp(1.5rem, 4vw, 3rem); border-radius: 12px; }
+.zone--bg-none   { background: none; }
+.zone--bg-tint   { background: var(--tint); }
+.zone--bg-purple { background: var(--accent-tint); }
+.zone--bg-dark   { background: var(--ink); color: #fff; }
+.zone--bg-dark .block h2 { border-bottom-color: rgba(255,255,255,.18); }
+.zone--bg-dark .swatch__meta dt,
+.zone--bg-dark .specimen__spec p,
+.zone--bg-dark .rule__why,
+.zone--bg-dark .download__meta { color: rgba(255,255,255,.62); }
+.zone--bg-dark a { color: #C7B6F0; }
+
+.zone--ruled { border-top: 1px solid var(--rule); padding-top: clamp(1.5rem, 4vw, 3rem); }
+.zone--ruled.zone--bg-tint,
+.zone--ruled.zone--bg-purple,
+.zone--ruled.zone--bg-dark { border-top: 0; }
+
+@media (max-width: 56rem) {
+  .zone--w-wide, .zone--w-full { width: 100%; max-width: 100%; }
+  .zone--sp-loose { margin-bottom: 4rem; }
+}

@@ -73,6 +73,13 @@ $stale  = count(array_filter($pages, fn($p) => strtotime($p['updated_at']) < str
             <span class="m3-list-item__actions">
               <a class="m3-button m3-button--text m3-state" href="/admin/pages/<?= (int) $page['id'] ?>/versions">History</a>
               <a class="m3-button m3-button--text m3-state" href="/g/<?= e($page['slug']) ?>" target="_blank" rel="noopener">View</a>
+              <?php if ((current_user()['role'] ?? '') === 'admin'): ?>
+                <form method="post" action="/admin/pages/<?= (int) $page['id'] ?>/delete"
+                      data-confirm="Delete &quot;<?= e($page['title']) ?>&quot; and everything on it? This cannot be undone.">
+                  <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
+                  <button class="m3-button m3-button--text m3-button--danger m3-state" type="submit">Delete</button>
+                </form>
+              <?php endif; ?>
               <?php foreach (['up' => '&uarr;', 'down' => '&darr;'] as $dir => $glyph): ?>
                 <?php $off = ($dir === 'up' && $i === 0) || ($dir === 'down' && $i === count($rows) - 1); ?>
                 <form method="post" action="/admin/pages/<?= (int) $page['id'] ?>/move/<?= $dir ?>">

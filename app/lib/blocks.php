@@ -178,6 +178,47 @@ function block_types(): array
     ];
 }
 
+/**
+ * Settings every block carries, separate from its content. These control how a
+ * block looks and sits on the page rather than what it says, so they are
+ * defined once here instead of being repeated in every block type.
+ */
+function block_settings_fields(): array
+{
+    return [
+        'width' => ['type' => 'select', 'label' => 'Width', 'options' => [
+            'text' => 'Text column',
+            'wide' => 'Wider',
+            'full' => 'Full width',
+        ]],
+        'background' => ['type' => 'select', 'label' => 'Background', 'options' => [
+            'none'   => 'None',
+            'tint'   => 'Soft tint',
+            'purple' => 'Purple',
+            'dark'   => 'Dark',
+        ]],
+        'spacing' => ['type' => 'select', 'label' => 'Space below', 'options' => [
+            'normal' => 'Normal',
+            'tight'  => 'Tight',
+            'loose'  => 'Loose',
+        ]],
+        'divider' => ['type' => 'select', 'label' => 'Rule above', 'options' => [
+            'no'  => 'No',
+            'yes' => 'Yes',
+        ]],
+        'anchor' => ['type' => 'text', 'label' => 'Link anchor', 'optional' => true],
+    ];
+}
+
+function block_settings_defaults(): array
+{
+    $out = [];
+    foreach (block_settings_fields() as $key => $field) {
+        $out[$key] = $field['type'] === 'select' ? (string) array_key_first($field['options']) : '';
+    }
+    return $out;
+}
+
 function block_defaults(string $type): array
 {
     $def = block_types()[$type] ?? null;
@@ -239,7 +280,18 @@ function sanitise_blocks(array $blocks): array
                 $data[$key] = trim((string) $value);
             }
         }
-        $clean[] = ['type' => $type, 'data' => $data];
+        $settings = [];
+        foreach (block_settings_fields() as $key => $field) {
+            $value = $block['settings'][$key] ?? null;
+            if ($field['type'] === 'select') {
+                $settings[$key] = (string) (isset($field['options'][$value]) ? $value : array_key_first($field['options']));
+            } else {
+                // Anchors end up in a URL, so only safe characters survive.
+                $settings[$key] = strtolower(preg_replace('/[^A-Za-z0-9\-]/', '', (string) $value) ?? '');
+            }
+        }
+
+        $clean[] = ['type' => $type, 'data' => $data, 'settings' => $settings];
     }
 
     return $clean;
@@ -249,10 +301,29 @@ function render_blocks(array $blocks): void
 {
     foreach ($blocks as $block) {
         $file = APP_DIR . '/blocks/' . basename((string) $block['type']) . '.php';
-        if (is_file($file)) {
-            $data = $block['data'] ?? [];
-            require $file;
+        if (!is_file($file)) {
+            continue;
         }
+        $data     = $block['data'] ?? [];
+        $settings = array_merge(block_settings_defaults(), $block['settings'] ?? []);
+
+        $classes = [
+            'zone',
+            'zone--w-' . $settings['width'],
+            'zone--bg-' . $settings['background'],
+            'zone--sp-' . $settings['spacing'],
+        ];
+        if (($settings['divider'] ?? 'no') === 'yes') {
+            $classes[] = 'zone--ruled';
+        }
+
+        printf(
+            '<div class="%s"%s>',
+            e(implode(' ', $classes)),
+            $settings['anchor'] !== '' ? ' id="' . e($settings['anchor']) . '"' : ''
+        );
+        require $file;
+        echo '</div>';
     }
 }
 
