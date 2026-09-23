@@ -4,11 +4,22 @@ foreach (array_keys(block_types()) as $type) {
     $defaults[$type] = block_defaults($type);
 }
 ?>
-<main class="m3-editor" id="editor"
-      data-page-id="<?= (int) $page['id'] ?>"
-      data-schema='<?= e(json_encode(block_types(), JSON_UNESCAPED_SLASHES)) ?>'
-      data-defaults='<?= e(json_encode($defaults, JSON_UNESCAPED_SLASHES)) ?>'
-      data-blocks='<?= e(json_encode($blocks, JSON_UNESCAPED_SLASHES)) ?>'>
+<div class="m3-editor" id="editor"
+     data-page-id="<?= (int) $page['id'] ?>"
+     data-schema='<?= e(json_encode(block_types(), JSON_UNESCAPED_SLASHES)) ?>'
+     data-defaults='<?= e(json_encode($defaults, JSON_UNESCAPED_SLASHES)) ?>'
+     data-blocks='<?= e(json_encode($blocks, JSON_UNESCAPED_SLASHES)) ?>'>
+
+  <!-- Context bar: where you are, how to get back, and the state of the save. -->
+  <header class="m3-editor__bar">
+    <a class="m3-icon-button m3-state" href="/admin" aria-label="Back to pages"><?= ui_icon('back') ?></a>
+    <span class="m3-editor__name" id="editor-title"><?= e($page['title']) ?></span>
+    <span class="m3-chip m3-chip--assist" id="save-state">All changes saved</span>
+    <span class="m3-editor__tools">
+      <a class="m3-button m3-button--text m3-state" href="/admin/pages/<?= (int) $page['id'] ?>/versions">History</a>
+      <a class="m3-button m3-button--text m3-state" href="/g/<?= e($page['slug']) ?>" target="_blank" rel="noopener">Open page</a>
+    </span>
+  </header>
 
   <div class="m3-editor__pane">
     <div class="m3-editor__meta">
@@ -41,17 +52,13 @@ foreach (array_keys(block_types()) as $type) {
     <div class="blocks" id="blocks"></div>
 
     <div class="adder">
-      <button type="button" class="adder__toggle m3-state" id="add-block">Add a block</button>
+      <button type="button" class="adder__toggle m3-state" id="add-block"><?= ui_icon('add', 'icon') ?> Add a block</button>
       <div class="adder__menu" id="add-menu" hidden></div>
     </div>
   </div>
 
   <aside class="m3-editor__preview">
-    <div class="m3-editor__status">
-      <span id="save-state">All changes saved</span>
-      <a href="/admin/pages/<?= (int) $page['id'] ?>/versions">History</a>
-      <a href="/g/<?= e($page['slug']) ?>" target="_blank" rel="noopener">Open page</a>
-    </div>
-    <iframe id="preview" src="/admin/pages/<?= (int) $page['id'] ?>/preview" title="Preview"></iframe>
+    <p class="m3-editor__previewlabel">Preview</p>
+    <iframe id="preview" src="/admin/pages/<?= (int) $page['id'] ?>/preview" title="Preview of this page"></iframe>
   </aside>
-</main>
+</div>

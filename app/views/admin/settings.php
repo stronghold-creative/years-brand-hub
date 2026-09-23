@@ -1,5 +1,7 @@
-<main class="m3-page m3-page--narrow">
-  <header class="m3-page__head"><h1>Settings</h1></header>
+<div class="m3-page m3-page--narrow">
+  <div class="m3-page__bar">
+    <div class="m3-page__titles"><h1>Settings</h1></div>
+  </div>
 
   <?php if ($notice): ?><p class="m3-banner"><?= e($notice) ?></p><?php endif; ?>
 
@@ -41,4 +43,4 @@
 
     <button class="m3-button m3-button--filled m3-state" type="submit">Save settings</button>
   </form>
-</main>
+</div>

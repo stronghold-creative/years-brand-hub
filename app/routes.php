@@ -113,9 +113,10 @@ if (preg_match('#^/admin/pages/(\d+)$#', $path, $m)) {
         not_found();
     }
     view('admin/edit', [
-        'title'  => $page['title'],
-        'page'   => $page,
-        'blocks' => json_decode($page['blocks'], true) ?: [],
+        'title'     => $page['title'],
+        'page'      => $page,
+        'blocks'    => json_decode($page['blocks'], true) ?: [],
+        'fullBleed' => true,
     ], 'admin/layout');
     exit;
 }

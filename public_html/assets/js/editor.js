@@ -412,6 +412,14 @@
     }
   }
 
+  const editorTitle = document.getElementById('editor-title');
+  const titleField = document.getElementById('f-title');
+  if (editorTitle && titleField) {
+    titleField.addEventListener('input', () => {
+      editorTitle.textContent = titleField.value || 'Untitled page';
+    });
+  }
+
   ['f-title', 'f-section', 'f-summary', 'f-status'].forEach((id) => {
     document.getElementById(id).addEventListener('input', queueSave);
     document.getElementById(id).addEventListener('change', queueSave);

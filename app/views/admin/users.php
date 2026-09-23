@@ -1,5 +1,14 @@
-<main class="m3-page">
-  <header class="m3-page__head"><h1>People</h1></header>
+<?php $me = current_user() ?? ['id' => 0]; ?>
+<div class="m3-page">
+  <div class="m3-page__bar">
+    <div class="m3-page__titles">
+      <h1>People</h1>
+      <p class="m3-page__meta"><?= count($users) ?> with access</p>
+    </div>
+    <div class="m3-page__action">
+      <a class="m3-button m3-button--filled m3-state" href="#addperson">Add person</a>
+    </div>
+  </div>
 
   <?php if ($notice): ?><p class="m3-banner"><?= e($notice) ?></p><?php endif; ?>
 
@@ -8,7 +17,7 @@
     <tbody>
     <?php foreach ($users as $user): ?>
       <tr>
-        <td><?= e($user['name']) ?><?= (int) $user['id'] === (int) current_user()['id'] ? ' <span class="m3-body-small">(you)</span>' : '' ?></td>
+        <td><?= e($user['name']) ?><?= (int) $user['id'] === (int) ($me['id'] ?? 0) ? ' <span class="m3-body-small">(you)</span>' : '' ?></td>
         <td><?= e($user['email']) ?></td>
         <td>
           <form method="post" action="/admin/users/<?= (int) $user['id'] ?>/update" class="m3-inline">
@@ -23,9 +32,9 @@
           </form>
         </td>
         <td>
-          <?php if ((int) $user['id'] !== (int) current_user()['id']): ?>
+          <?php if ((int) $user['id'] !== (int) ($me['id'] ?? 0)): ?>
             <form method="post" action="/admin/users/<?= (int) $user['id'] ?>/delete"
-                  onsubmit="return confirm('Remove <?= e($user['name']) ?>?')">
+                  data-confirm="Remove <?= e($user['name']) ?>? They will lose access immediately.">
               <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
               <button class="m3-button m3-button--text m3-button--danger m3-state" type="submit">Remove</button>
             </form>
@@ -36,7 +45,7 @@
     </tbody>
   </table>
 
-  <section class="m3-card" style="margin-top:2rem">
+  <section class="m3-card" id="addperson" style="margin-top:2rem">
     <h2 class="m3-card__title">Add someone</h2>
     <form method="post" action="/admin/users/create">
       <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
@@ -66,4 +75,4 @@
       <button class="m3-button m3-button--filled m3-state" type="submit">Add person</button>
     </form>
   </section>
-</main>
+</div>

@@ -1,12 +1,17 @@
-<main class="m3-page">
-  <header class="m3-page__head">
-    <h1>Assets</h1>
-    <p class="m3-page__meta"><?= count($assets) ?> <?= count($assets) === 1 ? 'file' : 'files' ?></p>
-  </header>
+<div class="m3-page m3-page--wide">
+  <div class="m3-page__bar">
+    <div class="m3-page__titles">
+      <h1>Assets</h1>
+      <p class="m3-page__meta"><?= count($assets) ?> <?= count($assets) === 1 ? 'file' : 'files' ?></p>
+    </div>
+    <div class="m3-page__action">
+      <a class="m3-button m3-button--filled m3-state" href="#upload">Upload a file</a>
+    </div>
+  </div>
 
   <?php if ($notice): ?><p class="m3-banner"><?= e($notice) ?></p><?php endif; ?>
 
-  <section class="m3-card">
+  <section class="m3-card" id="upload">
     <h2 class="m3-card__title">Upload a file</h2>
     <form method="post" action="/admin/assets/upload" enctype="multipart/form-data">
       <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
@@ -42,7 +47,10 @@
   <?php endif; ?>
 
   <?php if (!$assets): ?>
-    <p class="m3-empty">No assets yet. Upload the logo files first, they are what people come for.</p>
+    <div class="m3-empty-state">
+      <h2>No assets yet</h2>
+      <p>Upload the logo files first. They are what people come here for.</p>
+    </div>
   <?php else: ?>
     <table class="m3-table">
       <thead><tr><th>File</th><th>Label, tags and version</th><th>Size</th><th>Downloads</th><th></th></tr></thead>
@@ -71,7 +79,7 @@
               <button class="m3-button m3-button--text m3-state" type="submit">Replace</button>
             </form>
             <form method="post" action="/admin/assets/<?= (int) $asset['id'] ?>/delete"
-                  onsubmit="return confirm('Remove <?= e($asset['label']) ?>? Any page using it will stop showing it.')">
+                  data-confirm="Remove <?= e($asset['label']) ?>? Any page using it will stop showing it.">
               <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
               <button class="m3-button m3-button--text m3-button--danger m3-state" type="submit">Remove</button>
             </form>
@@ -82,4 +90,4 @@
     </table>
     <p class="m3-empty">Replacing a file keeps its link, so pages and bundles pick up the new version straight away.</p>
   <?php endif; ?>
-</main>
+</div>

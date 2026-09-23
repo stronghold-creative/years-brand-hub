@@ -1,9 +1,11 @@
-<main class="m3-page">
-  <header class="m3-page__head">
-    <h1>History</h1>
-    <p class="m3-page__meta"><?= e($page['title']) ?> &middot;
-      <a href="/admin/pages/<?= (int) $page['id'] ?>">Back to the editor</a></p>
-  </header>
+<div class="m3-page">
+  <div class="m3-page__bar">
+    <div class="m3-page__titles">
+      <a class="m3-back" href="/admin/pages/<?= (int) $page['id'] ?>"><?= ui_icon('back', 'icon') ?> Back to the editor</a>
+      <h1>History</h1>
+      <p class="m3-page__meta"><?= e($page['title']) ?>, last <?= count($versions) ?> saves</p>
+    </div>
+  </div>
 
   <?php if (count($versions) < 2): ?>
     <p class="m3-empty">Only one version so far. Every save adds one.</p>
@@ -32,4 +34,4 @@
     </tbody>
   </table>
   <p class="m3-empty">Restoring does not lose anything. The current version is saved to history first.</p>
-</main>
+</div>

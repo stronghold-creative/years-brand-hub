@@ -78,3 +78,35 @@ function section_icon_rename(string $from, string $to): void
         setting_save('section_icons', json_encode($map));
     }
 }
+
+/**
+ * Interface icons, kept separate from the section icon set so the section
+ * picker only ever offers icons that make sense for a section.
+ */
+function ui_icon_set(): array
+{
+    return [
+        'pages'    => '<path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H15l5 5v13H5.5A1.5 1.5 0 0 1 4 19.5Z"/><path d="M14 3v6h6"/>',
+        'assets'   => '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m3 17 5-4 4 3 3-2 6 5"/>',
+        'people'   => '<circle cx="9" cy="8" r="3.25"/><path d="M3 20a6 6 0 0 1 12 0"/><path d="M16.5 5.5a3 3 0 0 1 0 5.4"/><path d="M18 20a6 6 0 0 0-2.5-4.9"/>',
+        'settings' => '<circle cx="12" cy="12" r="3"/><path d="M19.4 14.5a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-1.8-.3 1.6 1.6 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.2a1.6 1.6 0 0 0-1-1.5 1.6 1.6 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.6 1.6 0 0 0 .3-1.8 1.6 1.6 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.2a1.6 1.6 0 0 0 1.5-1 1.6 1.6 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.6 1.6 0 0 0 1.8.3H9a1.6 1.6 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.2a1.6 1.6 0 0 0 1 1.5 1.6 1.6 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0-.3 1.8V9a1.6 1.6 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.2a1.6 1.6 0 0 0-1.4 1Z"/>',
+        'view'     => '<path d="M14 4h6v6"/><path d="M20 4 11 13"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+        'signout'  => '<path d="M9 21H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h4"/><path d="m16 17 5-5-5-5"/><path d="M21 12H9"/>',
+        'menu'     => '<path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/>',
+        'close'    => '<path d="M6 6l12 12"/><path d="M18 6 6 18"/>',
+        'back'     => '<path d="M19 12H5"/><path d="m11 18-6-6 6-6"/>',
+        'history'  => '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 4v4h4"/><path d="M12 8v4l3 2"/>',
+        'add'      => '<path d="M12 5v14"/><path d="M5 12h14"/>',
+    ];
+}
+
+function ui_icon(string $name, string $class = 'icon'): string
+{
+    $set = ui_icon_set();
+    if (!isset($set[$name])) {
+        return '';
+    }
+    return '<svg class="' . e($class) . '" viewBox="0 0 24 24" width="24" height="24" fill="none"'
+         . ' stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"'
+         . ' aria-hidden="true" focusable="false">' . $set[$name] . '</svg>';
+}

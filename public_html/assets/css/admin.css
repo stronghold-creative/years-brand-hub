@@ -168,45 +168,6 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 .m3-state:active::after     { opacity: var(--md-sys-state-pressed); }
 
 /* ===========================================================================
-   Top app bar
-   =========================================================================== */
-
-.m3-top-bar {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  height: 4rem;
-  padding: 0 1rem;
-  background: var(--md-sys-color-surface);
-  color: var(--md-sys-color-on-surface);
-  position: sticky;
-  top: 0;
-  z-index: 20;
-}
-.m3-top-bar--scrolled { background: var(--md-sys-color-surface-container); }
-.m3-top-bar__title { font-size: 1.375rem; line-height: 1.75rem; font-weight: 400; text-decoration: none; color: inherit; }
-.m3-top-bar__nav { margin-left: auto; display: flex; align-items: center; gap: .25rem; }
-.m3-top-bar__user { color: var(--md-sys-color-on-surface-variant); font-size: .75rem; padding: 0 .5rem; }
-
-/* Navigation items read as text buttons, active one as a tonal pill. */
-.m3-navlink {
-  display: inline-flex;
-  align-items: center;
-  height: 2.5rem;
-  padding: 0 1rem;
-  border-radius: var(--md-sys-shape-full);
-  text-decoration: none;
-  color: var(--md-sys-color-on-surface-variant);
-  font-size: .875rem;
-  font-weight: 500;
-  letter-spacing: .00714em;
-}
-.m3-navlink[aria-current='page'] {
-  background: var(--md-sys-color-secondary-container);
-  color: var(--md-sys-color-on-secondary-container);
-}
-
-/* ===========================================================================
    Buttons
    =========================================================================== */
 
@@ -494,21 +455,140 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 .m3-dialog__foot { padding: 1rem 1.5rem 1.5rem; display: flex; justify-content: flex-end; gap: .5rem; }
 
 /* ===========================================================================
-   Application layout
+   Shell: a navigation drawer beside a scrolling content region.
+
+   Destinations live in the drawer. Account and context live in its foot,
+   visually separated, because they are not places you navigate to.
    =========================================================================== */
 
-.m3-page { max-width: 64rem; margin: 0 auto; padding: 1.5rem 1.5rem 6rem; }
+.m3-shell { display: grid; grid-template-columns: 17.5rem minmax(0, 1fr); min-height: 100vh; }
+.m3-shell__body { display: flex; flex-direction: column; min-width: 0; min-height: 100vh; }
+.m3-shell__main { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; }
+.m3-shell__main > .m3-editor { flex: 1; }
+/* A screen holding the editor should not scroll as a whole. */
+.m3-shell--full .m3-shell__main { overflow: hidden; }
+
+.m3-skip {
+  position: absolute;
+  left: -9999px;
+  top: .5rem;
+  z-index: 200;
+  background: var(--md-sys-color-inverse-surface);
+  color: var(--md-sys-color-inverse-on-surface);
+  padding: .75rem 1.25rem;
+  border-radius: var(--md-sys-shape-full);
+  font-size: .875rem;
+}
+.m3-skip:focus { left: 1rem; }
+
+/* --------------------------------------------------------------- drawer */
+
+.m3-drawer {
+  display: flex;
+  flex-direction: column;
+  background: var(--md-sys-color-surface-container-low);
+  padding: 1rem .75rem;
+  gap: .25rem;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+}
+.m3-drawer__brand { display: flex; align-items: baseline; gap: .5rem; padding: .75rem 1rem 1.5rem; }
+.m3-drawer__mark { font-size: 1.375rem; color: var(--md-sys-color-tertiary); }
+.m3-drawer__sub { font-size: .75rem; color: var(--md-sys-color-on-surface-variant); }
+.m3-drawer__dismiss { display: none; margin-left: auto; }
+
+.m3-drawer__list { list-style: none; margin: 0; padding: 0; display: grid; gap: .25rem; }
+.m3-drawer__item {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  height: 3.5rem;
+  padding: 0 1.5rem 0 1rem;
+  border-radius: var(--md-sys-shape-full);
+  text-decoration: none;
+  color: var(--md-sys-color-on-surface-variant);
+  font-size: .875rem;
+  font-weight: 500;
+  letter-spacing: .00714em;
+}
+.m3-drawer__item[aria-current='page'] {
+  background: var(--md-sys-color-secondary-container);
+  color: var(--md-sys-color-on-secondary-container);
+}
+.m3-drawer__item .icon { width: 1.5rem; height: 1.5rem; flex: none; }
+.m3-drawer__item--quiet { height: 3rem; font-weight: 400; }
+
+.m3-drawer__foot { margin-top: auto; padding-top: 1rem; }
+.m3-drawer__foot::before {
+  content: '';
+  display: block;
+  height: 1px;
+  background: var(--md-sys-color-outline-variant);
+  margin: 0 1rem 1rem;
+}
+.m3-account { display: flex; align-items: center; gap: .75rem; padding: .5rem .5rem .5rem 1rem; }
+.m3-account__avatar {
+  width: 2.25rem; height: 2.25rem;
+  border-radius: var(--md-sys-shape-full);
+  background: var(--md-sys-color-primary-container);
+  color: var(--md-sys-color-on-primary-container);
+  display: grid; place-items: center;
+  font-size: .875rem; font-weight: 500;
+  flex: none;
+}
+.m3-account__who { display: grid; margin-right: auto; min-width: 0; }
+.m3-account__who strong { font-size: .875rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m3-account__who span { font-size: .75rem; color: var(--md-sys-color-on-surface-variant); }
+
+/* Narrow screens: the drawer becomes a sheet over the content. */
+.m3-compact-bar { display: none; align-items: center; gap: .5rem; height: 3.5rem; padding: 0 .5rem; }
+.m3-compact-bar__title { font-size: 1rem; font-weight: 500; }
+.m3-scrim--drawer { display: none; }
+
+/* -------------------------------------------------------------- content */
+
+.m3-page { max-width: 60rem; margin: 0 auto; padding: 0 2rem 6rem; }
 .m3-page--narrow { max-width: 48rem; }
-.m3-page__head { margin-bottom: 2rem; }
-.m3-page__head h1 { margin: 0 0 .25rem; font-size: 1.75rem; line-height: 2.25rem; font-weight: 400; }
-.m3-page__meta { margin: 0; font-size: .875rem; color: var(--md-sys-color-on-surface-variant); }
+.m3-page--wide { max-width: 76rem; }
+
+/* The page bar holds the title and the one primary action for that screen,
+   so the primary action is in the same place on every screen. */
+.m3-page__bar {
+  position: sticky;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.5rem 0 1rem;
+  background: var(--md-sys-color-surface);
+  transition: box-shadow var(--md-sys-motion-short) var(--md-sys-motion-standard);
+}
+.m3-page__bar.is-raised { box-shadow: 0 1px 0 var(--md-sys-color-outline-variant); }
+.m3-page__titles { min-width: 0; }
+.m3-page__titles h1 { margin: 0; font-size: 1.75rem; line-height: 2.25rem; font-weight: 400; }
+.m3-page__meta { margin: .125rem 0 0; font-size: .875rem; color: var(--md-sys-color-on-surface-variant); }
+.m3-page__action { margin-left: auto; display: flex; gap: .5rem; align-items: center; }
+.m3-back {
+  display: inline-flex; align-items: center; gap: .375rem;
+  color: var(--md-sys-color-on-surface-variant);
+  text-decoration: none; font-size: .875rem;
+  margin-bottom: .25rem;
+}
+.m3-back:hover { color: var(--md-sys-color-primary); }
+.m3-back .icon { width: 1.125rem; height: 1.125rem; }
+
 .m3-empty { color: var(--md-sys-color-on-surface-variant); font-size: .875rem; }
+.m3-empty-state { text-align: center; padding: 4rem 1rem; color: var(--md-sys-color-on-surface-variant); }
+.m3-empty-state h2 { margin: 0 0 .5rem; font-size: 1rem; font-weight: 500; color: var(--md-sys-color-on-surface); }
+.m3-empty-state p { margin: 0 0 1.5rem; font-size: .875rem; }
 
 .m3-section { margin-bottom: 2rem; }
 .m3-section__head { display: flex; align-items: center; gap: .5rem; padding: 0 .5rem; margin-bottom: .25rem; }
-.icon { width: 1.25rem; height: 1.25rem; flex: none; }
 .m3-section__icon { display: inline-flex; color: var(--md-sys-color-primary); }
 .m3-section__icon:empty { display: none; }
+.icon { width: 1.25rem; height: 1.25rem; flex: none; }
 .m3-section__name {
   font-size: .875rem;
   font-weight: 500;
@@ -532,18 +612,14 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
   padding: .25rem;
   cursor: pointer;
 }
-.m3-section__save { opacity: 0; transition: opacity var(--md-sys-motion-short); }
-.m3-section__head:hover .m3-section__save,
-.m3-section__head:focus-within .m3-section__save { opacity: 1; }
+.m3-section__save { margin-left: auto; }
 
+/* Row actions are always present, but quiet until the row is engaged, so they
+   can be found by touch and by keyboard as well as by hover. */
 .m3-list-item__actions { display: flex; align-items: center; gap: .25rem; }
-.m3-list-item__actions .m3-button--text { opacity: 0; transition: opacity var(--md-sys-motion-short); }
+.m3-list-item__actions .m3-button--text { color: var(--md-sys-color-on-surface-variant); }
 .m3-list-item:hover .m3-button--text,
-.m3-list-item:focus-within .m3-button--text { opacity: 1; }
-
-.m3-addrow { display: flex; gap: .75rem; align-items: flex-start; margin-top: 1.5rem; }
-.m3-addrow .m3-field { flex: 1; margin-bottom: 0; }
-.m3-addrow .m3-button { margin-top: .5rem; }
+.m3-list-item:focus-within .m3-button--text { color: var(--md-sys-color-primary); }
 
 .m3-table { width: 100%; border-collapse: collapse; font-size: .875rem; }
 .m3-table th {
@@ -560,7 +636,7 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 .m3-table a { color: var(--md-sys-color-on-surface); text-decoration: none; font-weight: 500; }
 .m3-table a:hover { text-decoration: underline; }
 .m3-inline { display: inline-flex; gap: .5rem; align-items: center; flex-wrap: wrap; margin: 0; }
-.m3-inline input[type='text'] {
+.m3-inline input[type="text"] {
   border: 1px solid var(--md-sys-color-outline);
   border-radius: var(--md-sys-shape-xs);
   padding: .375rem .625rem;
@@ -568,7 +644,23 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
   font-size: .875rem;
   max-width: 12rem;
 }
-.m3-inline input[type='file'] { font-size: .75rem; max-width: 12rem; }
+.m3-inline input[type="file"] { font-size: .75rem; max-width: 12rem; }
+
+.m3-banner { position: relative; padding-right: 3rem; }
+.m3-banner__dismiss {
+  position: absolute;
+  right: .5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2rem; height: 2rem;
+  border: 0; background: none;
+  color: inherit;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: var(--md-sys-shape-full);
+}
+.m3-banner.is-going { opacity: 0; transition: opacity var(--md-sys-motion-medium); }
 
 /* ===========================================================================
    Sign in
@@ -589,22 +681,48 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
    Editor
    =========================================================================== */
 
-.m3-editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); height: calc(100vh - 4rem); }
-.m3-editor__pane { overflow-y: auto; padding: 1.5rem 1.5rem 8rem; }
-.m3-editor__preview { display: flex; flex-direction: column; background: var(--md-sys-color-surface-container-low); }
-.m3-editor__status {
+/* The editor fills the shell: a context bar across the top, the form and the
+   preview beneath it. */
+.m3-editor {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  height: 100%;
+  min-height: 0;
+}
+.m3-editor__bar {
+  grid-column: 1 / -1;
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: .75rem 1.5rem;
+  gap: .75rem;
+  padding: .75rem 1rem;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+  background: var(--md-sys-color-surface);
+}
+.m3-editor__name { font-size: 1rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.m3-editor__tools { margin-left: auto; display: flex; gap: .25rem; }
+#save-state { transition: color var(--md-sys-motion-short), background var(--md-sys-motion-short); }
+#save-state[data-state='pending'] { background: var(--md-sys-color-surface-container-highest); border-color: transparent; }
+#save-state[data-state='saved']   { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); border-color: transparent; }
+#save-state[data-state='error']   { background: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container); border-color: transparent; }
+
+.m3-editor__pane { overflow-y: auto; padding: 1.5rem 1.5rem 8rem; min-height: 0; }
+.m3-editor__preview {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--md-sys-color-surface-container-low);
+  border-left: 1px solid var(--md-sys-color-outline-variant);
+}
+.m3-editor__previewlabel {
+  margin: 0;
+  padding: .625rem 1.5rem;
   font-size: .75rem;
+  font-weight: 500;
+  letter-spacing: .04167em;
   color: var(--md-sys-color-on-surface-variant);
 }
-.m3-editor__status a:last-child { margin-left: auto; }
-#save-state[data-state='pending'] { color: var(--md-sys-color-primary); }
-#save-state[data-state='saved']   { color: var(--md-sys-color-on-surface-variant); }
-#save-state[data-state='error']   { color: var(--md-sys-color-error); }
-#preview { flex: 1; width: 100%; border: 0; border-radius: var(--md-sys-shape-m) 0 0 0; background: #fff; }
+#preview { flex: 1; width: 100%; border: 0; background: #fff; min-height: 0; }
 
 .m3-editor__meta { margin-bottom: 2rem; }
 .m3-editor__metarow { display: grid; grid-template-columns: 1fr 12rem; gap: 1rem; }
@@ -772,12 +890,35 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
   .m3-editor__metarow { grid-template-columns: 1fr; }
 }
 
+/* Below this width the drawer slides over the content instead of sitting
+   beside it, and a compact bar carries the menu button. */
+@media (max-width: 52rem) {
+  .m3-shell { grid-template-columns: minmax(0, 1fr); }
+  .m3-compact-bar { display: flex; }
+  .m3-drawer {
+    position: fixed;
+    inset: 0 auto 0 0;
+    width: 17.5rem;
+    z-index: 110;
+    transform: translateX(-100%);
+    transition: transform var(--md-sys-motion-medium) var(--md-sys-motion-emphasised);
+    box-shadow: var(--md-sys-elevation-2);
+    border-radius: 0 var(--md-sys-shape-l) var(--md-sys-shape-l) 0;
+  }
+  .drawer-open .m3-drawer { transform: none; }
+  .m3-drawer__dismiss { display: inline-grid; }
+  .m3-scrim--drawer { display: block; z-index: 105; }
+  .m3-scrim--drawer[hidden] { display: none; }
+  .m3-page { padding: 0 1rem 5rem; }
+  .m3-page__bar { padding-top: .5rem; flex-wrap: wrap; }
+  .m3-page__action { margin-left: 0; width: 100%; }
+  .m3-table { display: block; overflow-x: auto; white-space: nowrap; }
+}
+
 @media (max-width: 40rem) {
-  .m3-top-bar { padding: 0 .5rem; }
-  .m3-navlink { padding: 0 .625rem; font-size: .8125rem; }
   .m3-list-item { grid-template-columns: 1fr; gap: .25rem; }
-  .m3-list-item__actions .m3-button--text { opacity: 1; }
   .m3-addrow { flex-direction: column; }
+  .m3-addrow .m3-button { width: 100%; margin-top: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

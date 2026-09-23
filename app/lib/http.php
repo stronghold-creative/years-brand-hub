@@ -77,3 +77,16 @@ function asset_url(string $path): string
     $stamp = is_file($file) ? filemtime($file) : time();
     return $path . '?v=' . $stamp;
 }
+
+/** First character of a name, uppercased, without needing mbstring. */
+function str_initial(string $text): string
+{
+    $text = trim($text);
+    if ($text === '') {
+        return '?';
+    }
+    if (function_exists('mb_substr')) {
+        return mb_strtoupper(mb_substr($text, 0, 1));
+    }
+    return strtoupper(substr($text, 0, 1));
+}

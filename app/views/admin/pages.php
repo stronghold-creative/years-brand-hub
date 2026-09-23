@@ -6,19 +6,27 @@ foreach ($pages as $page) {
 $drafts = count(array_filter($pages, fn($p) => $p['status'] !== 'published'));
 $stale  = count(array_filter($pages, fn($p) => strtotime($p['updated_at']) < strtotime('-6 months')));
 ?>
-<main class="m3-page m3-page--narrow">
-  <header class="m3-page__head">
-    <h1>Pages</h1>
-    <p class="m3-page__meta">
-      <?= count($pages) ?> <?= count($pages) === 1 ? 'page' : 'pages' ?><?php
-        if ($drafts) { echo ', ' . $drafts . ' in draft'; }
-        if ($stale)  { echo ', ' . $stale . ' not updated in six months'; }
-      ?>
-    </p>
-  </header>
+<div class="m3-page m3-page--narrow">
+  <div class="m3-page__bar">
+    <div class="m3-page__titles">
+      <h1>Pages</h1>
+      <p class="m3-page__meta">
+        <?= count($pages) ?> <?= count($pages) === 1 ? 'page' : 'pages' ?><?php
+          if ($drafts) { echo ', ' . $drafts . ' in draft'; }
+          if ($stale)  { echo ', ' . $stale . ' not updated in six months'; }
+        ?>
+      </p>
+    </div>
+    <div class="m3-page__action">
+      <a class="m3-button m3-button--filled m3-state" href="#newpage"><?= ui_icon('add', 'icon') ?> Add page</a>
+    </div>
+  </div>
 
   <?php if (!$pages): ?>
-    <p class="m3-empty">Nothing here yet. Add your first page below.</p>
+    <div class="m3-empty-state">
+      <h2>No pages yet</h2>
+      <p>Start with one of the foundations: logo, colour or typography.</p>
+    </div>
   <?php endif; ?>
 
   <?php foreach ($bySection as $section => $rows): ?>
@@ -34,7 +42,7 @@ $stale  = count(array_filter($pages, fn($p) => strtotime($p['updated_at']) < str
             <option value="<?= e($key) ?>"<?= section_icon($section) === $key ? ' selected' : '' ?>><?= e($meta['label']) ?></option>
           <?php endforeach; ?>
         </select>
-        <button class="m3-button m3-button--text m3-state m3-section__save" type="submit">Save</button>
+        <button class="m3-button m3-button--text m3-state m3-section__save" type="submit">Save section</button>
       </form>
 
       <hr class="m3-divider">
@@ -58,7 +66,7 @@ $stale  = count(array_filter($pages, fn($p) => strtotime($p['updated_at']) < str
                 <form method="post" action="/admin/pages/<?= (int) $page['id'] ?>/move/<?= $dir ?>">
                   <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
                   <button class="m3-icon-button m3-state" type="submit"<?= $off ? ' disabled' : '' ?>
-                          aria-label="Move <?= $dir ?>"><?= $glyph ?></button>
+                          aria-label="Move <?= e($page['title']) ?> <?= $dir ?>"><?= $glyph ?></button>
                 </form>
               <?php endforeach; ?>
             </span>
@@ -68,22 +76,27 @@ $stale  = count(array_filter($pages, fn($p) => strtotime($p['updated_at']) < str
     </section>
   <?php endforeach; ?>
 
-  <form method="post" action="/admin/pages/new" class="m3-addrow">
-    <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
-    <div class="m3-field">
-      <input class="m3-field__input" type="text" name="title" id="newtitle" placeholder=" " required>
-      <label class="m3-field__label" for="newtitle">New page title</label>
-    </div>
-    <div class="m3-field">
-      <input class="m3-field__input" type="text" name="section" id="newsection" list="sections" placeholder=" "
-             value="<?= e(array_key_first($bySection) ?? 'Foundations') ?>">
-      <label class="m3-field__label" for="newsection">Section</label>
-      <datalist id="sections">
-        <?php foreach (array_keys($bySection) as $name): ?>
-          <option value="<?= e($name) ?>"></option>
-        <?php endforeach; ?>
-      </datalist>
-    </div>
-    <button class="m3-button m3-button--filled m3-state" type="submit">Add page</button>
-  </form>
-</main>
+  <section class="m3-card" id="newpage">
+    <h2 class="m3-card__title">Add a page</h2>
+    <form method="post" action="/admin/pages/new">
+      <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
+      <div class="m3-editor__metarow">
+        <div class="m3-field">
+          <input class="m3-field__input" type="text" name="title" id="newtitle" placeholder=" " required>
+          <label class="m3-field__label" for="newtitle">Page title</label>
+        </div>
+        <div class="m3-field">
+          <input class="m3-field__input" type="text" name="section" id="newsection" list="sections" placeholder=" "
+                 value="<?= e(array_key_first($bySection) ?? 'Foundations') ?>">
+          <label class="m3-field__label" for="newsection">Section</label>
+          <datalist id="sections">
+            <?php foreach (array_keys($bySection) as $name): ?>
+              <option value="<?= e($name) ?>"></option>
+            <?php endforeach; ?>
+          </datalist>
+        </div>
+      </div>
+      <button class="m3-button m3-button--filled m3-state" type="submit">Add page</button>
+    </form>
+  </section>
+</div>
