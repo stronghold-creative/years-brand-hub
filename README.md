@@ -1,5 +1,9 @@
 # Years brand hub
 
+**Picking this up cold? Read [docs/HANDOVER.md](docs/HANDOVER.md) first.** It
+covers the architecture, the decisions and why they were made, and the traps
+that have already cost us a day between them.
+
 A small PHP application for publishing brand guidelines internally. No framework, no
 Composer, no build step. It runs on the PHP/HTML slot of a Hostinger shared plan.
 
