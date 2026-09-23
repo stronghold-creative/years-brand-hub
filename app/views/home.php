@@ -38,7 +38,7 @@ foreach ($sections as $section => $items) {
           $tint = $tints[$i % count($tints)];
         ?>
         <li class="cards__item" data-section="<?= e(slugify($page['section'])) ?>">
-          <a class="card" href="/g/<?= e($page['slug']) ?>">
+          <a class="card" href="/g/<?= e($page['slug']) ?>" title="<?= e($page['summary'] ?? '') ?>">
             <span class="card__label"><?= e($page['title']) ?></span>
             <span class="card__art card__art--<?= $hasCover ? 'photo' : e($tint) ?>">
               <?php if ($hasCover): ?>
@@ -47,9 +47,6 @@ foreach ($sections as $section => $items) {
                 <span class="card__glyph"><?= icon(section_icon($page['section']), 'icon') ?: icon('star', 'icon') ?></span>
               <?php endif; ?>
             </span>
-            <?php if (!empty($page['summary'])): ?>
-              <span class="card__summary"><?= e($page['summary']) ?></span>
-            <?php endif; ?>
           </a>
         </li>
       <?php endforeach; ?>

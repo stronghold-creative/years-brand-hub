@@ -83,25 +83,25 @@ a:hover { color: var(--accent-deep); }
 }
 
 /* ===========================================================================
-   Index: a grid of cards, each a page, each carrying a visual.
+   Index: a fixed-column grid of large portrait cards.
 
-   Cards run edge to edge with a thin gutter, so the grid itself is the page
-   rather than sitting inside a text column.
+   Columns are fixed rather than auto-filled, so a card is the same size
+   whether the site has four pages or forty. The art fills most of the card
+   and the label sits quietly at the top, going dark on hover.
    =========================================================================== */
 
-.index { padding: 1rem clamp(.75rem, 2vw, 1.5rem) 0; }
+.index { padding: .875rem clamp(.875rem, 1.6vw, 2rem) 0; }
 
 .index__empty { padding: clamp(4rem, 12vw, 9rem) var(--gutter); max-width: 24ch; }
 .index__empty h1 { font-family: var(--display); font-size: clamp(2.25rem, 5vw, 3.5rem); line-height: 1.05; font-weight: 400; margin: 0 0 1rem; }
 .index__empty p { color: var(--ink-soft); margin: 0; }
 
-/* Section filters, a segmented control rather than a row of links. */
 .filters {
   display: flex;
   flex-wrap: wrap;
   gap: .25rem;
-  padding: .3125rem;
-  margin: 0 auto 1rem;
+  padding: .25rem;
+  margin: 0 auto 1.25rem;
   width: fit-content;
   max-width: 100%;
   background: var(--raised);
@@ -111,13 +111,13 @@ a:hover { color: var(--accent-deep); }
   border: 0;
   background: none;
   font: inherit;
-  font-size: .8125rem;
-  font-weight: 500;
+  font-size: .875rem;
+  font-weight: 600;
   color: var(--ink-soft);
-  padding: .5rem 1rem;
+  padding: .5rem 1.25rem;
   border-radius: 999px;
   cursor: pointer;
-  transition: background .15s ease, color .15s ease;
+  transition: background .18s ease, color .18s ease;
 }
 .filter:hover { color: var(--ink); }
 .filter.is-on { background: var(--accent); color: #fff; }
@@ -127,65 +127,72 @@ a:hover { color: var(--accent-deep); }
   margin: 0;
   padding: 0;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
-  gap: .625rem;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: .75rem;
 }
-.cards__item[hidden] { display: none; }
 
 .card {
   display: flex;
   flex-direction: column;
-  gap: .75rem;
-  height: 100%;
-  padding: 1.25rem;
-  border-radius: 14px;
+  aspect-ratio: 3 / 4;
+  padding: 1.75rem;
+  border-radius: 16px;
   background: var(--raised);
   text-decoration: none;
   color: inherit;
   overflow: hidden;
-  transition: background .2s ease, transform .2s ease;
+  transition: background .2s ease;
 }
-.card:hover { background: var(--card-hover, #F2F0EC); transform: translateY(-2px); }
+.card:hover { background: #F1EFEA; }
 
 .card__label {
-  font-size: 1.0625rem;
+  font-size: clamp(1.125rem, 1.35vw, 1.5rem);
   font-weight: 600;
-  letter-spacing: -.01em;
+  letter-spacing: -.015em;
+  line-height: 1.15;
   color: var(--ink-faint);
   transition: color .2s ease;
 }
 .card:hover .card__label { color: var(--ink); }
 
-/* The art block is a square that fills the card's width. */
+/* The art fills whatever the label leaves, and bleeds past the card's padding
+   so it reads as a full-width motif rather than a boxed thumbnail. */
 .card__art {
   position: relative;
+  flex: 1;
+  min-height: 0;
   display: grid;
   place-items: center;
-  aspect-ratio: 1;
-  width: 100%;
-  margin-top: auto;
-  border-radius: 8px;
+  margin: 1.25rem -1.75rem -1.75rem;
   overflow: hidden;
 }
 .card__art img { width: 100%; height: 100%; object-fit: cover; display: block; }
 
-/* Generated tiles, used wherever a page has no cover image yet, so the grid
-   is never patchy. The glyph is the section's own icon. */
-.card__art--tint-purple { background: #ECE7F8; color: var(--accent); }
-.card__art--tint-pink   { background: #FBE9EE; color: var(--mark); }
-.card__art--tint-gold   { background: #FFF4DC; color: #8A6100; }
-.card__art--tint-green  { background: #E4F0EC; color: var(--positive); }
-.card__art--tint-lilac  { background: #F1EDFB; color: #6B4FB0; }
-.card__glyph { display: grid; place-items: center; width: 46%; height: 46%; }
-.card__glyph .icon { width: 100%; height: 100%; opacity: .55; }
-.card:hover .card__glyph .icon { opacity: .8; }
+/* Generated motif: a large tinted circle carrying the section's icon, so a
+   page without a cover still fills its card. */
+.card__art--photo { margin: 1.25rem -1.75rem -1.75rem; }
+.card__glyph {
+  display: grid;
+  place-items: center;
+  width: 78%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+}
+.card__glyph .icon { width: 46%; height: 46%; opacity: .75; }
+.card:hover .card__glyph .icon { opacity: 1; }
 
-.card__summary { font-size: .8125rem; line-height: 1.4; color: var(--ink-faint); }
+.card__art--tint-purple .card__glyph { background: #DED4F5; color: #4A3382; }
+.card__art--tint-pink   .card__glyph { background: #F8D8E1; color: #A02F4B; }
+.card__art--tint-gold   .card__glyph { background: #FFE7B8; color: #7A5500; }
+.card__art--tint-green  .card__glyph { background: #CFE5DE; color: #1F5A4D; }
+.card__art--tint-lilac  .card__glyph { background: #E3DBF8; color: #563C96; }
 
-@media (max-width: 40rem) {
-  .cards { grid-template-columns: repeat(auto-fill, minmax(10.5rem, 1fr)); gap: .5rem; }
-  .card { padding: .875rem; border-radius: 12px; }
-  .card__label { font-size: .9375rem; }
+@media (max-width: 78rem) { .cards { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (max-width: 60rem) { .cards { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 42rem) {
+  .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
+  .card { padding: 1.125rem; border-radius: 14px; }
+  .card__art { margin: .875rem -1.125rem -1.125rem; }
   .filters { width: 100%; justify-content: flex-start; overflow-x: auto; flex-wrap: nowrap; }
 }
 

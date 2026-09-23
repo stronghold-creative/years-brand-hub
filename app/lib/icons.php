@@ -52,17 +52,59 @@ function section_icons(): array
 function section_icon(string $section): string
 {
     $map = section_icons();
-    return isset($map[$section]) ? (string) $map[$section] : 'none';
+    if (isset($map[$section])) {
+        return (string) $map[$section];
+    }
+    return section_icon_guess($section);
+}
+
+/**
+ * A sensible icon for a section nobody has chosen one for, inferred from its
+ * name. Better than every card carrying the same generic mark.
+ */
+function section_icon_guess(string $section): string
+{
+    $name = strtolower($section);
+    $rules = [
+        'foundation' => 'layers',
+        'basic'      => 'layers',
+        'start'      => 'compass',
+        'voice'      => 'speech',
+        'tone'       => 'speech',
+        'word'       => 'speech',
+        'writing'    => 'speech',
+        'colour'     => 'palette',
+        'color'      => 'palette',
+        'type'       => 'type',
+        'applicat'   => 'box',
+        'packag'     => 'box',
+        'channel'    => 'megaphone',
+        'marketing'  => 'megaphone',
+        'social'     => 'megaphone',
+        'standard'   => 'shield',
+        'legal'      => 'shield',
+        'guideline'  => 'book',
+        'resource'   => 'download',
+        'download'   => 'download',
+        'asset'      => 'download',
+        'photo'      => 'image',
+        'image'      => 'image',
+        'product'    => 'tag',
+    ];
+    foreach ($rules as $needle => $iconName) {
+        if (str_contains($name, $needle)) {
+            return $iconName;
+        }
+    }
+    return 'compass';
 }
 
 function section_icon_save(string $section, string $iconName): void
 {
     $map = section_icons();
-    if (!isset(icon_set()[$iconName]) || $iconName === 'none') {
-        unset($map[$section]);
-    } else {
-        $map[$section] = $iconName;
-    }
+    // 'none' is stored rather than removed, so choosing no icon is a real
+    // choice and not the same as never having chosen one.
+    $map[$section] = isset(icon_set()[$iconName]) ? $iconName : 'none';
     setting_save('section_icons', json_encode($map));
 }
 
