@@ -100,32 +100,6 @@ a:hover { color: var(--accent-deep); }
 .index__empty h1 { font-family: var(--display); font-size: clamp(2.25rem, 5vw, 3.5rem); line-height: 1.05; font-weight: 400; margin: 0 0 1rem; }
 .index__empty p { color: var(--ink-soft); margin: 0; }
 
-.filters {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .25rem;
-  padding: .25rem;
-  margin: 0 auto 1.25rem;
-  width: fit-content;
-  max-width: 100%;
-  background: var(--raised);
-  border-radius: 999px;
-}
-.filter {
-  border: 0;
-  background: none;
-  font: inherit;
-  font-size: .875rem;
-  font-weight: 600;
-  color: var(--ink-soft);
-  padding: .5rem 1.25rem;
-  border-radius: 999px;
-  cursor: pointer;
-  transition: background .18s ease, color .18s ease;
-}
-.filter:hover { color: var(--ink); }
-.filter.is-on { background: var(--accent); color: #fff; }
-
 .cards {
   list-style: none;
   margin: 0;
@@ -197,7 +171,6 @@ a:hover { color: var(--accent-deep); }
   .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .5rem; }
   .card { padding: 1.125rem; border-radius: 14px; }
   .card__art { margin: .875rem -1.125rem -1.125rem; }
-  .filters { width: 100%; justify-content: flex-start; overflow-x: auto; flex-wrap: nowrap; }
 }
 
 /* ------------------------------------------------------------------ reader */

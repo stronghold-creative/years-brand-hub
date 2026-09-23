@@ -21,15 +21,6 @@ foreach ($sections as $section => $items) {
     </div>
   <?php else: ?>
 
-    <?php if (count($sections) > 1): ?>
-      <div class="filters" role="group" aria-label="Filter by section">
-        <button class="filter is-on" type="button" data-filter="all">Everything</button>
-        <?php foreach (array_keys($sections) as $name): ?>
-          <button class="filter" type="button" data-filter="<?= e(slugify($name)) ?>"><?= e($name) ?></button>
-        <?php endforeach; ?>
-      </div>
-    <?php endif; ?>
-
     <ul class="cards" id="cards">
       <?php foreach ($all as $i => $page): ?>
         <?php
