@@ -29,14 +29,17 @@ if (!empty($config['debug'])) {
     ini_set('display_errors', '0');
 }
 
-require APP_DIR . '/lib/db.php';
-require APP_DIR . '/lib/http.php';
-require APP_DIR . '/lib/auth.php';
-require APP_DIR . '/lib/view.php';
-require APP_DIR . '/lib/blocks.php';
-require APP_DIR . '/lib/settings.php';
-require APP_DIR . '/lib/migrate.php';
-require APP_DIR . '/lib/assets.php';
+// Every library in app/lib is loaded, in filename order. They contain only
+// function definitions, so order does not matter, and adding a library never
+// means remembering to edit this file.
+foreach (glob(APP_DIR . '/lib/*.php') ?: [] as $library) {
+    require $library;
+}
+
+if (!function_exists('db_init')) {
+    http_response_code(500);
+    exit('The app/lib directory is incomplete. Re-deploy, or check that every file in app/lib uploaded.');
+}
 
 session_set_cookie_params([
     'httponly' => true,

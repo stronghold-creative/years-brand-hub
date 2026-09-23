@@ -10,7 +10,7 @@
 
   <?php foreach ($sections as $section => $pages): ?>
     <section class="index__section">
-      <h2><?= e($section) ?></h2>
+      <h2><?= icon(section_icon($section), 'icon') ?><span><?= e($section) ?></span></h2>
       <ul>
         <?php foreach ($pages as $page): ?>
           <li>

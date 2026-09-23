@@ -1,0 +1,80 @@
+<?php
+declare(strict_types=1);
+
+/**
+ * A small, deliberately limited icon set. Inline SVG rather than an icon font
+ * or a library, so there is nothing to load, they inherit colour and size from
+ * their context, and they cannot go missing on a slow connection.
+ *
+ * All drawn on a 24 unit grid with a 1.5 stroke, so they sit together evenly.
+ */
+function icon_set(): array
+{
+    return [
+        'none'      => ['label' => 'No icon', 'path' => ''],
+        'layers'    => ['label' => 'Layers',      'path' => '<path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="m3 13 9 5 9-5"/>'],
+        'palette'   => ['label' => 'Palette',     'path' => '<path d="M12 3a9 9 0 1 0 0 18c.9 0 1.5-.7 1.5-1.5 0-.4-.2-.8-.4-1-.3-.3-.4-.6-.4-1 0-.8.6-1.5 1.5-1.5H16a5 5 0 0 0 5-5c0-4.4-4-8-9-8Z"/><circle cx="7.5" cy="11.5" r="1"/><circle cx="12" cy="7.5" r="1"/><circle cx="16.5" cy="11.5" r="1"/>'],
+        'type'      => ['label' => 'Typography',  'path' => '<path d="M5 6V4h14v2"/><path d="M12 4v16"/><path d="M9 20h6"/>'],
+        'speech'    => ['label' => 'Speech',      'path' => '<path d="M21 12a8 8 0 0 1-8 8H4l2.3-2.3A8 8 0 1 1 21 12Z"/>'],
+        'image'     => ['label' => 'Image',       'path' => '<rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="m3 17 5-4 4 3 3-2 6 5"/>'],
+        'grid'      => ['label' => 'Grid',        'path' => '<rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>'],
+        'box'       => ['label' => 'Packaging',   'path' => '<path d="M21 8 12 3 3 8v8l9 5 9-5V8Z"/><path d="m3 8 9 5 9-5"/><path d="M12 13v8"/>'],
+        'download'  => ['label' => 'Download',    'path' => '<path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 20h16"/>'],
+        'book'      => ['label' => 'Book',        'path' => '<path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H20v18H5.5A1.5 1.5 0 0 1 4 19.5Z"/><path d="M4 16.5h16"/>'],
+        'star'      => ['label' => 'Star',        'path' => '<path d="m12 3 2.6 5.5 6 .9-4.3 4.3 1 6.1-5.3-2.9L6.7 19.8l1-6.1L3.4 9.4l6-.9L12 3Z"/>'],
+        'compass'   => ['label' => 'Compass',     'path' => '<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5 5-2Z"/>'],
+        'tag'       => ['label' => 'Tag',         'path' => '<path d="M3 3h8l10 10-8 8L3 11V3Z"/><circle cx="7.5" cy="7.5" r="1.25"/>'],
+        'shield'    => ['label' => 'Shield',      'path' => '<path d="M12 3 4 6v6c0 4.5 3.4 8.3 8 9 4.6-.7 8-4.5 8-9V6l-8-3Z"/>'],
+        'megaphone' => ['label' => 'Megaphone',   'path' => '<path d="M4 10v4a1 1 0 0 0 1 1h3l6 4V5L8 9H5a1 1 0 0 0-1 1Z"/><path d="M18 9a4 4 0 0 1 0 6"/>'],
+    ];
+}
+
+/** Renders one icon. Returns an empty string for an unknown or absent name. */
+function icon(string $name, string $class = 'icon'): string
+{
+    $set = icon_set();
+    if (!isset($set[$name]) || $set[$name]['path'] === '') {
+        return '';
+    }
+    return '<svg class="' . e($class) . '" viewBox="0 0 24 24" width="20" height="20" fill="none"'
+         . ' stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"'
+         . ' aria-hidden="true" focusable="false">' . $set[$name]['path'] . '</svg>';
+}
+
+/** The section-to-icon map, stored as JSON in settings. */
+function section_icons(): array
+{
+    $raw = (string) setting('section_icons', '');
+    $map = json_decode($raw, true);
+    return is_array($map) ? $map : [];
+}
+
+function section_icon(string $section): string
+{
+    $map = section_icons();
+    return isset($map[$section]) ? (string) $map[$section] : 'none';
+}
+
+function section_icon_save(string $section, string $iconName): void
+{
+    $map = section_icons();
+    if (!isset(icon_set()[$iconName]) || $iconName === 'none') {
+        unset($map[$section]);
+    } else {
+        $map[$section] = $iconName;
+    }
+    setting_save('section_icons', json_encode($map));
+}
+
+/** Keeps a section's icon with it when the section is renamed. */
+function section_icon_rename(string $from, string $to): void
+{
+    $map = section_icons();
+    if (isset($map[$from])) {
+        $map[$to] = $map[$from];
+        if ($from !== $to) {
+            unset($map[$from]);
+        }
+        setting_save('section_icons', json_encode($map));
+    }
+}
