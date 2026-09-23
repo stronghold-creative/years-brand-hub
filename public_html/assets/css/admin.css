@@ -57,11 +57,35 @@
   --md-sys-elevation-2: 0 1px 2px rgba(0,0,0,.30), 0 2px 6px 2px rgba(0,0,0,.15);
   --md-sys-elevation-3: 0 4px 8px 3px rgba(0,0,0,.15), 0 1px 3px rgba(0,0,0,.30);
 
-  /* --------------------------------------------------------------- motion */
-  --md-sys-motion-short: 150ms;
-  --md-sys-motion-medium: 250ms;
-  --md-sys-motion-emphasised: cubic-bezier(.2, 0, 0, 1);
-  --md-sys-motion-standard: cubic-bezier(.2, 0, 0, 1);
+  /* --------------------------------------------------------------- motion
+
+     Four durations and three curves, used everywhere. The defaults matter more
+     than any single animation: a fast ease-out on state changes reads as
+     responsive, a slower expo-out on things that appear reads as considered.
+
+       swift   state layers, colour, small hovers
+       base    most transitions
+       calm    panels and dialogs
+       slow    anything that travels a distance
+
+       out     decelerating, for things arriving
+       expo    strong decelerate, for dialogs and panels
+       inout   for things that move and settle, like a drawer          */
+
+  --d-swift: 120ms;
+  --d-base:  180ms;
+  --d-calm:  260ms;
+  --d-slow:  420ms;
+
+  --e-out:   cubic-bezier(.22, 1, .36, 1);
+  --e-expo:  cubic-bezier(.16, 1, .3, 1);
+  --e-inout: cubic-bezier(.65, 0, .35, 1);
+
+  /* Kept for the Material component rules that already reference them. */
+  --md-sys-motion-short: var(--d-base);
+  --md-sys-motion-medium: var(--d-calm);
+  --md-sys-motion-emphasised: var(--e-expo);
+  --md-sys-motion-standard: var(--e-out);
 
   /* ----------------------------------------------------------- typography */
   --md-sys-typescale-font: 'Plus Jakarta Sans', system-ui, sans-serif;
@@ -1188,9 +1212,7 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
   .m3-addrow .m3-button { width: 100%; margin-top: 0; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  * { transition: none !important; animation: none !important; }
-}
+
 
 /* The colour field pairs a text input with a native swatch. */
 .m3-field--colour { position: relative; }
@@ -1519,3 +1541,79 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
   flex: none;
 }
 .colourfield__hex { width: 7rem; text-transform: uppercase; }
+
+/* ===========================================================================
+   Motion
+
+   Deliberately limited. Things that change state get a fast ease; things that
+   appear get a slower expo-out and a small movement. Nothing fades in on page
+   load, because content arriving late reads as slow rather than polished.
+   =========================================================================== */
+
+/* Navigation: the pill grows into place rather than snapping. */
+.m3-drawer__item {
+  transition:
+    background var(--d-base) var(--e-out),
+    color var(--d-swift) linear;
+}
+.m3-drawer__item .icon { transition: transform var(--d-calm) var(--e-out); }
+.m3-drawer__item:hover .icon { transform: translateX(2px); }
+.m3-drawer__item[aria-current='page'] .icon { transform: none; }
+
+/* Buttons: a small press, which is what makes a click feel physical. */
+.m3-button, .m3-icon-button, .m3-chip--filter, .outline__act, .blk__act {
+  transition:
+    background var(--d-swift) var(--e-out),
+    color var(--d-swift) linear,
+    box-shadow var(--d-base) var(--e-out),
+    transform var(--d-swift) var(--e-out);
+}
+.m3-button:active:not(:disabled),
+.m3-icon-button:active:not(:disabled) { transform: scale(.97); }
+
+/* Rows: colour only, no movement. Movement in a list is noise. */
+.m3-list-item, .m3-table tbody tr, .outline__row, .m3-asset__button, .blockmenu__item {
+  transition: background var(--d-swift) var(--e-out);
+}
+
+/* Things that appear. A short travel plus expo-out reads as confident. */
+@keyframes rise {
+  from { opacity: 0; transform: translateY(8px) scale(.985); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.m3-scrim, .blockmenu__scrim, .picker { animation: fade var(--d-base) var(--e-out) both; }
+.m3-dialog, .blockmenu, .picker__panel { animation: rise var(--d-calm) var(--e-expo) both; }
+.m3-more__menu { animation: rise var(--d-base) var(--e-expo) both; transform-origin: top right; }
+
+/* The inspector changes what it shows as the selection changes, so its content
+   settles in rather than swapping abruptly. */
+.ed__inspector.is-swapping .insp__section,
+.ed__inspector.is-swapping .insp__head { animation: rise var(--d-base) var(--e-out) both; }
+.ed__inspector.is-swapping .insp__section:nth-child(2) { animation-delay: 20ms; }
+.ed__inspector.is-swapping .insp__section:nth-child(3) { animation-delay: 40ms; }
+
+/* Banners leave rather than vanish. */
+.m3-banner { transition: opacity var(--d-calm) var(--e-out), transform var(--d-calm) var(--e-out); }
+.m3-banner.is-going { opacity: 0; transform: translateY(-4px); }
+
+/* The save chip changes colour, and that is the whole animation. */
+#save-state { transition: background var(--d-calm) var(--e-out), color var(--d-calm) linear; }
+
+/* The drawer slides; it already had a transform, this gives it the right feel. */
+@media (max-width: 52rem) {
+  .m3-drawer { transition: transform var(--d-slow) var(--e-inout); }
+}
+
+/* One reduced-motion block, at the end, so it always wins. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+  }
+}

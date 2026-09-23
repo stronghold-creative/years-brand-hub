@@ -24,7 +24,9 @@
       border: 1.5px solid transparent;
       border-radius: 8px;
       pointer-events: none;
-      transition: border-color .12s ease, background .12s ease;
+      transition:
+        border-color 180ms cubic-bezier(.22, 1, .36, 1),
+        background 180ms cubic-bezier(.22, 1, .36, 1);
     }
     [data-block].is-hover::after { border-color: rgba(114, 87, 183, .45); }
     [data-block].is-selected::after { border-color: #7257B7; background: rgba(114, 87, 183, .04); }
@@ -44,6 +46,11 @@
       pointer-events: none;
       white-space: nowrap;
       z-index: 5;
+      animation: ed-label 200ms cubic-bezier(.16, 1, .3, 1) both;
+    }
+    @keyframes ed-label {
+      from { opacity: 0; transform: translateY(calc(-100% + 4px)); }
+      to   { opacity: 1; transform: translateY(-100%); }
     }
 
     .ed-insert {
@@ -70,9 +77,13 @@
       padding: 5px 10px;
       border-radius: 999px;
       opacity: 0;
-      transition: opacity .12s ease;
+      transform: translateY(2px);
+      transition:
+        opacity 140ms cubic-bezier(.22, 1, .36, 1),
+        transform 180ms cubic-bezier(.22, 1, .36, 1);
     }
-    .ed-insert:hover::before, .ed-insert:hover span { opacity: 1; }
+    .ed-insert:hover::before { opacity: 1; }
+    .ed-insert:hover span { opacity: 1; transform: none; }
 
     body.is-editing { cursor: default; }
     @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }

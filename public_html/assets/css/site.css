@@ -34,6 +34,15 @@
   --measure: 66ch;
 
   --gutter: clamp(1.25rem, 5vw, 4.5rem);
+
+  /* Motion. Same curves as the admin, so the two halves feel related. */
+  --d-swift: 120ms;
+  --d-base:  180ms;
+  --d-calm:  260ms;
+  --d-slow:  420ms;
+  --e-out:   cubic-bezier(.22, 1, .36, 1);
+  --e-expo:  cubic-bezier(.16, 1, .3, 1);
+  --e-inout: cubic-bezier(.65, 0, .35, 1);
 }
 
 *, *::before, *::after { box-sizing: border-box; }
@@ -118,7 +127,7 @@ a:hover { color: var(--accent-deep); }
   text-decoration: none;
   color: inherit;
   overflow: hidden;
-  transition: background .2s ease;
+  transition: background var(--d-base) var(--e-out);
 }
 .card:hover { background: #F1EFEA; }
 
@@ -128,7 +137,7 @@ a:hover { color: var(--accent-deep); }
   letter-spacing: -.015em;
   line-height: 1.15;
   color: var(--ink-faint);
-  transition: color .2s ease;
+  transition: color var(--d-base) var(--e-out);
 }
 .card:hover .card__label { color: var(--ink); }
 
@@ -270,7 +279,7 @@ a:hover { color: var(--accent-deep); }
   font-size: .6875rem;
   padding: .25rem;
   opacity: 0;
-  transition: opacity .12s ease;
+  transition: opacity var(--d-swift) var(--e-out);
 }
 .swatch__chip:hover .swatch__copy,
 .swatch__chip:focus-visible .swatch__copy { opacity: 1; }
@@ -323,7 +332,7 @@ a:hover { color: var(--accent-deep); }
   border-bottom: 1px solid var(--rule);
   text-decoration: none;
   color: inherit;
-  transition: background .12s ease, padding-left .12s ease;
+  transition: background var(--d-swift) var(--e-out), padding-left var(--d-base) var(--e-out);
 }
 .download__link:hover { background: var(--raised); padding-left: .75rem; }
 .download__link:hover .download__name { color: var(--accent); }
@@ -343,9 +352,7 @@ a:hover { color: var(--accent-deep); }
   .download__meta { margin-left: 0; }
 }
 
-@media (prefers-reduced-motion: reduce) {
-  * { transition: none !important; animation: none !important; }
-}
+
 
 /* --------------------------------------------------------------- icons
 
@@ -481,7 +488,7 @@ a:hover { color: var(--accent-deep); }
    =========================================================================== */
 
 html { scroll-behavior: smooth; }
-@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+
 
 .reader__nav h2 a { color: inherit; text-decoration: none; }
 .reader__nav h2 a:hover { color: var(--accent); }
@@ -734,4 +741,76 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 @media (max-width: 56rem) {
   .areas { position: static; transform: none; margin-left: auto; }
   .masthead__title { display: none; }
+}
+
+/* ===========================================================================
+   Motion
+
+   The public site is a reference tool people open mid-task, so motion here is
+   limited to feedback on the things you interact with. Nothing animates on
+   scroll and nothing fades in on load.
+   =========================================================================== */
+
+/* Cards: the whole card lifts a little and its art settles, which is enough to
+   feel alive without turning the grid into a carnival. */
+.card {
+  transition:
+    background var(--d-base) var(--e-out),
+    transform var(--d-calm) var(--e-out),
+    box-shadow var(--d-calm) var(--e-out);
+  will-change: transform;
+}
+.card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px -18px rgba(31, 31, 31, .35); }
+.card:active { transform: translateY(-1px); transition-duration: var(--d-swift); }
+.card__label { transition: color var(--d-base) var(--e-out); }
+
+.card__art img,
+.card__glyph { transition: transform var(--d-slow) var(--e-out); }
+.card:hover .card__art img { transform: scale(1.03); }
+.card:hover .card__glyph { transform: scale(1.04); }
+.card__art { overflow: hidden; }
+
+/* The index list: a small shift on hover, already in place, given a curve. */
+.index__section a { transition: padding-left var(--d-base) var(--e-out); }
+
+/* Section rail: the current marker slides rather than jumping between items. */
+.reader__nav a, .reader__link {
+  transition:
+    color var(--d-swift) linear,
+    border-left-color var(--d-base) var(--e-out),
+    padding-left var(--d-base) var(--e-out);
+}
+.reader__link:hover { padding-left: 1.125rem; }
+
+/* Swatches: the copy affordance, and a small lift so the chip feels pressable. */
+.swatch__chip { transition: transform var(--d-base) var(--e-out), box-shadow var(--d-base) var(--e-out); }
+.swatch__chip:hover { transform: translateY(-2px); box-shadow: 0 8px 20px -14px rgba(31, 31, 31, .5); }
+.swatch__chip:active { transform: translateY(0); transition-duration: var(--d-swift); }
+.swatch__copy { transition: opacity var(--d-swift) var(--e-out), background var(--d-swift) linear; }
+
+/* Downloads behave like rows, so colour and a nudge, nothing more. */
+.download__link { transition: background var(--d-swift) var(--e-out), padding-left var(--d-base) var(--e-out); }
+
+/* Buttons and areas. */
+.area, .downloads__all a, .cta {
+  transition: background var(--d-base) var(--e-out), color var(--d-swift) linear, transform var(--d-swift) var(--e-out);
+}
+.downloads__all a:active, .cta:active { transform: scale(.98); }
+
+/* Anchored navigation within a section. */
+html { scroll-behavior: smooth; }
+
+/* ===========================================================================
+   Reduced motion
+
+   One block, at the end, so it always wins. Everything still changes state;
+   it just happens immediately rather than over time.
+   =========================================================================== */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-delay: 0ms !important;
+    transition-duration: 1ms !important;
+  }
 }

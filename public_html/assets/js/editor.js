@@ -393,6 +393,11 @@
 
   function renderInspector() {
     inspector.innerHTML = '';
+    // Retriggers the settle animation on the new content. Removing the class
+    // and forcing a reflow is the only reliable way to restart a CSS animation.
+    inspector.classList.remove('is-swapping');
+    void inspector.offsetWidth;
+    inspector.classList.add('is-swapping');
 
     if (selected === null || !blocks[selected]) {
       const template = document.getElementById('page-settings-template');
