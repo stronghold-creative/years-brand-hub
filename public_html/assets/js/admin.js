@@ -248,6 +248,36 @@
     update();
   });
 
+  // ------------------------------------------------- appearance controls
+
+  // A number box, a slider and any presets all drive the same value.
+  document.querySelectorAll('.numfield').forEach((field) => {
+    const input  = field.querySelector('.numfield__input');
+    const slider = field.querySelector('.numfield__slider');
+    const swatch = field.querySelector('.colourfield__swatch');
+    if (!input) return;
+
+    if (slider) {
+      slider.addEventListener('input', () => { input.value = slider.value; });
+      input.addEventListener('input', () => { slider.value = input.value; });
+    }
+
+    field.querySelectorAll('[data-preset]').forEach((chip) => {
+      chip.addEventListener('click', () => {
+        input.value = chip.dataset.preset;
+        if (slider) slider.value = chip.dataset.preset;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    });
+
+    if (swatch) {
+      swatch.addEventListener('input', () => { input.value = swatch.value.toUpperCase(); });
+      input.addEventListener('input', () => {
+        if (/^#[0-9a-f]{6}$/i.test(input.value)) swatch.value = input.value;
+      });
+    }
+  });
+
   // ------------------------------------------------------------ logo picker
 
   // Reuses the same asset library dialog as the block editor.

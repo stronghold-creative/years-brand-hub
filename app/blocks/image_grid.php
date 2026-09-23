@@ -2,7 +2,7 @@
 /** @var array $data */
 $items = [];
 foreach (($data['items'] ?? []) as $item) {
-    $asset = ($item['asset'] ?? '') !== '' ? asset_find((int) $item['asset']) : null;
+    $asset = ((int) ($item['asset'] ?? 0)) > 0 ? asset_find((int) $item['asset']) : null;
     if ($asset && asset_is_inline_image($asset)) {
         $items[] = ['asset' => $asset, 'meta' => $item];
     }

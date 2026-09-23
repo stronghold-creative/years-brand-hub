@@ -1,6 +1,7 @@
 <?php
 /** @var array $data @var array $options */
-$size    = block_option($options, 'size', 'normal', 'text_scale');
+// Body size is a number now, so "site default" means simply not overriding it.
+$size    = block_option($options, 'size', 'inherit');
 $align   = block_option($options, 'align', 'left');
 $columns = block_option($options, 'columns', 'one');
 ?>

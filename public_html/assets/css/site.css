@@ -542,7 +542,20 @@ html { scroll-behavior: smooth; }
    inherit these or carry their own modifier class.
    =========================================================================== */
 
-body { font-size: var(--s-text, 1rem); }
+body { font-size: var(--s-text, 1rem); line-height: var(--s-leading, 1.65); }
+:root { --gutter: clamp(1.25rem, 5vw, var(--s-gutter, 4.5rem)); }
+
+/* Heading sizes come from the body size and the scale, so the ladder moves
+   together when either is changed. */
+.index__lede h1, .reader__sectionhead h1, .reader__body h1 { font-size: var(--s-h1, 3rem); }
+.chapter__title { font-size: var(--s-h2, 2.25rem); }
+.block h2 { font-size: var(--s-h3, 1.25rem); }
+
+/* Outlines follow the chosen thickness. */
+body[data-card='outlined'] .zone--bg-tint,
+body[data-card='outlined'] .zone--bg-purple { border: var(--s-border, 1px) solid var(--rule); }
+.swatches--cards .swatch { border-radius: var(--s-radius, 6px); }
+body[data-card='outlined'] .swatches--cards .swatch { border: var(--s-border, 1px) solid var(--rule); }
 .reader__body h1,
 .chapter__title,
 .index__lede h1 { font-weight: var(--s-headweight, 400); }
@@ -559,7 +572,7 @@ body[data-card='shadow'] .zone--bg-purple { box-shadow: 0 1px 2px rgba(31,31,31,
 /* Calls to action: the download-all link and anything marked as a CTA. */
 .downloads__all a, .cta {
   display: inline-block;
-  padding: .625rem 1.25rem;
+  padding: var(--s-cta-pad-y, .625rem) var(--s-cta-pad-x, 1.25rem);
   border-radius: var(--s-cta-radius, var(--s-radius, 6px));
   text-decoration: none;
   font-size: .9375rem;
@@ -577,6 +590,7 @@ body[data-cta='text'] .cta { padding: 0; color: var(--accent); text-decoration: 
 /* --------------------------------------------------------- block options */
 
 /* Text */
+.prose--inherit { font-size: inherit; }
 .prose--small  { font-size: .875rem; }
 .prose--normal { font-size: inherit; }
 .prose--large  { font-size: 1.125rem; }
@@ -611,12 +625,15 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 .swatches--grid .swatch__chip { margin-bottom: .75rem; }
 .swatches--grid .swatch__usage { display: none; }
 
-.swatches--small .swatch__chip  { --sw: 4rem; }
-.swatches--medium .swatch__chip { --sw: 6rem; }
-.swatches--large .swatch__chip  { --sw: 9rem; }
-.swatches--list .swatch { grid-template-columns: var(--sw, 6rem) 1fr; }
+/* Sizes are relative to the site setting, so the global control still moves
+   blocks that have chosen small or large. */
+.swatches--small  { --sw: calc(var(--s-swatch, 6rem) * .7); }
+.swatches--medium { --sw: var(--s-swatch, 6rem); }
+.swatches--large  { --sw: calc(var(--s-swatch, 6rem) * 1.45); }
+.swatches--list .swatch { grid-template-columns: var(--sw, var(--s-swatch, 6rem)) 1fr; }
 
 .swatches--shape-rounded .swatch__chip { border-radius: var(--s-radius, 6px); }
+.swatches--shape-inherit .swatch__chip { border-radius: 0; }
 .swatches--shape-circle .swatch__chip { border-radius: 50%; }
 .swatches--shape-circle .swatch__copy { display: none; }
 
@@ -655,7 +672,7 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 /* Images */
 .figure--fit-square img { aspect-ratio: 1; object-fit: cover; }
 .figure--fit-wide img   { aspect-ratio: 16 / 9; object-fit: cover; }
-.figure--r-round img, .figure--r-soft img, .figure--r-pill img { border-radius: var(--s-radius, 6px); }
+.figure--r-round img, .figure--r-inherit img { border-radius: var(--s-radius, 6px); }
 .figure--r-none img { border-radius: 0; }
 .imagegrid--gap-tight { gap: .5rem; }
 .imagegrid--gap-loose { gap: 2.5rem; }

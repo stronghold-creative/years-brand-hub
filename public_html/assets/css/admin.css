@@ -1361,3 +1361,43 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 .blk__settingstitle--spaced { margin-top: 1.5rem; }
 .blk__settingsnote { margin: 1rem 0 0; font-size: .75rem; color: var(--md-sys-color-on-surface-variant); }
 .m3-section__count { margin-left: auto; font-size: .75rem; color: var(--md-sys-color-on-surface-variant); }
+
+/* ===========================================================================
+   Numeric and colour settings
+   =========================================================================== */
+
+.m3-stylegrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: 1.5rem; }
+.m3-stylegrid .m3-field { margin-bottom: 0; }
+
+.numfield { display: grid; gap: .5rem; }
+.numfield__label { font-size: .75rem; font-weight: 500; color: var(--md-sys-color-on-surface-variant); }
+.numfield__controls { display: flex; align-items: center; gap: .625rem; }
+.numfield__input {
+  width: 5.5rem;
+  height: 2.75rem;
+  padding: 0 .75rem;
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-sys-shape-xs);
+  background: none;
+  font-size: 1rem;
+  color: var(--md-sys-color-on-surface);
+  font-variant-numeric: tabular-nums;
+}
+.numfield__input:focus { outline: none; border-color: var(--md-sys-color-primary); border-width: 2px; }
+.numfield__unit { font-size: .8125rem; color: var(--md-sys-color-on-surface-variant); min-width: 1.5rem; }
+.numfield__slider { flex: 1; min-width: 4rem; accent-color: var(--md-sys-color-primary); }
+.numfield__presets { display: flex; gap: .375rem; flex-wrap: wrap; }
+.numfield__presets .m3-chip { cursor: pointer; font-size: .75rem; height: 1.75rem; padding: 0 .625rem; }
+.numfield__help { font-size: .75rem; color: var(--md-sys-color-on-surface-variant); }
+
+.colourfield__swatch {
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 1px solid var(--md-sys-color-outline);
+  border-radius: var(--md-sys-shape-xs);
+  background: none;
+  cursor: pointer;
+  flex: none;
+}
+.colourfield__hex { width: 7rem; text-transform: uppercase; }

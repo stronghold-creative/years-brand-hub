@@ -1,8 +1,10 @@
 <?php
 /** @var array $data */
-$asset  = ($data['asset'] ?? '') !== '' ? asset_find((int) $data['asset']) : null;
+// Sanitising stores an unset image as "0", so check the number, not the string.
+$asset  = ((int) ($data['asset'] ?? 0)) > 0 ? asset_find((int) $data['asset']) : null;
 $fit    = block_option($options, 'fit', 'natural');
-$radius = block_option($options, 'radius', 'round', 'radius');
+// The site radius is a number, applied through the CSS variable.
+$radius = block_option($options, 'radius', 'round');
 if ($asset && asset_is_inline_image($asset)):
 ?>
 <figure class="block block--image figure figure--<?= e($data['width'] ?? 'text') ?> figure--frame-<?= e($data['frame'] ?? 'none') ?> figure--fit-<?= e($fit) ?> figure--r-<?= e($radius) ?>">
