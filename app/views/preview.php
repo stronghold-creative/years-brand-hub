@@ -12,8 +12,11 @@
 <main class="reader__body">
   <h1><?= e($page['title']) ?></h1>
   <?php if (!empty($page['summary'])): ?><p class="reader__summary"><?= e($page['summary']) ?></p><?php endif; ?>
-  <?php render_blocks($blocks); ?>
+  <?php render_blocks($blocks, !empty($editing)); ?>
 </main>
 <script src="<?= e(asset_url('/assets/js/site.js')) ?>"></script>
+<?php if (!empty($editing)): ?>
+  <script src="<?= e(asset_url('/assets/js/preview-bridge.js')) ?>"></script>
+<?php endif; ?>
 </body>
 </html>

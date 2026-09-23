@@ -14,13 +14,14 @@
 
   let blocks = JSON.parse(root.dataset.blocks);
 
-  const list      = document.getElementById('blocks');
+  const outline   = document.getElementById('outline-list');
+  const inspector = document.getElementById('inspector');
   const saveState = document.getElementById('save-state');
   const preview   = document.getElementById('preview');
 
-  // Cards are collapsed by default so a long page stays navigable. This holds
-  // the indexes that are currently expanded.
-  const open = new Set();
+  // Which block the inspector is showing. null means the page itself.
+  let selected = null;
+  let previewReady = false;
 
   const clone = (value) => JSON.parse(JSON.stringify(value));
 
@@ -267,25 +268,11 @@
     arr.splice(to, 0, arr.splice(from, 1)[0]);
   }
 
-  // =============================================================== blocks
+  // ============================================================== helpers
 
-  const GLYPH = {
-    up: '&uarr;', down: '&darr;', duplicate: '&#10697;',
-    remove: '&times;', settings: '&#9881;',
-  };
+  const copy = (value) => JSON.parse(JSON.stringify(value));
 
-  function iconButton(label, glyph, handler, className) {
-    const el = document.createElement('button');
-    el.type = 'button';
-    el.className = 'blk__act ' + (className || '');
-    el.innerHTML = glyph;
-    el.setAttribute('aria-label', label);
-    el.title = label;
-    el.addEventListener('click', (event) => { event.stopPropagation(); handler(); });
-    return el;
-  }
-
-  /** A short line describing a block, shown while its card is collapsed. */
+  /** A short description of a block, for the outline. */
   function describe(block) {
     const def = schema[block.type];
     for (const [key, fieldDef] of Object.entries(def.fields)) {
@@ -295,203 +282,281 @@
         return value.length + ' ' + noun + (value.length === 1 ? '' : 's');
       }
       if (typeof value === 'string' && value.trim() && fieldDef.type !== 'select' && fieldDef.type !== 'asset') {
-        return value.length > 70 ? value.slice(0, 70) + '\u2026' : value;
+        return value.length > 42 ? value.slice(0, 42) + '\u2026' : value;
       }
     }
-    return 'Empty';
+    return '';
   }
 
-  /** Keeps the expanded set pointing at the same blocks after a reorder. */
-  function shiftOpen(from, to) {
-    if (to < 0 || to >= blocks.length) return;
-    const a = open.has(from);
-    const b = open.has(to);
-    open.delete(from); open.delete(to);
-    if (a) open.add(to);
-    if (b) open.add(from);
+  function ensure(block) {
+    if (!block.settings) block.settings = copy(settingsBlank);
+    if (!block.options)  block.options  = copy(optionDefaults[block.type] || {});
+    return block;
   }
 
-  function renderBlock(block, index) {
-    const def = schema[block.type];
-    const card = document.createElement('article');
-    card.className = 'blk' + (open.has(index) ? ' is-open' : '');
-    card.draggable = true;
-    card.dataset.index = index;
+  // ============================================================== outline
 
-    const head = document.createElement('header');
-    head.className = 'blk__head';
-    head.innerHTML =
-      '<span class="blk__grip" aria-hidden="true"></span>' +
-      '<span class="blk__type"></span>' +
-      '<span class="blk__summary"></span>';
-    head.querySelector('.blk__type').textContent = def.label;
-    head.querySelector('.blk__summary').textContent = describe(block);
+  function renderOutline() {
+    outline.innerHTML = '';
 
-    const acts = document.createElement('span');
-    acts.className = 'blk__acts';
-    acts.append(
-      iconButton('Appearance', GLYPH.settings, () => {
-        block.settingsOpen = !block.settingsOpen;
-        open.add(index);
-        render();
-      }),
-      iconButton('Move up', GLYPH.up, () => {
-        move(blocks, index, index - 1); shiftOpen(index, index - 1); render(); queueSave();
-      }),
-      iconButton('Move down', GLYPH.down, () => {
-        move(blocks, index, index + 1); shiftOpen(index, index + 1); render(); queueSave();
-      }),
-      iconButton('Duplicate', GLYPH.duplicate, () => {
-        const copy = JSON.parse(JSON.stringify(blocks[index]));
-        delete copy.settingsOpen;
-        blocks.splice(index + 1, 0, copy);
-        open.add(index + 1);
-        render(); queueSave();
-      }),
-      iconButton('Delete', GLYPH.remove, () => {
-        if (!window.confirm('Delete this ' + def.label.toLowerCase() + ' block?')) return;
-        blocks.splice(index, 1);
-        open.delete(index);
-        render(); queueSave();
-      }, 'blk__act--danger')
-    );
-    head.append(acts);
+    blocks.forEach((block, index) => {
+      const row = document.createElement('li');
+      row.className = 'outline__row' + (index === selected ? ' is-selected' : '');
+      row.draggable = true;
+      row.dataset.index = index;
 
-    head.addEventListener('click', (event) => {
-      if (event.target.closest('.blk__acts')) return;
-      if (open.has(index)) { open.delete(index); } else { open.add(index); }
-      render();
+      const grip = document.createElement('span');
+      grip.className = 'outline__grip';
+      grip.setAttribute('aria-hidden', 'true');
+
+      const text = document.createElement('button');
+      text.type = 'button';
+      text.className = 'outline__text';
+      text.innerHTML = '<span class="outline__type"></span><span class="outline__desc"></span>';
+      text.querySelector('.outline__type').textContent = schema[block.type].label;
+      text.querySelector('.outline__desc').textContent = describe(block);
+      text.addEventListener('click', () => select(index));
+
+      const acts = document.createElement('span');
+      acts.className = 'outline__acts';
+      acts.append(
+        miniButton('Duplicate', '&#10697;', () => {
+          blocks.splice(index + 1, 0, copy(ensure(blocks[index])));
+          select(index + 1);
+          queueSave();
+        }),
+        miniButton('Delete', '&times;', () => {
+          if (!window.confirm('Delete this ' + schema[block.type].label.toLowerCase() + ' block?')) return;
+          blocks.splice(index, 1);
+          selected = null;
+          renderAll();
+          queueSave();
+        }, 'is-danger')
+      );
+
+      row.append(grip, text, acts);
+      outline.append(row);
     });
-    card.append(head);
 
-    if (!open.has(index)) return card;
+    const count = document.getElementById('outline-count');
+    if (count) count.textContent = blocks.length + (blocks.length === 1 ? ' block' : ' blocks');
 
-    const body = document.createElement('div');
-    body.className = 'blk__body';
+    if (!blocks.length) {
+      const empty = document.createElement('li');
+      empty.className = 'outline__empty';
+      empty.textContent = 'No blocks yet.';
+      outline.append(empty);
+    }
+  }
 
-    if (def.hint) {
-      const hint = document.createElement('p');
-      hint.className = 'blk__hint';
-      hint.textContent = def.hint;
-      body.append(hint);
+  function miniButton(label, glyph, handler, className) {
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'outline__act ' + (className || '');
+    el.innerHTML = glyph;
+    el.title = label;
+    el.setAttribute('aria-label', label);
+    el.addEventListener('click', (event) => { event.stopPropagation(); handler(); });
+    return el;
+  }
+
+  // Drag to reorder, from the outline only.
+  let dragFrom = null;
+  outline.addEventListener('dragstart', (event) => {
+    const row = event.target.closest('.outline__row');
+    if (!row) return;
+    dragFrom = Number(row.dataset.index);
+    row.classList.add('is-dragging');
+  });
+  outline.addEventListener('dragover', (event) => {
+    event.preventDefault();
+    const row = event.target.closest('.outline__row');
+    outline.querySelectorAll('.is-over').forEach((el) => el.classList.remove('is-over'));
+    if (row) row.classList.add('is-over');
+  });
+  outline.addEventListener('drop', (event) => {
+    event.preventDefault();
+    const row = event.target.closest('.outline__row');
+    if (row && dragFrom !== null) {
+      const to = Number(row.dataset.index);
+      blocks.splice(to, 0, blocks.splice(dragFrom, 1)[0]);
+      select(to);
+      queueSave();
+    }
+    dragFrom = null;
+  });
+  outline.addEventListener('dragend', () => {
+    outline.querySelectorAll('.is-dragging, .is-over').forEach((el) => el.classList.remove('is-dragging', 'is-over'));
+  });
+
+  // ============================================================ inspector
+
+  function renderInspector() {
+    inspector.innerHTML = '';
+
+    if (selected === null || !blocks[selected]) {
+      const template = document.getElementById('page-settings-template');
+      inspector.append(template.content.cloneNode(true));
+      bindPageFields();
+      return;
     }
 
+    const block = ensure(blocks[selected]);
+    const def = schema[block.type];
+
+    const head = document.createElement('div');
+    head.className = 'insp__head';
+    head.innerHTML = '<span class="insp__kind"></span>';
+    head.querySelector('.insp__kind').textContent = def.label;
+
+    const close = document.createElement('button');
+    close.type = 'button';
+    close.className = 'insp__close m3-state';
+    close.innerHTML = '&times;';
+    close.title = 'Show page settings';
+    close.setAttribute('aria-label', 'Show page settings');
+    close.addEventListener('click', () => select(null));
+    head.append(close);
+    inspector.append(head);
+
+    // Content
+    const content = section('Content');
+    if (def.hint) {
+      const hint = document.createElement('p');
+      hint.className = 'insp__hint';
+      hint.textContent = def.hint;
+      content.append(hint);
+    }
     Object.entries(def.fields).forEach(([key, fieldDef]) => {
       if (fieldDef.type === 'repeater') {
         if (!Array.isArray(block.data[key])) block.data[key] = [];
-        body.append(repeater(fieldDef, block.data[key], (rows, inPlace) => {
+        content.append(repeater(fieldDef, block.data[key], (rows, inPlace) => {
           block.data[key] = rows;
-          if (!inPlace) render();
+          if (!inPlace) renderInspector();
+          renderOutline();
           queueSave();
         }));
       } else {
-        body.append(field(fieldDef, block.data[key], (value) => {
+        content.append(field(fieldDef, block.data[key], (value) => {
           block.data[key] = value;
-          head.querySelector('.blk__summary').textContent = describe(block);
+          renderOutline();
           queueSave();
         }));
       }
     });
+    inspector.append(content);
 
-    if (block.settingsOpen) {
-      if (!block.settings) block.settings = JSON.parse(JSON.stringify(settingsBlank));
-      if (!block.options)  block.options  = JSON.parse(JSON.stringify(optionDefaults[block.type] || {}));
-
-      const panel = document.createElement('div');
-      panel.className = 'blk__settings';
-
-      // Options specific to this block type, where the interesting controls are.
-      const own = optionSchema[block.type] || {};
-      if (Object.keys(own).length) {
-        const ownTitle = document.createElement('p');
-        ownTitle.className = 'blk__settingstitle';
-        ownTitle.textContent = def.label + ' options';
-        panel.append(ownTitle);
-
-        const ownGrid = document.createElement('div');
-        ownGrid.className = 'blk__settingsgrid';
-        Object.entries(own).forEach(([key, fieldDef]) => {
-          ownGrid.append(field(
-            { type: 'select', label: fieldDef.label, options: fieldDef.options },
-            block.options[key],
-            (value) => { block.options[key] = value; queueSave(); },
-            true
-          ));
-        });
-        panel.append(ownGrid);
-      }
-
-      const title = document.createElement('p');
-      title.className = 'blk__settingstitle blk__settingstitle--spaced';
-      title.textContent = 'Placement';
-      panel.append(title);
-
-      const grid = document.createElement('div');
-      grid.className = 'blk__settingsgrid';
-      Object.entries(settingsSchema).forEach(([key, fieldDef]) => {
-        grid.append(field(fieldDef, block.settings[key], (value) => {
-          block.settings[key] = value;
-          queueSave();
-        }, true));
+    // Appearance, this block's own options.
+    const own = optionSchema[block.type] || {};
+    if (Object.keys(own).length) {
+      const look = section('Appearance');
+      Object.entries(own).forEach(([key, fieldDef]) => {
+        look.append(field(
+          { type: 'select', label: fieldDef.label, options: fieldDef.options },
+          block.options[key],
+          (value) => { block.options[key] = value; queueSave(); },
+          true
+        ));
       });
-      panel.append(grid);
-
-      const note = document.createElement('p');
-      note.className = 'blk__settingsnote';
-      note.textContent = 'Anything set to "Site default" follows Appearance in the admin.';
-      panel.append(note);
-
-      body.append(panel);
+      inspector.append(look);
     }
 
-    card.append(body);
-    return card;
+    // Placement, shared by every block.
+    const place = section('Placement');
+    Object.entries(settingsSchema).forEach(([key, fieldDef]) => {
+      place.append(field(fieldDef, block.settings[key], (value) => {
+        block.settings[key] = value;
+        queueSave();
+      }, true));
+    });
+    const note = document.createElement('p');
+    note.className = 'insp__hint';
+    note.textContent = 'Anything set to "Site default" follows Appearance in the admin.';
+    place.append(note);
+    inspector.append(place);
   }
 
-  // A block can be inserted anywhere, not only at the end.
-  function inserter(index) {
-    const row = document.createElement('div');
-    row.className = 'blk-insert';
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = 'blk-insert__btn';
-    btn.innerHTML = '<span>Add a block</span>';
-    btn.addEventListener('click', () => openBlockMenu(index, row));
-    row.append(btn);
-    return row;
+  function section(title) {
+    const el = document.createElement('section');
+    el.className = 'insp__section';
+    const heading = document.createElement('h2');
+    heading.className = 'insp__title';
+    heading.textContent = title;
+    el.append(heading);
+    return el;
   }
 
-  function openBlockMenu(index, anchor) {
-    document.querySelectorAll('.blk-menu').forEach((el) => el.remove());
+  // ============================================================ selection
+
+  function select(index) {
+    selected = index;
+    renderOutline();
+    renderInspector();
+    if (index !== null) tell({ action: 'select', index: index });
+  }
+
+  function tell(message) {
+    if (!preview || !preview.contentWindow) return;
+    preview.contentWindow.postMessage(Object.assign({ from: 'editor' }, message), window.location.origin);
+  }
+
+  function sendLabels() {
+    tell({ action: 'labels', labels: blocks.map((block) => schema[block.type].label) });
+  }
+
+  window.addEventListener('message', (event) => {
+    if (event.origin !== window.location.origin || !event.data || event.data.from !== 'preview') return;
+
+    if (event.data.action === 'ready') {
+      previewReady = true;
+      sendLabels();
+      if (selected !== null) tell({ action: 'select', index: selected });
+    }
+    if (event.data.action === 'select') {
+      selected = event.data.index;
+      renderOutline();
+      renderInspector();
+    }
+    if (event.data.action === 'insert') {
+      openBlockMenu(event.data.index);
+    }
+  });
+
+  // ========================================================== adding blocks
+
+  function openBlockMenu(index, anchorEl) {
+    document.querySelectorAll('.blockmenu').forEach((el) => el.remove());
 
     const menu = document.createElement('div');
-    menu.className = 'blk-menu';
+    menu.className = 'blockmenu';
+    menu.innerHTML = '<p class="blockmenu__title">Add a block</p>';
+
     Object.entries(schema).forEach(([type, def]) => {
       const item = document.createElement('button');
       item.type = 'button';
-      item.className = 'blk-menu__item';
-      item.innerHTML = '<span class="blk-menu__label"></span><span class="blk-menu__hint"></span>';
-      item.querySelector('.blk-menu__label').textContent = def.label;
-      item.querySelector('.blk-menu__hint').textContent = def.hint || '';
+      item.className = 'blockmenu__item';
+      item.innerHTML = '<span class="blockmenu__label"></span><span class="blockmenu__hint"></span>';
+      item.querySelector('.blockmenu__label').textContent = def.label;
+      item.querySelector('.blockmenu__hint').textContent = def.hint || '';
       item.addEventListener('click', () => {
         blocks.splice(index, 0, {
           type: type,
-          data: JSON.parse(JSON.stringify(defaults[type])),
-          settings: JSON.parse(JSON.stringify(settingsBlank)),
-          options: JSON.parse(JSON.stringify(optionDefaults[type] || {})),
+          data: copy(defaults[type]),
+          settings: copy(settingsBlank),
+          options: copy(optionDefaults[type] || {}),
         });
-        open.clear();
-        open.add(index);
         menu.remove();
-        render();
+        select(index);
         queueSave();
       });
       menu.append(item);
     });
 
-    anchor.append(menu);
+    (anchorEl || document.body).append(menu);
+    if (!anchorEl) menu.classList.add('blockmenu--centred');
+
     const close = (event) => {
-      if (!anchor.contains(event.target)) { menu.remove(); document.removeEventListener('click', close); }
+      if (!menu.contains(event.target)) { menu.remove(); document.removeEventListener('click', close); }
     };
     setTimeout(() => document.addEventListener('click', close), 0);
     document.addEventListener('keydown', function esc(event) {
@@ -499,71 +564,71 @@
     });
   }
 
-  function render() {
-    list.innerHTML = '';
-    if (!blocks.length) {
-      const empty = document.createElement('p');
-      empty.className = 'm3-empty';
-      empty.textContent = 'This page is empty. Add a block to start.';
-      list.append(empty);
-    }
-    blocks.forEach((block, index) => {
-      list.append(inserter(index));
-      list.append(renderBlock(block, index));
+  const outlineAdd = document.getElementById('outline-add');
+  if (outlineAdd) {
+    outlineAdd.addEventListener('click', (event) => {
+      event.stopPropagation();
+      openBlockMenu(blocks.length, outlineAdd.parentElement);
     });
-    list.append(inserter(blocks.length));
   }
 
-  // ------------------------------------------------------------ drag to sort
+  function renderAll() {
+    renderOutline();
+    renderInspector();
+  }
 
-  let dragFrom = null;
-
-  list.addEventListener('dragstart', (event) => {
-    const card = event.target.closest('.blk');
-    if (!card) return;
-    dragFrom = Number(card.dataset.index);
-    card.classList.add('is-dragging');
-    event.dataTransfer.effectAllowed = 'move';
-  });
-
-  list.addEventListener('dragover', (event) => {
-    event.preventDefault();
-    const card = event.target.closest('.blk');
-    list.querySelectorAll('.is-over').forEach((el) => el.classList.remove('is-over'));
-    if (card) card.classList.add('is-over');
-  });
-
-  list.addEventListener('drop', (event) => {
-    event.preventDefault();
-    const card = event.target.closest('.blk');
-    if (card && dragFrom !== null) {
-      move(blocks, dragFrom, Number(card.dataset.index));
-      open.clear();
-      render();
-      queueSave();
-    }
-    dragFrom = null;
-  });
-
-  list.addEventListener('dragend', () => {
-    list.querySelectorAll('.is-dragging, .is-over').forEach((el) => el.classList.remove('is-dragging', 'is-over'));
-  });
-
-  // =================================================================== saving
+  // =============================================================== saving
 
   let timer = null;
   let saving = false;
-
   let coverId = '';
-  const coverMount = document.getElementById('f-cover');
-  if (coverMount) {
-    coverId = coverMount.dataset.cover && coverMount.dataset.cover !== '0' ? coverMount.dataset.cover : '';
-    coverMount.append(assetField(
-      { label: 'Cover image, shown on the index', type: 'asset' },
-      coverId,
-      (value) => { coverId = value; queueSave(); }
-    ));
+
+  function bindPageFields() {
+    const mount = document.getElementById('f-cover');
+    if (mount) {
+      coverId = mount.dataset.cover && mount.dataset.cover !== '0' ? mount.dataset.cover : coverId;
+      mount.append(assetField(
+        { label: 'Cover image, shown on the index', type: 'asset' },
+        coverId,
+        (value) => { coverId = value; queueSave(); }
+      ));
+    }
+    Object.keys(PAGE_FIELDS).forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      const update = () => { readPageFields(); queueSave(); };
+      el.addEventListener('input', update);
+      el.addEventListener('change', update);
+    });
+    const title = document.getElementById('f-title');
+    const name = document.getElementById('editor-title');
+    if (title && name) {
+      title.addEventListener('input', () => { name.textContent = title.value || 'Untitled page'; });
+    }
   }
+
+  const PAGE_FIELDS = {
+    'f-title': 'title', 'f-section': 'section', 'f-summary': 'summary',
+    'f-status': 'status', 'f-home': 'home',
+  };
+
+  function readPageFields() {
+    Object.entries(PAGE_FIELDS).forEach(([id, key]) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      pageState[key] = el.type === 'checkbox' ? el.checked : el.value;
+    });
+  }
+
+  // The page fields only exist in the DOM while the inspector shows the page,
+  // so their values are held here and updated as they change.
+  const pageState = {
+    title:   root.dataset.pageTitle || '',
+    section: root.dataset.pageSection || '',
+    summary: root.dataset.pageSummary || '',
+    status:  root.dataset.pageStatus || 'draft',
+    home:    root.dataset.pageHome !== '0',
+  };
 
   function queueSave() {
     saveState.textContent = 'Saving';
@@ -576,32 +641,34 @@
     if (saving) { queueSave(); return; }
     saving = true;
     try {
-      // Editor-only flags never reach the database.
       const payload = blocks.map((block) => ({
         type: block.type,
         data: block.data,
-        settings: block.settings || JSON.parse(JSON.stringify(settingsBlank)),
-        options: block.options || JSON.parse(JSON.stringify(optionDefaults[block.type] || {})),
+        settings: block.settings || copy(settingsBlank),
+        options: block.options || copy(optionDefaults[block.type] || {}),
       }));
 
       const response = await fetch('/admin/pages/' + pageId + '/save', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.CSRF },
         body: JSON.stringify({
-          title:   document.getElementById('f-title').value,
-          section: document.getElementById('f-section').value,
-          summary: document.getElementById('f-summary').value,
-          status:  document.getElementById('f-status').value,
-          cover:   coverId || 0,
-          show_on_home: document.getElementById('f-home') ? document.getElementById('f-home').checked : true,
-          blocks:  payload,
+          title:        pageState.title,
+          section:      pageState.section,
+          summary:      pageState.summary,
+          status:       pageState.status,
+          cover:        coverId || 0,
+          show_on_home: pageState.home,
+          blocks:       payload,
         }),
       });
       const result = await response.json();
       if (!response.ok || !result.ok) throw new Error(result.error || 'Save failed');
       saveState.textContent = 'Saved ' + result.saved_at;
       saveState.dataset.state = 'saved';
-      if (preview) preview.contentWindow.location.reload();
+      if (preview) {
+        previewReady = false;
+        preview.contentWindow.location.reload();
+      }
     } catch (error) {
       saveState.textContent = 'Not saved';
       saveState.dataset.state = 'error';
@@ -610,21 +677,6 @@
     }
   }
 
-  const editorTitle = document.getElementById('editor-title');
-  const titleField  = document.getElementById('f-title');
-  if (editorTitle && titleField) {
-    titleField.addEventListener('input', () => {
-      editorTitle.textContent = titleField.value || 'Untitled page';
-    });
-  }
-
-  ['f-title', 'f-section', 'f-summary', 'f-status', 'f-home'].forEach((id) => {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.addEventListener('input', queueSave);
-    el.addEventListener('change', queueSave);
-  });
-
   window.addEventListener('beforeunload', (event) => {
     if (saveState.dataset.state === 'pending') {
       event.preventDefault();
@@ -632,38 +684,27 @@
     }
   });
 
-  // ============================================================== chrome
+  // =============================================================== chrome
 
-  // Page settings, collapsed by default so the blocks are the focus.
-  const meta = document.getElementById('page-meta');
-  const metaToggle = document.getElementById('page-meta-toggle');
-  if (meta && metaToggle) {
-    metaToggle.addEventListener('click', () => {
-      const opening = meta.hasAttribute('hidden');
-      if (opening) { meta.removeAttribute('hidden'); } else { meta.setAttribute('hidden', ''); }
-      metaToggle.setAttribute('aria-expanded', String(opening));
-    });
-  }
-
-  // Preview pane can be hidden for full width editing; the choice sticks.
-  const previewToggle = document.getElementById('preview-toggle');
-  if (previewToggle) {
+  const outlineToggle = document.getElementById('outline-toggle');
+  if (outlineToggle) {
     const apply = (hidden) => {
-      root.classList.toggle('is-previewhidden', hidden);
-      previewToggle.setAttribute('aria-pressed', String(!hidden));
-      previewToggle.textContent = hidden ? 'Show preview' : 'Hide preview';
+      root.classList.toggle('is-outlinehidden', hidden);
+      outlineToggle.setAttribute('aria-pressed', String(!hidden));
     };
     let hidden = false;
-    try { hidden = window.localStorage.getItem('brandhub.preview') === 'off'; } catch (e) { hidden = false; }
+    try { hidden = window.localStorage.getItem('brandhub.outline') === 'off'; } catch (e) {}
     apply(hidden);
-    previewToggle.addEventListener('click', () => {
+    outlineToggle.addEventListener('click', () => {
       hidden = !hidden;
       apply(hidden);
-      try { window.localStorage.setItem('brandhub.preview', hidden ? 'off' : 'on'); } catch (e) {}
+      try { window.localStorage.setItem('brandhub.outline', hidden ? 'off' : 'on'); } catch (e) {}
     });
   }
 
-  // Preview width, for checking a layout on a narrow screen.
+  const pageSettings = document.getElementById('page-settings-toggle');
+  if (pageSettings) pageSettings.addEventListener('click', () => select(null));
+
   document.querySelectorAll('[data-preview-width]').forEach((btn) => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('[data-preview-width]').forEach((o) => o.classList.toggle('is-on', o === btn));
@@ -671,5 +712,12 @@
     });
   });
 
-  render();
+  // Escape returns to page settings; that is the only shortcut for now.
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && selected !== null && !document.querySelector('.picker, .blockmenu')) {
+      select(null);
+    }
+  });
+
+  renderAll();
 })();

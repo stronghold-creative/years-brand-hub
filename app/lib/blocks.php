@@ -413,9 +413,14 @@ function sanitise_blocks(array $blocks): array
     return $clean;
 }
 
-function render_blocks(array $blocks): void
+/**
+ * Renders the blocks of a page. When $editable is true each block is tagged
+ * with its index, so the editor's canvas can map a click back to a block.
+ * The markup is otherwise identical, so the preview is a true preview.
+ */
+function render_blocks(array $blocks, bool $editable = false): void
 {
-    foreach ($blocks as $block) {
+    foreach ($blocks as $index => $block) {
         $file = APP_DIR . '/blocks/' . basename((string) $block['type']) . '.php';
         if (!is_file($file)) {
             continue;
@@ -435,9 +440,10 @@ function render_blocks(array $blocks): void
         }
 
         printf(
-            '<div class="%s"%s>',
+            '<div class="%s"%s%s>',
             e(implode(' ', $classes)),
-            $settings['anchor'] !== '' ? ' id="' . e($settings['anchor']) . '"' : ''
+            $settings['anchor'] !== '' ? ' id="' . e($settings['anchor']) . '"' : '',
+            $editable ? ' data-block="' . (int) $index . '"' : ''
         );
         require $file;
         echo '</div>';

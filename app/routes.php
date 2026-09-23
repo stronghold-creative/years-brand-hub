@@ -209,10 +209,11 @@ if (preg_match('#^/admin/pages/(\d+)/preview$#', $path, $m)) {
         not_found();
     }
     view('preview', [
-        'title'  => $page['title'],
-        'page'   => $page,
-        'blocks' => json_decode($page['blocks'], true) ?: [],
-        'config' => $config,
+        'title'   => $page['title'],
+        'page'    => $page,
+        'blocks'  => json_decode($page['blocks'], true) ?: [],
+        'config'  => $config,
+        'editing' => isset($_GET['edit']),
     ], null);
     exit;
 }
