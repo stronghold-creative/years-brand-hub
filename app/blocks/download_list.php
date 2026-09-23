@@ -1,6 +1,7 @@
 <?php
 /** @var array $data */
 $assets = assets_by_tag($data['tag'] ?? '');
+$layout = block_option($options, 'layout', 'list');
 ?>
 <section class="block block--downloads">
   <?php if (!empty($data['heading'])): ?>
@@ -13,7 +14,7 @@ $assets = assets_by_tag($data['tag'] ?? '');
   <?php if (!$assets): ?>
     <p class="empty">Nothing tagged <?= e($data['tag'] ?? '') ?> yet.</p>
   <?php else: ?>
-    <ul class="downloads">
+    <ul class="downloads downloads--<?= e($layout) ?>">
       <?php foreach ($assets as $asset): ?>
         <li class="download">
           <a class="download__link" href="/d/<?= (int) $asset['id'] ?>">

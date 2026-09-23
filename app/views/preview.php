@@ -6,8 +6,9 @@
 <title>Preview</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="<?= e(asset_url('/assets/css/site.css')) ?>">
+<style><?= style_css() ?></style>
 </head>
-<body class="is-preview">
+<body class="is-preview"<?= style_body_attributes() ?>>
 <main class="reader__body">
   <h1><?= e($page['title']) ?></h1>
   <?php if (!empty($page['summary'])): ?><p class="reader__summary"><?= e($page['summary']) ?></p><?php endif; ?>

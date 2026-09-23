@@ -8,8 +8,9 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="<?= e(asset_url('/assets/css/site.css')) ?>">
+<style><?= style_css() ?></style>
 </head>
-<body>
+<body<?= style_body_attributes() ?>>
 <header class="masthead">
   <a class="masthead__mark" href="/">Years</a>
   <p class="masthead__title">Brand guidelines</p>

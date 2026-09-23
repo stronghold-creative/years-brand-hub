@@ -1,9 +1,13 @@
-<?php /** @var array $data */ ?>
+<?php
+/** @var array $data @var array $options */
+$density = block_option($options, 'density', 'normal');
+$strike  = block_option($options, 'strike', 'struck');
+?>
 <section class="block block--comparison">
   <?php if (!empty($data['heading'])): ?>
     <h2><?= e($data['heading']) ?></h2>
   <?php endif; ?>
-  <table class="comparison">
+  <table class="comparison comparison--<?= e($density) ?> comparison--<?= e($strike) ?>">
     <thead>
       <tr>
         <th scope="col"><?= e($data['left'] ?? '') ?></th>
@@ -17,9 +21,7 @@
           <td class="comparison__no"><?= e($row['right'] ?? '') ?></td>
         </tr>
         <?php if (!empty($row['note'])): ?>
-          <tr class="comparison__noterow">
-            <td colspan="2"><?= e($row['note']) ?></td>
-          </tr>
+          <tr class="comparison__noterow"><td colspan="2"><?= e($row['note']) ?></td></tr>
         <?php endif; ?>
       <?php endforeach; ?>
     </tbody>

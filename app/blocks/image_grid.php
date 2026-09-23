@@ -7,13 +7,15 @@ foreach (($data['items'] ?? []) as $item) {
         $items[] = ['asset' => $asset, 'meta' => $item];
     }
 }
+$gap = block_option($options, 'gap', 'normal');
+$fit = block_option($options, 'fit', 'natural');
 if ($items):
 ?>
 <section class="block block--imagegrid">
   <?php if (!empty($data['heading'])): ?>
     <h2><?= e($data['heading']) ?></h2>
   <?php endif; ?>
-  <div class="imagegrid" style="--cols: <?= (int) ($data['columns'] ?? 2) ?>">
+  <div class="imagegrid imagegrid--gap-<?= e($gap) ?> imagegrid--fit-<?= e($fit) ?>" style="--cols: <?= (int) ($data['columns'] ?? 2) ?>">
     <?php foreach ($items as $entry): ?>
       <?php $stance = $entry['meta']['stance'] ?? 'none'; ?>
       <figure class="figure figure--grid<?= $stance !== 'none' ? ' figure--' . e($stance) : '' ?>">

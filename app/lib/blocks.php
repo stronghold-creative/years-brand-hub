@@ -179,6 +179,116 @@ function block_types(): array
 }
 
 /**
+ * Options specific to one block type: how that block presents its own content.
+ * Every option starts with "inherit", meaning take the site default, so a
+ * global change reaches every block that has not been deliberately overridden.
+ */
+function block_options(string $type): array
+{
+    $sets = [
+        'rich_text' => [
+            'size'  => ['label' => 'Text size', 'options' => [
+                'inherit' => 'Site default', 'small' => 'Small', 'normal' => 'Normal',
+                'large' => 'Large', 'lead' => 'Lead paragraph',
+            ]],
+            'align' => ['label' => 'Alignment', 'options' => [
+                'left' => 'Left', 'centre' => 'Centred',
+            ]],
+            'columns' => ['label' => 'Columns', 'options' => [
+                'one' => 'One', 'two' => 'Two',
+            ]],
+        ],
+        'colour_palette' => [
+            'layout' => ['label' => 'Layout', 'options' => [
+                'inherit' => 'Site default', 'list' => 'List', 'cards' => 'Cards', 'grid' => 'Grid',
+            ]],
+            'shape' => ['label' => 'Swatch shape', 'options' => [
+                'inherit' => 'Site default', 'square' => 'Square', 'rounded' => 'Rounded', 'circle' => 'Circle',
+            ]],
+            'size' => ['label' => 'Swatch size', 'options' => [
+                'small' => 'Small', 'medium' => 'Medium', 'large' => 'Large',
+            ]],
+            'values' => ['label' => 'Show', 'options' => [
+                'all' => 'Every value', 'hex' => 'Hex only', 'none' => 'Name only',
+            ]],
+        ],
+        'type_specimen' => [
+            'spec' => ['label' => 'Specification', 'options' => [
+                'beside' => 'Beside the sample', 'under' => 'Under the sample', 'hidden' => 'Hidden',
+            ]],
+        ],
+        'do_dont' => [
+            'layout' => ['label' => 'Layout', 'options' => [
+                'rows' => 'Rows', 'columns' => 'Two columns',
+            ]],
+        ],
+        'image' => [
+            'fit' => ['label' => 'Image fit', 'options' => [
+                'natural' => 'Natural height', 'square' => 'Square', 'wide' => 'Wide crop',
+            ]],
+            'radius' => ['label' => 'Corners', 'options' => [
+                'inherit' => 'Site default', 'none' => 'Square', 'round' => 'Rounded',
+            ]],
+        ],
+        'image_grid' => [
+            'gap' => ['label' => 'Space between', 'options' => [
+                'tight' => 'Tight', 'normal' => 'Normal', 'loose' => 'Loose',
+            ]],
+            'fit' => ['label' => 'Image fit', 'options' => [
+                'natural' => 'Natural height', 'square' => 'Square', 'wide' => 'Wide crop',
+            ]],
+        ],
+        'comparison_table' => [
+            'density' => ['label' => 'Row height', 'options' => [
+                'compact' => 'Compact', 'normal' => 'Normal',
+            ]],
+            'strike' => ['label' => 'Right column', 'options' => [
+                'struck' => 'Struck through', 'plain' => 'Plain',
+            ]],
+        ],
+        'download_list' => [
+            'layout' => ['label' => 'Layout', 'options' => [
+                'list' => 'List', 'cards' => 'Cards',
+            ]],
+        ],
+        'callout' => [
+            'emphasis' => ['label' => 'Emphasis', 'options' => [
+                'bar' => 'Side bar', 'filled' => 'Filled panel', 'quiet' => 'Quiet',
+            ]],
+        ],
+    ];
+    return $sets[$type] ?? [];
+}
+
+function block_options_defaults(string $type): array
+{
+    $out = [];
+    foreach (block_options($type) as $key => $field) {
+        $out[$key] = (string) array_key_first($field['options']);
+    }
+    return $out;
+}
+
+/**
+ * Resolves one option, following "inherit" to the matching site setting.
+ * $siteKey names the global setting this option inherits from.
+ */
+function block_option(array $options, string $key, string $fallback, ?string $siteKey = null): string
+{
+    $value = (string) ($options[$key] ?? 'inherit');
+    if ($value !== 'inherit' && $value !== '') {
+        return $value;
+    }
+    if ($siteKey !== null && function_exists('style_value')) {
+        $site = style_value($siteKey);
+        if ($site !== '') {
+            return $site;
+        }
+    }
+    return $fallback;
+}
+
+/**
  * Settings every block carries, separate from its content. These control how a
  * block looks and sits on the page rather than what it says, so they are
  * defined once here instead of being repeated in every block type.
@@ -291,7 +401,13 @@ function sanitise_blocks(array $blocks): array
             }
         }
 
-        $clean[] = ['type' => $type, 'data' => $data, 'settings' => $settings];
+        $options = [];
+        foreach (block_options($type) as $key => $field) {
+            $value = $block['options'][$key] ?? null;
+            $options[$key] = (string) (isset($field['options'][$value]) ? $value : array_key_first($field['options']));
+        }
+
+        $clean[] = ['type' => $type, 'data' => $data, 'settings' => $settings, 'options' => $options];
     }
 
     return $clean;
@@ -305,6 +421,7 @@ function render_blocks(array $blocks): void
             continue;
         }
         $data     = $block['data'] ?? [];
+        $options  = array_merge(block_options_defaults((string) $block['type']), $block['options'] ?? []);
         $settings = array_merge(block_settings_defaults(), $block['settings'] ?? []);
 
         $classes = [

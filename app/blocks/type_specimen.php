@@ -1,5 +1,6 @@
 <?php /** @var array $data */ ?>
-<section class="block block--type">
+<?php $spec = block_option($options, 'spec', 'beside'); ?>
+<section class="block block--type block--spec-<?= e($spec) ?>">
   <?php if (!empty($data['heading'])): ?>
     <h2><?= e($data['heading']) ?></h2>
   <?php endif; ?>

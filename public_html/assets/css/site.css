@@ -551,3 +551,151 @@ html { scroll-behavior: smooth; }
   margin: 0 0 3rem;
 }
 .chapter__updated { margin-top: 3rem; font-size: .8125rem; color: var(--ink-faint); }
+
+/* ===========================================================================
+   Global styling
+
+   Values come from the admin as custom properties on :root, and as data
+   attributes on <body> for treatments that switch wholesale. Blocks either
+   inherit these or carry their own modifier class.
+   =========================================================================== */
+
+body { font-size: var(--s-text, 1rem); }
+.reader__body h1,
+.chapter__title,
+.index__lede h1 { font-weight: var(--s-headweight, 400); }
+.prose, .block .prose { max-width: var(--s-measure, 66ch); }
+.zone--sp-normal { margin-bottom: var(--s-gap, 4rem); }
+.zone--bg-tint, .zone--bg-purple, .zone--bg-dark { padding: var(--s-pad, 1.75rem); border-radius: var(--s-radius, 6px); }
+
+/* Panels follow the chosen treatment. */
+body[data-card='outlined'] .zone--bg-tint,
+body[data-card='outlined'] .zone--bg-purple { border: 1px solid var(--rule); }
+body[data-card='shadow'] .zone--bg-tint,
+body[data-card='shadow'] .zone--bg-purple { box-shadow: 0 1px 2px rgba(31,31,31,.06), 0 8px 24px rgba(31,31,31,.06); }
+
+/* Calls to action: the download-all link and anything marked as a CTA. */
+.downloads__all a, .cta {
+  display: inline-block;
+  padding: .625rem 1.25rem;
+  border-radius: var(--s-cta-radius, var(--s-radius, 6px));
+  text-decoration: none;
+  font-size: .9375rem;
+  font-weight: 500;
+}
+body[data-cta='filled'] .downloads__all a,
+body[data-cta='filled'] .cta { background: var(--accent); color: #fff; }
+body[data-cta='filled'] .downloads__all a:hover { background: var(--accent-deep); color: #fff; }
+body[data-cta='outlined'] .downloads__all a,
+body[data-cta='outlined'] .cta { border: 1px solid var(--accent); color: var(--accent); }
+body[data-cta='outlined'] .downloads__all a:hover { background: var(--accent-tint); }
+body[data-cta='text'] .downloads__all a,
+body[data-cta='text'] .cta { padding: 0; color: var(--accent); text-decoration: underline; }
+
+/* --------------------------------------------------------- block options */
+
+/* Text */
+.prose--small  { font-size: .875rem; }
+.prose--normal { font-size: inherit; }
+.prose--large  { font-size: 1.125rem; }
+.prose--lead   { font-size: 1.3125rem; line-height: 1.45; color: var(--ink-soft); }
+.prose--centre { text-align: center; margin-inline: auto; }
+.prose--col-two { columns: 2; column-gap: 2.5rem; max-width: 100%; }
+.prose--col-two p { break-inside: avoid; }
+@media (max-width: 48rem) { .prose--col-two { columns: 1; } }
+
+/* Swatches */
+.swatches--list { display: grid; gap: 2rem; }
+.swatches--cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+  gap: 1rem;
+}
+.swatches--cards .swatch {
+  display: block;
+  background: var(--raised);
+  border-radius: var(--s-radius, 6px);
+  padding: var(--s-pad, 1.75rem);
+}
+body[data-card='outlined'] .swatches--cards .swatch { background: none; border: 1px solid var(--rule); }
+body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(31,31,31,.06), 0 8px 24px rgba(31,31,31,.05); }
+.swatches--cards .swatch__chip { margin-bottom: 1rem; }
+.swatches--grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: 1.25rem;
+}
+.swatches--grid .swatch { display: block; }
+.swatches--grid .swatch__chip { margin-bottom: .75rem; }
+.swatches--grid .swatch__usage { display: none; }
+
+.swatches--small .swatch__chip  { --sw: 4rem; }
+.swatches--medium .swatch__chip { --sw: 6rem; }
+.swatches--large .swatch__chip  { --sw: 9rem; }
+.swatches--list .swatch { grid-template-columns: var(--sw, 6rem) 1fr; }
+
+.swatches--shape-rounded .swatch__chip { border-radius: var(--s-radius, 6px); }
+.swatches--shape-circle .swatch__chip { border-radius: 50%; }
+.swatches--shape-circle .swatch__copy { display: none; }
+
+/* Do and do not */
+.rules--columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 2rem;
+}
+.rules--columns .rule { border-bottom: 0; align-content: start; }
+@media (max-width: 48rem) { .rules--columns { grid-template-columns: 1fr; } }
+
+/* Callouts */
+.callout--filled { border-left: 0; padding: var(--s-pad, 1.75rem); border-radius: var(--s-radius, 6px); }
+.callout--quiet { background: none; border-left: 1px solid var(--rule); color: var(--ink-soft); }
+
+/* Comparison */
+.comparison--compact td { padding: .4375rem 0; }
+.comparison--plain .comparison__no { text-decoration: none; }
+
+/* Downloads */
+.downloads--cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: .75rem;
+  border-top: 0;
+}
+.downloads--cards .download__link {
+  display: block;
+  border: 1px solid var(--rule);
+  border-radius: var(--s-radius, 6px);
+  padding: 1rem;
+}
+.downloads--cards .download__meta { display: block; margin: .375rem 0 0; }
+
+/* Images */
+.figure--fit-square img { aspect-ratio: 1; object-fit: cover; }
+.figure--fit-wide img   { aspect-ratio: 16 / 9; object-fit: cover; }
+.figure--r-round img, .figure--r-soft img, .figure--r-pill img { border-radius: var(--s-radius, 6px); }
+.figure--r-none img { border-radius: 0; }
+.imagegrid--gap-tight { gap: .5rem; }
+.imagegrid--gap-loose { gap: 2.5rem; }
+.imagegrid--fit-square img { aspect-ratio: 1; object-fit: cover; }
+.imagegrid--fit-wide img   { aspect-ratio: 16 / 9; object-fit: cover; }
+
+/* Type specimens */
+.block--spec-under .specimen { grid-template-columns: 1fr; gap: .75rem; }
+.block--spec-hidden .specimen__spec { display: none; }
+.block--spec-hidden .specimen { grid-template-columns: 1fr; }
+
+/* Default option values, written explicitly rather than relying on the absence
+   of a rule, so overriding one never leaves a block in a half-styled state. */
+.prose--left { text-align: left; }
+.prose--col-one { columns: auto; }
+.swatches--shape-square .swatch__chip { border-radius: 0; }
+.rules--rows { display: block; }
+.callout--bar { border-left: 2px solid var(--accent); }
+.comparison--normal td { padding: .8125rem 0; }
+.comparison--struck .comparison__no { text-decoration: line-through; text-decoration-color: var(--negative); }
+.downloads--list { display: block; }
+.figure--fit-natural img { aspect-ratio: auto; object-fit: contain; }
+.imagegrid--gap-normal { gap: 1.5rem; }
+.imagegrid--fit-natural img { aspect-ratio: auto; object-fit: cover; }
+.block--spec-beside .specimen { grid-template-columns: minmax(0, 1fr) 13rem; }

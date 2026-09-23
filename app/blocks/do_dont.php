@@ -1,9 +1,12 @@
-<?php /** @var array $data */ ?>
+<?php
+/** @var array $data @var array $options */
+$layout = block_option($options, 'layout', 'rows');
+?>
 <section class="block block--rules">
   <?php if (!empty($data['heading'])): ?>
     <h2><?= e($data['heading']) ?></h2>
   <?php endif; ?>
-  <ul class="rules">
+  <ul class="rules rules--<?= e($layout) ?>">
     <?php foreach (($data['pairs'] ?? []) as $pair): ?>
       <li class="rule rule--<?= e($pair['stance']) ?>">
         <span class="rule__stance"><?= $pair['stance'] === 'do' ? 'Do' : 'Do not' ?></span>

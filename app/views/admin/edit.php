@@ -4,6 +4,13 @@ foreach (array_keys(block_types()) as $type) {
     $defaults[$type] = block_defaults($type);
 }
 $isAdmin = (current_user()['role'] ?? '') === 'admin';
+
+$optionSchema = [];
+$optionDefaults = [];
+foreach (array_keys(block_types()) as $type) {
+    $optionSchema[$type]   = block_options($type);
+    $optionDefaults[$type] = block_options_defaults($type);
+}
 ?>
 <div class="m3-editor" id="editor"
      data-page-id="<?= (int) $page['id'] ?>"
@@ -11,6 +18,8 @@ $isAdmin = (current_user()['role'] ?? '') === 'admin';
      data-defaults='<?= e(json_encode($defaults, JSON_UNESCAPED_SLASHES)) ?>'
      data-settings='<?= e(json_encode(block_settings_fields(), JSON_UNESCAPED_SLASHES)) ?>'
      data-settings-defaults='<?= e(json_encode(block_settings_defaults(), JSON_UNESCAPED_SLASHES)) ?>'
+     data-options='<?= e(json_encode($optionSchema, JSON_UNESCAPED_SLASHES)) ?>'
+     data-options-defaults='<?= e(json_encode($optionDefaults, JSON_UNESCAPED_SLASHES)) ?>'
      data-blocks='<?= e(json_encode($blocks, JSON_UNESCAPED_SLASHES)) ?>'>
 
   <header class="m3-editor__bar">

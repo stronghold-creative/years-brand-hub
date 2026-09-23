@@ -8,6 +8,8 @@
   const defaults       = JSON.parse(root.dataset.defaults);
   const settingsSchema = JSON.parse(root.dataset.settings);
   const settingsBlank  = JSON.parse(root.dataset.settingsDefaults);
+  const optionSchema   = JSON.parse(root.dataset.options);
+  const optionDefaults = JSON.parse(root.dataset.optionsDefaults);
   const pageId         = root.dataset.pageId;
 
   let blocks = JSON.parse(root.dataset.blocks);
@@ -393,11 +395,35 @@
 
     if (block.settingsOpen) {
       if (!block.settings) block.settings = JSON.parse(JSON.stringify(settingsBlank));
+      if (!block.options)  block.options  = JSON.parse(JSON.stringify(optionDefaults[block.type] || {}));
+
       const panel = document.createElement('div');
       panel.className = 'blk__settings';
+
+      // Options specific to this block type, where the interesting controls are.
+      const own = optionSchema[block.type] || {};
+      if (Object.keys(own).length) {
+        const ownTitle = document.createElement('p');
+        ownTitle.className = 'blk__settingstitle';
+        ownTitle.textContent = def.label + ' options';
+        panel.append(ownTitle);
+
+        const ownGrid = document.createElement('div');
+        ownGrid.className = 'blk__settingsgrid';
+        Object.entries(own).forEach(([key, fieldDef]) => {
+          ownGrid.append(field(
+            { type: 'select', label: fieldDef.label, options: fieldDef.options },
+            block.options[key],
+            (value) => { block.options[key] = value; queueSave(); },
+            true
+          ));
+        });
+        panel.append(ownGrid);
+      }
+
       const title = document.createElement('p');
-      title.className = 'blk__settingstitle';
-      title.textContent = 'How this block looks';
+      title.className = 'blk__settingstitle blk__settingstitle--spaced';
+      title.textContent = 'Placement';
       panel.append(title);
 
       const grid = document.createElement('div');
@@ -409,6 +435,12 @@
         }, true));
       });
       panel.append(grid);
+
+      const note = document.createElement('p');
+      note.className = 'blk__settingsnote';
+      note.textContent = 'Anything set to "Site default" follows Appearance in the admin.';
+      panel.append(note);
+
       body.append(panel);
     }
 
@@ -446,6 +478,7 @@
           type: type,
           data: JSON.parse(JSON.stringify(defaults[type])),
           settings: JSON.parse(JSON.stringify(settingsBlank)),
+          options: JSON.parse(JSON.stringify(optionDefaults[type] || {})),
         });
         open.clear();
         open.add(index);
@@ -548,6 +581,7 @@
         type: block.type,
         data: block.data,
         settings: block.settings || JSON.parse(JSON.stringify(settingsBlank)),
+        options: block.options || JSON.parse(JSON.stringify(optionDefaults[block.type] || {})),
       }));
 
       const response = await fetch('/admin/pages/' + pageId + '/save', {

@@ -584,6 +584,19 @@ if ($path === '/admin/migrate' && $method === 'POST') {
     redirect('/admin/settings?notice=' . urlencode($notice));
 }
 
+if ($path === '/admin/styles') {
+    require_admin();
+    if ($method === 'POST') {
+        csrf_check();
+        foreach (array_keys(style_flat()) as $key) {
+            style_save($key, (string) ($_POST[$key] ?? ''));
+        }
+        redirect('/admin/styles?notice=' . urlencode('Appearance saved.'));
+    }
+    view('admin/styles', ['title' => 'Appearance', 'notice' => $_GET['notice'] ?? null], 'admin/layout');
+    exit;
+}
+
 if ($path === '/admin/settings') {
     require_admin();
     if ($method === 'POST') {
