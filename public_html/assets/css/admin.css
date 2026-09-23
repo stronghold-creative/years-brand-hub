@@ -588,7 +588,11 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 .m3-page__bar { padding-left: 0; padding-right: 0; }
 
 /* Forms stay readable no matter how wide the window is. */
-.m3-card { max-width: 52rem; }
+/* Cards fill the width they are given. Individual fields are constrained
+   instead, so a form never becomes an unreadable single line. */
+.m3-card { max-width: none; }
+.m3-card .m3-field { max-width: 46rem; }
+.m3-card .m3-editor__metarow { max-width: 46rem; }
 
 /* The page bar holds the title and the one primary action for that screen,
    so the primary action is in the same place on every screen. */
@@ -1320,6 +1324,10 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 /* Overflow menu: destructive actions live here rather than in the row, so a
    delete is never one stray click away. */
 .m3-more { position: relative; display: inline-flex; }
+/* .m3-state sets isolation: isolate, so each row is its own stacking context
+   and later rows paint over an open menu. Raising the row fixes it. */
+.m3-list-item.has-menu, .m3-table tr.has-menu { position: relative; z-index: 60; }
+.m3-list-item.has-menu { isolation: auto; }
 .m3-more__menu {
   position: absolute;
   top: calc(100% + .25rem);

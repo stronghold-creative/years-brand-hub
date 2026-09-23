@@ -60,7 +60,6 @@ a:hover { color: var(--accent-deep); }
   align-items: center;
   gap: 1.25rem;
   padding: 1.125rem var(--gutter);
-  border-bottom: 1px solid var(--rule);
   position: sticky;
   top: 0;
   background: var(--page);
@@ -177,11 +176,14 @@ a:hover { color: var(--accent-deep); }
 
 .reader {
   display: grid;
-  grid-template-columns: minmax(11rem, 15rem) minmax(0, 1fr);
-  gap: clamp(2rem, 7vw, 7rem);
+  grid-template-columns: minmax(11rem, 16rem) minmax(0, 1fr);
+  gap: clamp(2rem, 5vw, 5rem);
   padding: 3.5rem var(--gutter) 0;
   align-items: start;
 }
+/* The content column is centred in the space left by the rail, so a wide
+   display is used rather than leaving everything hard against the nav. */
+.reader__body { margin-inline: auto; }
 .reader--solo { grid-template-columns: minmax(0, 1fr); max-width: 52rem; }
 .reader--solo .reader__nav { display: none; }
 
@@ -206,7 +208,7 @@ a:hover { color: var(--accent-deep); }
   border-radius: 50%;
 }
 
-.reader__body { max-width: 42rem; padding-bottom: 5rem; }
+.reader__body { width: 100%; max-width: 46rem; padding-bottom: 5rem; }
 .reader__body h1 {
   font-family: var(--display);
   font-weight: 400;
@@ -431,12 +433,15 @@ a:hover { color: var(--accent-deep); }
 /* Width. "Wider" and "full" break out of the reading column using a negative
    margin, so blocks stay in normal flow rather than needing a wrapper. */
 .zone--w-text { max-width: 100%; }
+/* Wider than the text column, without escaping the reading area entirely. */
 .zone--w-wide {
-  width: min(58rem, calc(100vw - 2 * var(--gutter)));
+  width: min(64rem, calc(100vw - 2 * var(--gutter)));
+  margin-inline: calc((100% - min(64rem, 100vw - 2 * var(--gutter))) / 2);
 }
 .zone--w-full {
-  width: calc(100vw - 2 * var(--gutter));
-  max-width: calc(100vw - 2 * var(--gutter));
+  width: calc(100vw - 2 * var(--gutter) - 16rem);
+  max-width: calc(100vw - 2 * var(--gutter) - 16rem);
+  margin-inline: calc((100% - (100vw - 2 * var(--gutter) - 16rem)) / 2);
 }
 
 /* Spacing below. */
