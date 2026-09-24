@@ -184,3 +184,52 @@ feature('rail panel', function () {
   const release = function () { if (wide.matches && isOpen()) setOpen(false); };
   if (wide.addEventListener) { wide.addEventListener('change', release); }
 });
+
+/** Tabs. Arrow keys move between them, as the pattern expects. */
+feature('tabs', function () {
+  document.querySelectorAll('[data-tabs]').forEach(function (group) {
+    const tabs = Array.from(group.querySelectorAll('[role="tab"]'));
+    if (!tabs.length) return;
+
+    function show(index) {
+      tabs.forEach(function (tab, i) {
+        const on = i === index;
+        tab.setAttribute('aria-selected', String(on));
+        tab.tabIndex = on ? 0 : -1;
+        const panel = document.getElementById(tab.getAttribute('aria-controls'));
+        if (panel) panel.hidden = !on;
+      });
+    }
+
+    tabs.forEach(function (tab, i) {
+      tab.addEventListener('click', function () { show(i); });
+      tab.addEventListener('keydown', function (event) {
+        const step = event.key === 'ArrowRight' ? 1 : event.key === 'ArrowLeft' ? -1 : 0;
+        if (!step) return;
+        event.preventDefault();
+        const next = (i + step + tabs.length) % tabs.length;
+        show(next);
+        tabs[next].focus();
+      });
+    });
+  });
+});
+
+/** Copy a code snippet. */
+feature('copy code', function () {
+  document.addEventListener('click', async function (event) {
+    const button = event.target.closest('[data-copy-code]');
+    if (!button) return;
+
+    const code = button.closest('.code');
+    const text = code ? code.querySelector('code').textContent : '';
+    try {
+      await navigator.clipboard.writeText(text);
+      const was = button.textContent;
+      button.textContent = 'Copied';
+      window.setTimeout(function () { button.textContent = was; }, 1400);
+    } catch (error) {
+      // Clipboard refused; the snippet is on screen to select by hand.
+    }
+  });
+});

@@ -175,6 +175,227 @@ function block_types(): array
                 'body' => ['type' => 'textarea', 'label' => 'Body'],
             ],
         ],
+
+        // ------------------------------------------------ documentation blocks
+
+        'clearspace' => [
+            'label'  => 'Clearspace diagram',
+            'hint'   => 'A mark with its minimum clear space drawn around it.',
+            'fields' => [
+                'heading' => ['type' => 'text',   'label' => 'Heading', 'optional' => true],
+                'asset'   => ['type' => 'asset',  'label' => 'Mark'],
+                'measure' => ['type' => 'text',   'label' => 'Clear space equals', 'optional' => true],
+                'ratio'   => ['type' => 'select', 'label' => 'Space shown', 'options' => [
+                    '25' => 'A quarter of the mark', '50' => 'Half the mark', '100' => 'The full mark',
+                ]],
+                'note'    => ['type' => 'textarea', 'label' => 'Note', 'optional' => true],
+            ],
+        ],
+
+        'spacing_scale' => [
+            'label'  => 'Spacing scale',
+            'hint'   => 'Each step drawn at its real size, with its value.',
+            'fields' => [
+                'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
+                'steps'   => [
+                    'type' => 'repeater', 'label' => 'Steps', 'item' => 'Step',
+                    'fields' => [
+                        'name'  => ['type' => 'text', 'label' => 'Name'],
+                        'value' => ['type' => 'text', 'label' => 'Value, for example 16px'],
+                        'use'   => ['type' => 'text', 'label' => 'Used for', 'optional' => true],
+                    ],
+                ],
+            ],
+        ],
+
+        'icon_grid' => [
+            'label'  => 'Icon grid',
+            'hint'   => 'Every asset carrying a tag, shown as a grid you can copy from.',
+            'fields' => [
+                'heading' => ['type' => 'text',   'label' => 'Heading', 'optional' => true],
+                'tag'     => ['type' => 'text',   'label' => 'Asset tag'],
+                'note'    => ['type' => 'textarea', 'label' => 'Note', 'optional' => true],
+            ],
+        ],
+
+        'contrast_pairs' => [
+            'label'  => 'Contrast pairs',
+            'hint'   => 'Colour combinations with their measured contrast ratio.',
+            'fields' => [
+                'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
+                'pairs'   => [
+                    'type' => 'repeater', 'label' => 'Pairs', 'item' => 'Pair',
+                    'fields' => [
+                        'label'      => ['type' => 'text',   'label' => 'Name', 'optional' => true],
+                        'foreground' => ['type' => 'colour', 'label' => 'Text'],
+                        'background' => ['type' => 'colour', 'label' => 'Background'],
+                        'sample'     => ['type' => 'text',   'label' => 'Sample text', 'optional' => true],
+                    ],
+                ],
+            ],
+        ],
+
+        'misuse_gallery' => [
+            'label'  => 'Correct and incorrect',
+            'hint'   => 'Images marked right or wrong, with a reason.',
+            'fields' => [
+                'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
+                'items'   => [
+                    'type' => 'repeater', 'label' => 'Examples', 'item' => 'Example',
+                    'fields' => [
+                        'asset'   => ['type' => 'asset',  'label' => 'Image'],
+                        'stance'  => ['type' => 'select', 'label' => 'Verdict', 'options' => ['do' => 'Correct', 'dont' => 'Incorrect']],
+                        'caption' => ['type' => 'text',   'label' => 'Why', 'optional' => true],
+                    ],
+                ],
+            ],
+        ],
+
+        'spec_table' => [
+            'label'  => 'Specification',
+            'hint'   => 'Plain label and value rows.',
+            'fields' => [
+                'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
+                'rows'    => [
+                    'type' => 'repeater', 'label' => 'Rows', 'item' => 'Row',
+                    'fields' => [
+                        'label' => ['type' => 'text', 'label' => 'Label'],
+                        'value' => ['type' => 'text', 'label' => 'Value'],
+                        'note'  => ['type' => 'text', 'label' => 'Note', 'optional' => true],
+                    ],
+                ],
+            ],
+        ],
+
+        'link_list' => [
+            'label'  => 'Links',
+            'hint'   => 'Somewhere else to go: Figma, Drive, a tool.',
+            'fields' => [
+                'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
+                'links'   => [
+                    'type' => 'repeater', 'label' => 'Links', 'item' => 'Link',
+                    'fields' => [
+                        'label' => ['type' => 'text', 'label' => 'Label'],
+                        'url'   => ['type' => 'text', 'label' => 'Address'],
+                        'note'  => ['type' => 'text', 'label' => 'Note', 'optional' => true],
+                    ],
+                ],
+            ],
+        ],
+
+        'contacts' => [
+            'label'  => 'Who to ask',
+            'hint'   => 'People, what they cover, and how to reach them.',
+            'fields' => [
+                'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
+                'people'  => [
+                    'type' => 'repeater', 'label' => 'People', 'item' => 'Person',
+                    'fields' => [
+                        'name'  => ['type' => 'text', 'label' => 'Name'],
+                        'role'  => ['type' => 'text', 'label' => 'Covers', 'optional' => true],
+                        'email' => ['type' => 'text', 'label' => 'Email', 'optional' => true],
+                        'slack' => ['type' => 'text', 'label' => 'Slack channel', 'optional' => true],
+                    ],
+                ],
+            ],
+        ],
+
+        'checklist' => [
+            'label'  => 'Checklist',
+            'hint'   => 'Things to confirm before something ships.',
+            'fields' => [
+                'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
+                'items'   => [
+                    'type' => 'repeater', 'label' => 'Items', 'item' => 'Item',
+                    'fields' => [
+                        'item' => ['type' => 'text',     'label' => 'Check'],
+                        'note' => ['type' => 'textarea', 'label' => 'Detail', 'optional' => true],
+                    ],
+                ],
+            ],
+        ],
+
+        'video' => [
+            'label'  => 'Video',
+            'hint'   => 'A YouTube or Vimeo link, or an uploaded file.',
+            'fields' => [
+                'heading' => ['type' => 'text',  'label' => 'Heading', 'optional' => true],
+                'url'     => ['type' => 'text',  'label' => 'YouTube or Vimeo address', 'optional' => true],
+                'asset'   => ['type' => 'asset', 'label' => 'Or an uploaded file', 'optional' => true],
+                'caption' => ['type' => 'text',  'label' => 'Caption', 'optional' => true],
+            ],
+        ],
+
+        // -------------------------------------------------- presentation blocks
+
+        'tabs' => [
+            'label'  => 'Tabs',
+            'hint'   => 'Variants of one thing in a single space.',
+            'fields' => [
+                'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
+                'panels'  => [
+                    'type' => 'repeater', 'label' => 'Tabs', 'item' => 'Tab',
+                    'fields' => [
+                        'label' => ['type' => 'text',     'label' => 'Tab label'],
+                        'body'  => ['type' => 'longtext', 'label' => 'Body', 'optional' => true],
+                        'asset' => ['type' => 'asset',    'label' => 'Image', 'optional' => true],
+                    ],
+                ],
+            ],
+        ],
+
+        'accordion' => [
+            'label'  => 'Accordion',
+            'hint'   => 'Long reference that would otherwise swamp the page.',
+            'fields' => [
+                'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
+                'items'   => [
+                    'type' => 'repeater', 'label' => 'Entries', 'item' => 'Entry',
+                    'fields' => [
+                        'question' => ['type' => 'text',     'label' => 'Title'],
+                        'answer'   => ['type' => 'longtext', 'label' => 'Body'],
+                    ],
+                ],
+            ],
+        ],
+
+        'code' => [
+            'label'  => 'Code',
+            'hint'   => 'A snippet with a copy button. Liquid, CSS, tokens.',
+            'fields' => [
+                'heading'  => ['type' => 'text',     'label' => 'Heading', 'optional' => true],
+                'language' => ['type' => 'select',   'label' => 'Language', 'options' => [
+                    'plain' => 'Plain', 'liquid' => 'Liquid', 'html' => 'HTML', 'css' => 'CSS',
+                    'js' => 'JavaScript', 'json' => 'JSON',
+                ]],
+                'code'     => ['type' => 'longtext', 'label' => 'Code'],
+                'caption'  => ['type' => 'text',     'label' => 'Caption', 'optional' => true],
+            ],
+        ],
+
+        'steps' => [
+            'label'  => 'Steps',
+            'hint'   => 'A numbered process, in order.',
+            'fields' => [
+                'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
+                'steps'   => [
+                    'type' => 'repeater', 'label' => 'Steps', 'item' => 'Step',
+                    'fields' => [
+                        'title' => ['type' => 'text',     'label' => 'Title'],
+                        'body'  => ['type' => 'textarea', 'label' => 'Detail', 'optional' => true],
+                    ],
+                ],
+            ],
+        ],
+
+        'quote' => [
+            'label'  => 'Quote',
+            'hint'   => 'A line of real copy, shown as an example.',
+            'fields' => [
+                'text'   => ['type' => 'longtext', 'label' => 'Quote'],
+                'source' => ['type' => 'text',     'label' => 'Where it is from', 'optional' => true],
+            ],
+        ],
     ];
 }
 
@@ -255,6 +476,43 @@ function block_options(string $type): array
             'emphasis' => ['label' => 'Emphasis', 'options' => [
                 'bar' => 'Side bar', 'filled' => 'Filled panel', 'quiet' => 'Quiet',
             ]],
+        ],
+        'spacing_scale' => [
+            'bar' => ['label' => 'Show', 'options' => ['bars' => 'Bars at real size', 'plain' => 'Values only']],
+        ],
+        'icon_grid' => [
+            'size' => ['label' => 'Icon size', 'options' => ['small' => 'Small', 'medium' => 'Medium', 'large' => 'Large']],
+            'names' => ['label' => 'Names', 'options' => ['show' => 'Show', 'hide' => 'Hide']],
+        ],
+        'contrast_pairs' => [
+            'layout' => ['label' => 'Layout', 'options' => ['cards' => 'Cards', 'rows' => 'Rows']],
+        ],
+        'misuse_gallery' => [
+            'columns' => ['label' => 'Columns', 'options' => ['two' => 'Two', 'three' => 'Three', 'one' => 'One']],
+        ],
+        'spec_table' => [
+            'density' => ['label' => 'Row height', 'options' => ['normal' => 'Normal', 'compact' => 'Compact']],
+        ],
+        'link_list' => [
+            'layout' => ['label' => 'Layout', 'options' => ['rows' => 'Rows', 'cards' => 'Cards']],
+        ],
+        'contacts' => [
+            'layout' => ['label' => 'Layout', 'options' => ['cards' => 'Cards', 'rows' => 'Rows']],
+        ],
+        'checklist' => [
+            'style' => ['label' => 'Marker', 'options' => ['box' => 'Check box', 'tick' => 'Tick', 'number' => 'Number']],
+        ],
+        'tabs' => [
+            'style' => ['label' => 'Tab style', 'options' => ['underline' => 'Underline', 'pill' => 'Pills']],
+        ],
+        'steps' => [
+            'style' => ['label' => 'Marker', 'options' => ['number' => 'Numbered', 'line' => 'Numbered with a line']],
+        ],
+        'quote' => [
+            'size' => ['label' => 'Size', 'options' => ['normal' => 'Normal', 'large' => 'Large']],
+        ],
+        'code' => [
+            'wrap' => ['label' => 'Long lines', 'options' => ['scroll' => 'Scroll sideways', 'wrap' => 'Wrap']],
         ],
     ];
     return $sets[$type] ?? [];
@@ -459,4 +717,47 @@ function paragraphs(string $text): string
         $out .= '<p>' . nl2br(e(trim($part))) . '</p>';
     }
     return $out;
+}
+
+/* ===========================================================================
+   Contrast
+
+   WCAG relative luminance and ratio, so a contrast block states a measured
+   fact rather than an opinion.
+   =========================================================================== */
+
+function colour_luminance(string $hex): float
+{
+    $hex = ltrim(trim($hex), '#');
+    if (strlen($hex) === 3) {
+        $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+    }
+    if (!preg_match('/^[0-9a-fA-F]{6}$/', $hex)) {
+        return 0.0;
+    }
+
+    $channels = [];
+    foreach ([0, 2, 4] as $offset) {
+        $value = hexdec(substr($hex, $offset, 2)) / 255;
+        $channels[] = $value <= 0.03928 ? $value / 12.92 : (($value + 0.055) / 1.055) ** 2.4;
+    }
+    return 0.2126 * $channels[0] + 0.7152 * $channels[1] + 0.0722 * $channels[2];
+}
+
+function contrast_ratio(string $foreground, string $background): float
+{
+    $a = colour_luminance($foreground);
+    $b = colour_luminance($background);
+    $light = max($a, $b);
+    $dark  = min($a, $b);
+    return round(($light + 0.05) / ($dark + 0.05), 2);
+}
+
+/** What a ratio passes, in WCAG terms. */
+function contrast_verdict(float $ratio): array
+{
+    if ($ratio >= 7)   return ['level' => 'AAA', 'note' => 'Passes AAA for body text', 'pass' => true];
+    if ($ratio >= 4.5) return ['level' => 'AA',  'note' => 'Passes AA for body text', 'pass' => true];
+    if ($ratio >= 3)   return ['level' => 'AA large', 'note' => 'Large text and interface parts only', 'pass' => true];
+    return ['level' => 'Fails', 'note' => 'Not enough contrast for text', 'pass' => false];
 }
