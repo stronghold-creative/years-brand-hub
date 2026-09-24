@@ -882,7 +882,6 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
   background: var(--raised);
   border-radius: 999px;
 }
-.masthead { position: relative; }
 .area {
   padding: .4375rem 1.125rem;
   border-radius: 999px;
