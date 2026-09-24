@@ -3,10 +3,42 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title><?= e($title ?? 'Years brand hub') ?></title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<?php
+$siteName   = (string) setting('site_name', 'Years brand hub');
+$descriptor = trim((string) ($description ?? setting('footer_note', 'Brand guidelines for Years.')));
+$private    = site_is_private($config ?? []);
+$canonical  = rtrim((string) (($config['site']['base_url'] ?? '')), '/')
+            . (parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/');
+?>
+<title><?= e($title ?? $siteName) ?></title>
+<meta name="description" content="<?= e($descriptor) ?>">
+<?php if ($private): ?>
+  <meta name="robots" content="noindex, nofollow">
+<?php endif; ?>
+<?php if ($canonical !== ''): ?>
+  <link rel="canonical" href="<?= e($canonical) ?>">
+<?php endif; ?>
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="<?= e($siteName) ?>">
+<meta property="og:title" content="<?= e($title ?? $siteName) ?>">
+<meta property="og:description" content="<?= e($descriptor) ?>">
+<?php if ($canonical !== ''): ?><meta property="og:url" content="<?= e($canonical) ?>"><?php endif; ?>
+<?php $shareImage = site_logo(); ?>
+<?php if ($shareImage): ?>
+  <meta property="og:image" content="<?= e(rtrim((string) ($config['site']['base_url'] ?? ''), '/') . asset_image_url($shareImage)) ?>">
+<?php endif; ?>
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+
+<?php if (fonts_are_local()): ?>
+  <link rel="preload" href="<?= e(asset_url('/assets/fonts/plus-jakarta-sans-400.woff2')) ?>" as="font" type="font/woff2" crossorigin>
+<?php else: ?>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<?php endif; ?>
 <link rel="stylesheet" href="<?= e(asset_url('/assets/css/site.css')) ?>">
 <style><?= style_css() ?></style>
 </head>

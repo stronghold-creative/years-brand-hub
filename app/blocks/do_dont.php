@@ -4,7 +4,7 @@ $layout = block_option($options, 'layout', 'rows');
 ?>
 <section class="block block--rules">
   <?php if (!empty($data['heading'])): ?>
-    <h2><?= e($data['heading']) ?></h2>
+    <h3><?= e($data['heading']) ?></h3>
   <?php endif; ?>
   <ul class="rules rules--<?= e($layout) ?>">
     <?php foreach (($data['pairs'] ?? []) as $pair): ?>

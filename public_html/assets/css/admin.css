@@ -1617,3 +1617,5 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
     transition-duration: 1ms !important;
   }
 }
+.m3-usage { grid-column: 1 / -1; margin: .75rem 0 0; font-size: .8125rem; color: var(--md-sys-color-on-surface-variant); }
+.m3-usage.is-used { color: var(--md-sys-color-on-surface); }

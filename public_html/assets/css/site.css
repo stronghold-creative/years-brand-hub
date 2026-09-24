@@ -1,3 +1,31 @@
+/* Plus Jakarta Sans, self-hosted. These rules are harmless when the files are
+   absent: the browser skips the face and the Google Fonts link in the head
+   supplies it instead. Drop the four woff2 files into assets/fonts to switch. */
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('/assets/fonts/plus-jakarta-sans-400.woff2') format('woff2');
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('/assets/fonts/plus-jakarta-sans-500.woff2') format('woff2');
+  font-weight: 500;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('/assets/fonts/plus-jakarta-sans-600.woff2') format('woff2');
+  font-weight: 600;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  src: url('/assets/fonts/plus-jakarta-sans-700.woff2') format('woff2');
+  font-weight: 700;
+  font-display: swap;
+}
+
 /* Years' own faces are still available to type specimens on the Typography
    page; they are not the interface type. */
 @font-face {
@@ -247,8 +275,11 @@ a:hover { color: var(--accent-deep); }
 
 /* ------------------------------------------------------------------ blocks */
 
-.block { margin: 0 0 4rem; }
-.block h2 {
+.block { margin: 0 0 4rem; max-width: 100%; }
+/* A wide table or grid scrolls inside itself rather than widening the page. */
+.block--comparison { overflow-x: auto; }
+/* Block headings sit under the chapter heading, so they are h3. */
+.block h3 {
   font-size: 1.125rem;
   font-weight: 600;
   margin: 0 0 1.5rem;
@@ -284,7 +315,7 @@ a:hover { color: var(--accent-deep); }
 .swatch__chip:hover .swatch__copy,
 .swatch__chip:focus-visible .swatch__copy { opacity: 1; }
 .swatch__chip.is-copied .swatch__copy { opacity: 1; background: var(--positive); }
-.swatch__meta h3 { margin: 0 0 .625rem; font-size: 1rem; font-weight: 600; }
+.swatch__meta h4 { margin: 0 0 .625rem; font-size: 1rem; font-weight: 600; }
 .swatch__meta dl { display: grid; grid-template-columns: 4rem 1fr; margin: 0; font-size: .875rem; }
 .swatch__meta dt { color: var(--ink-faint); }
 .swatch__meta dd { margin: 0; font-variant-numeric: tabular-nums; }
@@ -300,7 +331,7 @@ a:hover { color: var(--accent-deep); }
 }
 .specimen:last-child { border-bottom: 0; }
 .specimen__sample { margin: 0; overflow-wrap: anywhere; }
-.specimen__spec h3 { margin: 0 0 .25rem; font-size: .9375rem; font-weight: 600; }
+.specimen__spec h4 { margin: 0 0 .25rem; font-size: .9375rem; font-weight: 600; }
 .specimen__spec p { margin: 0; font-size: .8125rem; color: var(--ink-faint); }
 .specimen__use { margin-top: .625rem !important; color: var(--ink-soft) !important; }
 
@@ -376,7 +407,7 @@ a:hover { color: var(--accent-deep); }
 /* --------------------------------------------------------------- figures */
 
 .figure { margin: 0; }
-.figure img { display: block; width: 100%; height: auto; }
+.figure img { display: block; width: 100%; max-width: 100%; height: auto; }
 .figure figcaption {
   margin-top: .625rem;
   font-size: .8125rem;
@@ -444,10 +475,14 @@ a:hover { color: var(--accent-deep); }
    Full: breaks out of the content column to the edge of the page. */
 .zone--w-text { max-width: var(--s-measure, 70ch); }
 .zone--w-wide { max-width: 100%; }
+/* Full width breaks out of the content column. Capped so it can never exceed
+   the space actually available, and 100vw is avoided on its own because it
+   includes the scrollbar. */
 .zone--w-full {
-  width: calc(100vw - 2 * var(--gutter) - 16rem);
-  max-width: calc(100vw - 2 * var(--gutter) - 16rem);
-  margin-inline: calc((100% - (100vw - 2 * var(--gutter) - 16rem)) / 2);
+  --breakout: min(calc(100vw - 2 * var(--gutter) - 16rem), 100rem);
+  width: var(--breakout);
+  max-width: var(--breakout);
+  margin-inline: calc((100% - var(--breakout)) / 2);
 }
 
 /* Spacing below. */
@@ -463,7 +498,8 @@ a:hover { color: var(--accent-deep); }
 .zone--bg-tint   { background: var(--tint); }
 .zone--bg-purple { background: var(--accent-tint); }
 .zone--bg-dark   { background: var(--ink); color: #fff; }
-.zone--bg-dark .block h2 { border-bottom-color: rgba(255,255,255,.18); }
+.zone--bg-dark /* Block headings sit under the chapter heading, so they are h3. */
+.block h3 { border-bottom-color: rgba(255,255,255,.18); }
 .zone--bg-dark .swatch__meta dt,
 .zone--bg-dark .specimen__spec p,
 .zone--bg-dark .rule__why,
@@ -476,7 +512,13 @@ a:hover { color: var(--accent-deep); }
 .zone--ruled.zone--bg-dark { border-top: 0; }
 
 @media (max-width: 56rem) {
-  .zone--w-wide, .zone--w-full { width: 100%; max-width: 100%; }
+  /* No rail to break out past, so full width is simply the column. The
+     negative margin has to be cleared too, or the block hangs off the side. */
+  .zone--w-wide, .zone--w-full {
+    width: 100%;
+    max-width: 100%;
+    margin-inline: 0;
+  }
   .zone--sp-loose { margin-bottom: 4rem; }
 }
 
@@ -557,7 +599,8 @@ body { font-size: var(--s-text, 1rem); line-height: var(--s-leading, 1.65); }
    together when either is changed. */
 .index__lede h1, .reader__sectionhead h1, .reader__body h1 { font-size: var(--s-h1, 3rem); }
 .chapter__title { font-size: var(--s-h2, 2.25rem); }
-.block h2 { font-size: var(--s-h3, 1.25rem); }
+/* Block headings sit under the chapter heading, so they are h3. */
+.block h3 { font-size: var(--s-h3, 1.25rem); }
 
 /* Outlines follow the chosen thickness. */
 body[data-card='outlined'] .zone--bg-tint,

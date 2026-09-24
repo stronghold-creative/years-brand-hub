@@ -85,4 +85,11 @@
 
     <button class="m3-button m3-button--filled m3-state" type="submit">Save areas</button>
   </form>
+
+  <section class="m3-card">
+    <h2 class="m3-card__title">Backup</h2>
+    <p class="m3-body-medium">Downloads every page, setting and asset record as one JSON file.
+       Uploaded files themselves are not included; those live in storage on the server.</p>
+    <a class="m3-button m3-button--tonal m3-state" href="/admin/export">Download a backup</a>
+  </section>
 </div>

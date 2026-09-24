@@ -2,7 +2,7 @@
 <?php $spec = block_option($options, 'spec', 'beside'); ?>
 <section class="block block--type block--spec-<?= e($spec) ?>">
   <?php if (!empty($data['heading'])): ?>
-    <h2><?= e($data['heading']) ?></h2>
+    <h3><?= e($data['heading']) ?></h3>
   <?php endif; ?>
   <?php foreach (($data['styles'] ?? []) as $style): ?>
     <article class="specimen">
@@ -14,7 +14,7 @@
         <?= e($style['sample']) ?>
       </p>
       <div class="specimen__spec">
-        <h3><?= e($style['name']) ?></h3>
+        <h4><?= e($style['name']) ?></h4>
         <p><?= e($style['family']) ?> <?= e($style['weight']) ?> &middot; <?= e($style['size']) ?><?php
           if (!empty($style['line_height'])) { echo ' / ' . e($style['line_height']); } ?></p>
         <?php if (!empty($style['use_for'])): ?><p class="specimen__use"><?= e($style['use_for']) ?></p><?php endif; ?>

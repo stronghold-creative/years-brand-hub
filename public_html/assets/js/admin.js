@@ -152,7 +152,23 @@
 
       document.getElementById('asset-save').action = '/admin/assets/' + asset.id + '/update';
       document.getElementById('asset-replace').action = '/admin/assets/' + asset.id + '/replace';
-      document.getElementById('asset-delete').action = '/admin/assets/' + asset.id + '/delete';
+      // Say what a delete would break, rather than finding out afterwards.
+      const del = document.getElementById('asset-delete');
+      del.action = '/admin/assets/' + asset.id + '/delete';
+      const used = asset.usage || [];
+      del.dataset.confirm = used.length
+        ? 'This file is used on ' + used.length + (used.length === 1 ? ' page' : ' pages') +
+          ' (' + used.slice(0, 4).join(', ') + (used.length > 4 ? ', and more' : '') +
+          '). Deleting it will leave those pages without it. Continue?'
+        : 'Remove this file? It is not used on any page.';
+
+      const usage = document.getElementById('asset-usage');
+      if (usage) {
+        usage.textContent = used.length
+          ? 'Used on: ' + used.join(', ')
+          : 'Not used on any page.';
+        usage.className = 'm3-usage' + (used.length ? ' is-used' : '');
+      }
       document.getElementById('asset-download').href = '/d/' + asset.id;
 
       openDialog(assetDialog);

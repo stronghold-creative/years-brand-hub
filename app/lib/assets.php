@@ -229,7 +229,8 @@ function asset_record_download(int $assetId, ?int $userId): void
     try {
         db_run('INSERT INTO downloads (asset_id, user_id) VALUES (?, ?)', [$assetId, $userId]);
     } catch (Throwable $e) {
-        // Logging must never block a download.
+        // Logging must never block a download, but it should be visible.
+        error_log('download not recorded for asset ' . $assetId . ': ' . $e->getMessage());
     }
 }
 
@@ -265,18 +266,29 @@ function asset_is_inline_image(array $asset): bool
  * Streams an image for display rather than download. SVG is served with a
  * restrictive CSP, because an SVG can carry script and is same-origin here.
  */
-function asset_send_inline(array $asset): never
+function asset_send_inline(array $asset, ?int $width = null): never
 {
     $path = asset_path($asset);
+
+    // Serve a generated variant when one was asked for and exists; otherwise
+    // fall back to the original, so a missing variant is never a broken image.
+    if ($width && in_array($width, asset_variant_widths(), true)) {
+        $variant = asset_storage_dir() . '/' . asset_variant_name($asset['stored_name'], $width);
+        if (is_file($variant)) {
+            $path = $variant;
+        }
+    }
+
     if (!is_file($path)) {
         not_found();
     }
+
     header('Content-Type: ' . $asset['mime']);
     header('Content-Length: ' . filesize($path));
     header('X-Content-Type-Options: nosniff');
     header('Content-Security-Policy: default-src \'none\'; style-src \'unsafe-inline\'; sandbox');
-    // Cache hard, but the URL carries the version so a replacement busts it.
-    header('Cache-Control: private, max-age=604800');
+    // Cached hard: the URL carries the version, so a replacement busts it.
+    header('Cache-Control: private, max-age=604800, immutable');
 
     while (ob_get_level()) {
         ob_end_clean();
@@ -285,13 +297,174 @@ function asset_send_inline(array $asset): never
     exit;
 }
 
-/** The URL for showing an asset inline, versioned so replacements take effect. */
-function asset_image_url(array $asset): string
+/**
+ * The URL for showing an asset inline, versioned so replacements take effect.
+ * A width asks for one of the generated variants.
+ */
+function asset_image_url(array $asset, ?int $width = null): string
 {
-    return '/i/' . (int) $asset['id'] . '?v=' . rawurlencode((string) $asset['version']);
+    return '/i/' . (int) $asset['id']
+         . ($width ? '/' . $width : '')
+         . '?v=' . rawurlencode((string) $asset['version']);
 }
 
 function asset_find(int $id): ?array
 {
     return db_one('SELECT * FROM assets WHERE id = ?', [$id]);
+}
+
+/* ===========================================================================
+   Image variants
+
+   A 7MB photograph uploaded as an asset should not be what a card thumbnail
+   serves. On upload, smaller copies are generated beside the original and the
+   right one is chosen at render time, with a srcset so the browser can pick.
+
+   Originals are never modified, and if GD is unavailable everything falls
+   back to serving the original, so the site works either way.
+   =========================================================================== */
+
+/** The widths generated for every raster image. */
+function asset_variant_widths(): array
+{
+    return [400, 800, 1600];
+}
+
+function asset_can_resize(): bool
+{
+    return extension_loaded('gd') && function_exists('imagecreatetruecolor');
+}
+
+/** Raster formats worth resizing. SVG is already small; GIF may be animated. */
+function asset_is_resizable(string $mime): bool
+{
+    return in_array($mime, ['image/jpeg', 'image/png', 'image/webp'], true);
+}
+
+function asset_variant_name(string $storedName, int $width): string
+{
+    $dot = strrpos($storedName, '.');
+    return substr($storedName, 0, $dot) . '-' . $width . substr($storedName, $dot);
+}
+
+/**
+ * Creates the smaller copies. Skips any width at or above the original, so a
+ * small image is never scaled up. Returns the widths actually written.
+ */
+function asset_make_variants(string $storedName, string $mime): array
+{
+    if (!asset_can_resize() || !asset_is_resizable($mime)) {
+        return [];
+    }
+    $path = asset_storage_dir() . '/' . $storedName;
+    $size = @getimagesize($path);
+    if (!$size) {
+        return [];
+    }
+    [$sourceWidth, $sourceHeight] = $size;
+
+    $source = match ($mime) {
+        'image/jpeg' => @imagecreatefromjpeg($path),
+        'image/png'  => @imagecreatefrompng($path),
+        'image/webp' => @imagecreatefromwebp($path),
+        default      => null,
+    };
+    if (!$source) {
+        return [];
+    }
+
+    $made = [];
+    foreach (asset_variant_widths() as $width) {
+        if ($width >= $sourceWidth) {
+            continue;
+        }
+        $height = (int) round($sourceHeight * ($width / $sourceWidth));
+        $canvas = imagecreatetruecolor($width, $height);
+
+        // Transparency has to be preserved or a logo gains a black background.
+        if ($mime === 'image/png' || $mime === 'image/webp') {
+            imagealphablending($canvas, false);
+            imagesavealpha($canvas, true);
+            imagefill($canvas, 0, 0, imagecolorallocatealpha($canvas, 0, 0, 0, 127));
+        }
+
+        imagecopyresampled($canvas, $source, 0, 0, 0, 0, $width, $height, $sourceWidth, $sourceHeight);
+        $target = asset_storage_dir() . '/' . asset_variant_name($storedName, $width);
+
+        $ok = match ($mime) {
+            'image/jpeg' => imagejpeg($canvas, $target, 82),
+            'image/png'  => imagepng($canvas, $target, 6),
+            'image/webp' => imagewebp($canvas, $target, 82),
+            default      => false,
+        };
+        imagedestroy($canvas);
+        if ($ok) {
+            $made[] = $width;
+        }
+    }
+    imagedestroy($source);
+    return $made;
+}
+
+/** Removes an asset's variants, for a replace or a delete. */
+function asset_remove_variants(string $storedName): void
+{
+    foreach (asset_variant_widths() as $width) {
+        $path = asset_storage_dir() . '/' . asset_variant_name($storedName, $width);
+        if (is_file($path)) {
+            @unlink($path);
+        }
+    }
+}
+
+/** The widths that actually exist on disk for an asset. */
+function asset_available_widths(array $asset): array
+{
+    $out = [];
+    foreach (asset_variant_widths() as $width) {
+        if (is_file(asset_storage_dir() . '/' . asset_variant_name($asset['stored_name'], $width))) {
+            $out[] = $width;
+        }
+    }
+    return $out;
+}
+
+/**
+ * A srcset for an asset, so the browser downloads a size that suits the screen
+ * rather than the original every time. Empty when there are no variants.
+ */
+function asset_srcset(array $asset): string
+{
+    $parts = [];
+    foreach (asset_available_widths($asset) as $width) {
+        $parts[] = asset_image_url($asset, $width) . ' ' . $width . 'w';
+    }
+    if ($parts) {
+        $parts[] = asset_image_url($asset) . ' ' . (int) (max(asset_variant_widths()) * 2) . 'w';
+    }
+    return implode(', ', $parts);
+}
+
+/** The intrinsic size of an image, for width and height attributes. */
+function asset_dimensions(array $asset): ?array
+{
+    $size = @getimagesize(asset_path($asset));
+    return $size ? ['width' => (int) $size[0], 'height' => (int) $size[1]] : null;
+}
+
+/**
+ * How many pages use an asset, as a cover or inside a block. Matching on the
+ * stored JSON is crude, but it is exact enough for a warning and needs no
+ * extra table to maintain.
+ */
+function asset_usage(int $assetId): array
+{
+    $needleBlock = '"asset":"' . $assetId . '"';
+    $rows = db_all(
+        'SELECT id, title, slug FROM pages
+          WHERE cover_asset_id = ? OR blocks LIKE ?
+          ORDER BY title',
+        [$assetId, '%' . $needleBlock . '%']
+    );
+    return $rows;
 }

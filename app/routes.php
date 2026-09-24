@@ -109,9 +109,23 @@ if (preg_match('#^/g/([a-z0-9\-]+)$#', $path, $m)) {
 if ($path === '/admin/sign-in') {
     if ($method === 'POST') {
         csrf_check();
-        if (attempt_sign_in($_POST['email'] ?? '', $_POST['password'] ?? '')) {
+        $email = (string) ($_POST['email'] ?? '');
+
+        $wait = sign_in_locked_for($email);
+        if ($wait > 0) {
+            view('admin/sign-in', [
+                'title' => 'Sign in',
+                'error' => 'Too many attempts. Try again in ' . max(1, (int) ceil($wait / 60)) . ' minutes.',
+            ], null);
+            exit;
+        }
+
+        if (attempt_sign_in($email, $_POST['password'] ?? '')) {
             redirect('/admin');
         }
+
+        // A short delay makes guessing slow even before the limit is reached.
+        usleep(400000);
         view('admin/sign-in', ['title' => 'Sign in', 'error' => 'That email and password do not match.'], null);
         exit;
     }
@@ -192,10 +206,9 @@ if (preg_match('#^/admin/pages/(\d+)/save$#', $path, $m) && $method === 'POST') 
             $page['id'],
         ]
     );
-    db_run(
-        'INSERT INTO page_versions (page_id, title, blocks, created_by) VALUES (?, ?, ?, ?)',
-        [$page['id'], $title, $blocks, $userId]
-    );
+    // Records a version only when something actually changed, and collapses
+    // rapid saves, so a writing session does not fill the database.
+    version_record((int) $page['id'], $title, $blocks, $userId);
     db()->commit();
 
     json_out(['ok' => true, 'saved_at' => date('H:i')]);
@@ -394,7 +407,7 @@ if (preg_match('#^/admin/users/(\d+)/delete$#', $path, $m) && $method === 'POST'
 
 // Images shown inside pages. Separate from /d/ because these display rather
 // than download, and are not counted as downloads.
-if (preg_match('#^/i/(\\d+)#', $path, $m)) {
+if (preg_match('#^/i/(\\d+)(?:/(\\d+))?#', $path, $m)) {
     if (site_is_private($config) && !current_user()) {
         not_found();
     }
@@ -402,7 +415,7 @@ if (preg_match('#^/i/(\\d+)#', $path, $m)) {
     if (!$asset || !asset_is_inline_image($asset)) {
         not_found();
     }
-    asset_send_inline($asset);
+    asset_send_inline($asset, isset($m[2]) ? (int) $m[2] : null);
 }
 
 // Feeds the image picker in the editor.
@@ -458,6 +471,9 @@ if ($path === '/admin/assets/upload' && $method === 'POST') {
         redirect('/admin/assets?notice=' . urlencode('Could not save the file. Check storage permissions.'));
     }
 
+    $mime = asset_detect_mime(asset_storage_dir() . '/' . $stored);
+    asset_make_variants($stored, $mime);
+
     db_run(
         'INSERT INTO assets (stored_name, original_name, label, mime, bytes, version, tags, uploaded_by)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
@@ -465,7 +481,7 @@ if ($path === '/admin/assets/upload' && $method === 'POST') {
             $stored,
             basename((string) $file['name']),
             trim($_POST['label'] ?? '') ?: pathinfo((string) $file['name'], PATHINFO_FILENAME),
-            asset_detect_mime(asset_storage_dir() . '/' . $stored),
+            $mime,
             (int) $file['size'],
             trim($_POST['version'] ?? '') ?: '1.0',
             asset_tags_string($_POST['tags'] ?? ''),
@@ -515,13 +531,15 @@ if (preg_match('#^/admin/assets/(\d+)/replace$#', $path, $m) && $method === 'POS
         redirect('/admin/assets?notice=' . urlencode('Could not save the replacement file.'));
     }
     $old = asset_path($asset);
+    $mime = asset_detect_mime(asset_storage_dir() . '/' . $stored);
+    asset_make_variants($stored, $mime);
 
     db_run(
         'UPDATE assets SET stored_name = ?, original_name = ?, mime = ?, bytes = ?, version = ?, uploaded_at = NOW(), uploaded_by = ? WHERE id = ?',
         [
             $stored,
             basename((string) $file['name']),
-            asset_detect_mime(asset_storage_dir() . '/' . $stored),
+            $mime,
             (int) $file['size'],
             trim($_POST['version'] ?? '') ?: $asset['version'],
             current_user()['id'],
@@ -531,6 +549,7 @@ if (preg_match('#^/admin/assets/(\d+)/replace$#', $path, $m) && $method === 'POS
     if (is_file($old)) {
         @unlink($old);
     }
+    asset_remove_variants($asset['stored_name']);
     asset_clear_bundles();
     redirect('/admin/assets?notice=' . urlencode('Replaced. Anywhere this file is linked now serves the new version.'));
 }
@@ -547,6 +566,7 @@ if (preg_match('#^/admin/assets/(\d+)/delete$#', $path, $m) && $method === 'POST
     if (is_file($file)) {
         @unlink($file);
     }
+    asset_remove_variants($asset['stored_name']);
     asset_clear_bundles();
     redirect('/admin/assets?notice=' . urlencode('Removed.'));
 }
@@ -591,9 +611,19 @@ if ($path === '/admin/migrate' && $method === 'POST') {
         $ran = migrations_run();
         $notice = $ran ? 'Applied ' . implode(', ', $ran) : 'Nothing to apply.';
     } catch (Throwable $e) {
+        error_log('migration failed: ' . $e->getMessage());
         $notice = 'Migration failed: ' . $e->getMessage();
     }
     redirect('/admin/settings?notice=' . urlencode($notice));
+}
+
+if ($path === '/admin/export') {
+    require_admin();
+    $name = 'years-brand-hub-' . date('Y-m-d') . '.json';
+    header('Content-Type: application/json');
+    header('Content-Disposition: attachment; filename="' . $name . '"');
+    echo json_encode(export_payload(), JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    exit;
 }
 
 if ($path === '/admin/styles') {

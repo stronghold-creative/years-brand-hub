@@ -33,7 +33,10 @@ foreach ($sections as $section => $items) {
             <span class="card__label"><?= e($page['title']) ?></span>
             <span class="card__art card__art--<?= $hasCover ? 'photo' : e($tint) ?>">
               <?php if ($hasCover): ?>
-                <img src="<?= e(asset_image_url($cover)) ?>" alt="" loading="lazy" decoding="async">
+                <?php $set = asset_srcset($cover); ?>
+                <img src="<?= e(asset_image_url($cover, 400)) ?>"
+                     <?php if ($set): ?>srcset="<?= e($set) ?>" sizes="(max-width: 42rem) 50vw, 18rem"<?php endif; ?>
+                     alt="" loading="lazy" decoding="async">
               <?php else: ?>
                 <span class="card__glyph"><?= icon(section_icon($page['section']), 'icon') ?: icon('star', 'icon') ?></span>
               <?php endif; ?>

@@ -8,6 +8,7 @@ function migrations_pending(): array
         db()->exec('CREATE TABLE IF NOT EXISTS migrations (filename VARCHAR(190) PRIMARY KEY, applied_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP)');
         $applied = array_column(db_all('SELECT filename FROM migrations'), 'filename');
     } catch (Throwable $e) {
+        error_log('could not read migrations: ' . $e->getMessage());
         return [];
     }
 

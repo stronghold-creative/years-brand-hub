@@ -64,6 +64,7 @@ $totalBytes = array_sum(array_map(fn($a) => (int) $a['bytes'], $assets));
                       'size'      => asset_human_size((int) $asset['bytes']),
                       'uploaded'  => date('j M Y', strtotime($asset['uploaded_at'])),
                       'downloads' => (int) $asset['downloads'],
+                      'usage'     => array_map(fn($p) => $p['title'], asset_usage((int) $asset['id'])),
                       'preview'   => $isImage ? asset_image_url($asset) : null,
                       'ext'       => $ext,
                   ], JSON_UNESCAPED_SLASHES)) ?>'>
@@ -140,6 +141,7 @@ $totalBytes = array_sum(array_map(fn($a) => (int) $a['bytes'], $assets));
       <div class="m3-detail">
         <div class="m3-detail__preview" id="asset-preview"></div>
         <dl class="m3-detail__facts" id="asset-facts"></dl>
+          <p class="m3-usage" id="asset-usage"></p>
       </div>
 
       <form method="post" id="asset-save" class="m3-detail__form">

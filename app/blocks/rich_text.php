@@ -7,7 +7,7 @@ $columns = block_option($options, 'columns', 'one');
 ?>
 <section class="block block--text">
   <?php if (!empty($data['heading'])): ?>
-    <h2><?= e($data['heading']) ?></h2>
+    <h3><?= e($data['heading']) ?></h3>
   <?php endif; ?>
   <div class="prose prose--<?= e($size) ?> prose--<?= e($align) ?> prose--col-<?= e($columns) ?>">
     <?= paragraphs($data['body'] ?? '') ?>

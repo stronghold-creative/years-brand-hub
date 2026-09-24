@@ -16,7 +16,9 @@ function settings_all(): array
             }
             $GLOBALS['__settings'] = $loaded;
         } catch (Throwable $e) {
-            $GLOBALS['__settings'] = [];   // Not migrated yet, fall back to config.
+                // Before the settings table exists, config supplies the values.
+            error_log('settings unavailable: ' . $e->getMessage());
+            $GLOBALS['__settings'] = [];
         }
     }
     return $GLOBALS['__settings'];
@@ -130,4 +132,35 @@ function site_areas(): array
 function components_enabled(): bool
 {
     return setting_bool('components_enabled', false);
+}
+
+/**
+ * Everything worth backing up, as a plain array. Uploaded files are not
+ * included, only the register that describes them, so a restore knows what is
+ * missing if storage/ was lost too.
+ */
+function export_payload(): array
+{
+    return [
+        'exported_at' => date('c'),
+        'pages'       => db_all('SELECT slug, title, section, summary, status, sort_order, show_on_home, cover_asset_id, blocks, updated_at FROM pages ORDER BY section, sort_order'),
+        'settings'    => db_all('SELECT name, value FROM settings ORDER BY name'),
+        'assets'      => db_all('SELECT id, stored_name, original_name, label, mime, bytes, version, tags, uploaded_at FROM assets ORDER BY id'),
+        'users'       => db_all('SELECT name, email, role FROM users ORDER BY name'),
+        'migrations'  => db_all('SELECT filename FROM migrations ORDER BY filename'),
+    ];
+}
+
+/**
+ * True when Plus Jakarta Sans has been self-hosted. Until the files are in
+ * place the site falls back to Google Fonts, so it never looks broken, but
+ * self-hosting removes an external dependency and is faster.
+ */
+function fonts_are_local(): bool
+{
+    static $known = null;
+    if ($known === null) {
+        $known = is_file(ROOT_DIR . '/public_html/assets/fonts/plus-jakarta-sans-400.woff2');
+    }
+    return $known;
 }

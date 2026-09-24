@@ -7,7 +7,7 @@ $values = block_option($options, 'values', 'all');
 ?>
 <section class="block block--palette">
   <?php if (!empty($data['heading'])): ?>
-    <h2><?= e($data['heading']) ?></h2>
+    <h3><?= e($data['heading']) ?></h3>
   <?php endif; ?>
   <ul class="swatches swatches--<?= e($layout) ?> swatches--<?= e($size) ?> swatches--shape-<?= e($shape) ?>">
     <?php foreach (($data['colours'] ?? []) as $colour): ?>
@@ -19,7 +19,7 @@ $values = block_option($options, 'values', 'all');
           <span class="swatch__copy">Copy</span>
         </button>
         <div class="swatch__meta">
-          <h3><?= e($colour['name']) ?></h3>
+          <h4><?= e($colour['name']) ?></h4>
           <?php if ($values !== 'none'): ?>
             <dl>
               <dt>Hex</dt><dd><?= e($colour['hex']) ?></dd>
