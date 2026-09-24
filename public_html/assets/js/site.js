@@ -1,3 +1,16 @@
+/**
+ * Each feature below runs inside its own guard. Without this, one failure in
+ * an immediately-invoked block stops every block after it from running at all,
+ * which is exactly how the header behaviour went missing once already.
+ */
+function feature(name, run) {
+  try {
+    run();
+  } catch (error) {
+    console.error('site.js: ' + name + ' failed', error);
+  }
+}
+
 // Copy a colour value to the clipboard from any swatch.
 document.addEventListener('click', async (event) => {
   const chip = event.target.closest('[data-copy]');
@@ -17,7 +30,7 @@ document.addEventListener('click', async (event) => {
 });
 
 // Highlight the chapter currently on screen in the section rail.
-(function () {
+feature('chapter tracking', function () {
   const links = document.querySelectorAll('.reader__link');
   const chapters = document.querySelectorAll('.chapter');
   if (!links.length || !chapters.length || !('IntersectionObserver' in window)) return;
@@ -40,88 +53,134 @@ document.addEventListener('click', async (event) => {
   }, { rootMargin: '-15% 0px -70% 0px', threshold: 0 });
 
   chapters.forEach((chapter) => observer.observe(chapter));
-})();
+});
 
 /**
- * The masthead gets out of the way when you read down the page and comes back
- * the moment you scroll up, so navigation is always one small gesture away
- * rather than a trip to the top.
+ * The masthead stays on screen and becomes compact as you read down, so the
+ * logo is always in the top left. Scrolling up restores it in full.
  */
-(function () {
+feature('masthead', function () {
   const bar = document.getElementById('masthead');
   if (!bar) return;
 
-  const height = () => bar.offsetHeight;
+  const COMPACT_AFTER = 120;   // how far down before it compacts
+  const INTENT = 5;            // movement below this is momentum, not intent
+
   let last = window.scrollY;
-  let ticking = false;
+  let compact = false;
+  let queued = false;
 
-  function update() {
+  function apply() {
     const now = Math.max(0, window.scrollY);
-    const movement = now - last;
+    const moved = now - last;
 
-    bar.classList.toggle('is-detached', now > 8);
+    bar.classList.toggle('is-detached', now > 4);
 
-    // Ignore small movements, which are usually momentum rather than intent.
-    if (Math.abs(movement) > 6) {
-      // Never tuck it away before the reader has left the top of the page.
-      const tuck = movement > 0 && now > height() * 2;
-      bar.classList.toggle('is-tucked', tuck);
+    if (now <= COMPACT_AFTER) {
+      // Near the top the bar is always shown in full.
+      if (compact) { compact = false; bar.classList.remove('is-compact'); }
+      last = now;
+      queued = false;
+      return;
+    }
+
+    if (Math.abs(moved) >= INTENT) {
+      const wanted = moved > 0;               // down compacts, up expands
+      if (wanted !== compact) {
+        compact = wanted;
+        bar.classList.toggle('is-compact', compact);
+      }
       last = now;
     }
-    ticking = false;
+    queued = false;
   }
 
-  window.addEventListener('scroll', () => {
-    if (ticking) return;
-    ticking = true;
-    window.requestAnimationFrame(update);
+  window.addEventListener('scroll', function () {
+    if (queued) return;
+    queued = true;
+    window.requestAnimationFrame(apply);
   }, { passive: true });
 
-  // Jumping to a chapter scrolls down, which would otherwise tuck the header
-  // away just as the reader arrives. Keep it visible for that moment.
-  document.addEventListener('click', (event) => {
-    const link = event.target.closest('a[href^="#"]');
-    if (!link) return;
-    bar.classList.remove('is-tucked');
-    last = window.scrollY;
-    setTimeout(() => { last = window.scrollY; }, 600);
+  // Jumping to a chapter scrolls down, so the bar would compact just as the
+  // reader arrives. Show it in full for that moment instead.
+  document.addEventListener('click', function (event) {
+    if (!event.target.closest('a[href^="#"]')) return;
+    compact = false;
+    bar.classList.remove('is-compact');
+    window.setTimeout(function () { last = window.scrollY; }, 700);
   });
 
-  update();
-})();
+  apply();
+});
 
-/** The section rail, as a slide-out panel on narrow screens. */
-(function () {
+/**
+ * The section rail as a slide-out panel on narrow screens, with the page
+ * behind held still while it is open.
+ */
+feature('rail panel', function () {
   const toggle = document.getElementById('nav-toggle');
   const nav = document.getElementById('reader-nav');
   const scrim = document.getElementById('nav-scrim');
   if (!toggle || !nav) return;
 
-  // The button only makes sense on a page that has a rail to open.
-  toggle.hidden = false;
+  toggle.hidden = false;   // only pages with a rail get the button
+  let offset = 0;
 
-  const setOpen = (open) => {
-    document.body.classList.toggle('nav-open', open);
+  function setOpen(open) {
+    if (open) {
+      // Fixing the body loses the scroll position, so it is recorded and put
+      // back afterwards. Nothing else reliably stops iOS scrolling behind.
+      offset = window.scrollY;
+      document.body.style.top = '-' + offset + 'px';
+      document.body.classList.add('nav-open');
+    } else {
+      document.body.classList.remove('nav-open');
+      document.body.style.top = '';
+      window.scrollTo(0, offset);
+    }
     toggle.setAttribute('aria-expanded', String(open));
     if (scrim) scrim.hidden = !open;
     if (open) {
       const first = nav.querySelector('a');
       if (first) first.focus({ preventScroll: true });
     }
-  };
+  }
 
-  toggle.addEventListener('click', () => setOpen(!document.body.classList.contains('nav-open')));
-  if (scrim) scrim.addEventListener('click', () => setOpen(false));
+  const isOpen = () => document.body.classList.contains('nav-open');
 
-  // Following a link should close it, since the destination is on this page.
-  nav.addEventListener('click', (event) => {
-    if (event.target.closest('a')) setOpen(false);
+  toggle.addEventListener('click', function () { setOpen(!isOpen()); });
+  if (scrim) scrim.addEventListener('click', function () { setOpen(false); });
+
+  nav.addEventListener('click', function (event) {
+    const link = event.target.closest('a');
+    if (!link) return;
+
+    // An anchor on this page: close first, then jump, or the scroll lock
+    // swallows the movement.
+    if (link.getAttribute('href').startsWith('#')) {
+      event.preventDefault();
+      const target = document.getElementById(link.getAttribute('href').slice(1));
+      setOpen(false);
+      if (target) {
+        window.requestAnimationFrame(function () {
+          target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+          history.replaceState(null, '', link.getAttribute('href'));
+        });
+      }
+      return;
+    }
+    setOpen(false);
   });
 
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && document.body.classList.contains('nav-open')) {
+  document.addEventListener('keydown', function (event) {
+    if (event.key === 'Escape' && isOpen()) {
       setOpen(false);
       toggle.focus();
     }
   });
-})();
+
+  // Returning to a wide screen must not leave the page locked.
+  const wide = window.matchMedia('(min-width: 56.01rem)');
+  const release = function () { if (wide.matches && isOpen()) setOpen(false); };
+  if (wide.addEventListener) { wide.addEventListener('change', release); }
+});

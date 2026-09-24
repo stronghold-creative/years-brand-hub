@@ -100,14 +100,37 @@ a:hover { color: var(--accent-deep); }
   position: sticky;
   top: 0;
   background: var(--page);
-  z-index: 40;
-  /* Slides out of the way going down the page and returns coming back up.
-     The class is set by site.js; without JavaScript it simply stays put. */
-  transition: transform var(--d-calm) var(--e-out), box-shadow var(--d-base) var(--e-out);
-  will-change: transform;
+  z-index: 80;
+  /* Once the reader is down the page the bar becomes compact: the logo and the
+     menu stay, the rest steps aside. Scrolling up restores it in full. The
+     bar itself never leaves, so the logo is always there. */
+  transition:
+    padding var(--d-calm) var(--e-out),
+    box-shadow var(--d-base) var(--e-out),
+    background var(--d-base) var(--e-out);
 }
-.masthead.is-tucked { transform: translateY(-100%); }
-.masthead.is-detached { box-shadow: 0 1px 0 var(--rule), 0 10px 24px -22px rgba(31, 31, 31, .5); }
+.masthead.is-detached {
+  box-shadow: 0 1px 0 var(--rule), 0 10px 24px -22px rgba(31, 31, 31, .5);
+  background: color-mix(in srgb, var(--page) 88%, transparent);
+  backdrop-filter: saturate(1.6) blur(10px);
+}
+.masthead.is-compact { padding-top: .5rem; padding-bottom: .5rem; }
+
+/* What steps aside when compact. Visibility rather than display, so nothing
+   reflows and the bar cannot jump as it changes. */
+.masthead__title, .masthead__tools, .areas {
+  transition: opacity var(--d-base) var(--e-out), transform var(--d-base) var(--e-out);
+}
+.masthead.is-compact .masthead__title,
+.masthead.is-compact .masthead__tools,
+.masthead.is-compact .areas {
+  opacity: 0;
+  transform: translateY(-4px);
+  pointer-events: none;
+}
+.masthead__logo, .masthead__wordmark { transition: transform var(--d-calm) var(--e-out); }
+.masthead.is-compact .masthead__logo { transform: scale(.88); transform-origin: left center; }
+.masthead.is-compact .masthead__wordmark { transform: scale(.9); transform-origin: left center; }
 
 /* Hidden visually, still read aloud. */
 .visually-hidden {
@@ -151,11 +174,21 @@ a:hover { color: var(--accent-deep); }
 .nav-scrim {
   position: fixed;
   inset: 0;
-  z-index: 35;
+  z-index: 50;
   background: rgba(31, 31, 31, .32);
   animation: navfade var(--d-base) var(--e-out) both;
 }
 .nav-scrim[hidden] { display: none; }
+
+/* With the panel open the page behind must not move. The body is fixed at its
+   current offset, which JavaScript records and restores, because overflow
+   alone does not hold on iOS. */
+body.nav-open {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  overflow: hidden;
+}
 @keyframes navfade { from { opacity: 0; } to { opacity: 1; } }
 .masthead__mark {
   font-family: var(--display);
@@ -437,10 +470,12 @@ a:hover { color: var(--accent-deep); }
   .reader__nav {
     position: fixed;
     inset: 0 auto 0 0;
-    z-index: 38;
+    z-index: 60;
     width: min(20rem, 84vw);
     max-height: none;
-    padding: 1.25rem 1.25rem 2rem;
+    /* Clears the bar, which stays above the panel so the menu button is always
+       reachable to close it. */
+    padding: 4.5rem 1.25rem 2rem;
     overflow-y: auto;
     overscroll-behavior: contain;
     background: var(--page);
@@ -866,6 +901,22 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
   .masthead__title { display: none; }
 }
 
+/* Cross-document view transitions. Supporting browsers cross-fade between
+   pages instead of flashing white; others navigate exactly as before. */
+@view-transition { navigation: auto; }
+
+::view-transition-old(root) { animation-duration: 140ms; animation-timing-function: var(--e-out); }
+::view-transition-new(root) { animation-duration: 200ms; animation-timing-function: var(--e-out); }
+
+/* The bar and the rail persist across the navigation rather than fading with
+   the rest, which is what removes the jump between sections. */
+.masthead { view-transition-name: masthead; }
+.reader__nav { view-transition-name: rail; }
+
+@media (prefers-reduced-motion: reduce) {
+  @view-transition { navigation: none; }
+}
+
 /* ===========================================================================
    Motion
 
@@ -921,7 +972,6 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 .downloads__all a:active, .cta:active { transform: scale(.98); }
 
 /* Anchored navigation within a section. */
-html { scroll-behavior: smooth; }
 
 /* ===========================================================================
    Reduced motion
