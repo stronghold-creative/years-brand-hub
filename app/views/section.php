@@ -6,8 +6,9 @@
  */
 $currentSlug = slugify($section);
 ?>
+<div class="nav-scrim" id="nav-scrim" hidden></div>
 <div class="reader">
-  <nav class="reader__nav" aria-label="Guidelines">
+  <nav class="reader__nav" id="reader-nav" aria-label="Guidelines">
     <?php foreach ($nav as $name => $items): ?>
       <?php $isCurrent = $name === $section; ?>
       <h2>

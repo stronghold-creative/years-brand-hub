@@ -100,8 +100,63 @@ a:hover { color: var(--accent-deep); }
   position: sticky;
   top: 0;
   background: var(--page);
-  z-index: 10;
+  z-index: 40;
+  /* Slides out of the way going down the page and returns coming back up.
+     The class is set by site.js; without JavaScript it simply stays put. */
+  transition: transform var(--d-calm) var(--e-out), box-shadow var(--d-base) var(--e-out);
+  will-change: transform;
 }
+.masthead.is-tucked { transform: translateY(-100%); }
+.masthead.is-detached { box-shadow: 0 1px 0 var(--rule), 0 10px 24px -22px rgba(31, 31, 31, .5); }
+
+/* Hidden visually, still read aloud. */
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  margin: -1px; padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+/* The menu button only exists on narrow screens, and only on pages that have
+   a section rail to open. */
+.masthead__menu {
+  display: none;
+  width: 2.5rem; height: 2.5rem;
+  margin-left: -.5rem;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  cursor: pointer;
+  place-items: center;
+}
+.masthead__menu:hover { background: var(--raised); }
+.masthead__bars, .masthead__bars::before, .masthead__bars::after {
+  display: block;
+  width: 1.125rem;
+  height: 1.5px;
+  background: var(--ink);
+  border-radius: 2px;
+  transition: transform var(--d-base) var(--e-out), opacity var(--d-swift) linear;
+}
+.masthead__bars { position: relative; }
+.masthead__bars::before, .masthead__bars::after { content: ''; position: absolute; left: 0; }
+.masthead__bars::before { top: -5px; }
+.masthead__bars::after  { top: 5px; }
+.nav-open .masthead__bars { background: transparent; }
+.nav-open .masthead__bars::before { transform: translateY(5px) rotate(45deg); }
+.nav-open .masthead__bars::after  { transform: translateY(-5px) rotate(-45deg); }
+
+.nav-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 35;
+  background: rgba(31, 31, 31, .32);
+  animation: navfade var(--d-base) var(--e-out) both;
+}
+.nav-scrim[hidden] { display: none; }
+@keyframes navfade { from { opacity: 0; } to { opacity: 1; } }
 .masthead__mark {
   font-family: var(--display);
   font-size: 1.25rem;
@@ -374,8 +429,33 @@ a:hover { color: var(--accent-deep); }
 .empty { color: var(--ink-faint); }
 
 @media (max-width: 56rem) {
-  .reader { grid-template-columns: 1fr; gap: 2rem; }
-  .reader__nav { position: static; border-bottom: 1px solid var(--rule); padding-bottom: 1.5rem; }
+  .reader { grid-template-columns: 1fr; gap: 0; }
+
+  /* The rail becomes a panel that slides in from the left, rather than a long
+     list of every page pushing the content down the screen. */
+  .masthead__menu { display: grid; }
+  .reader__nav {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 38;
+    width: min(20rem, 84vw);
+    max-height: none;
+    padding: 1.25rem 1.25rem 2rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    background: var(--page);
+    border-right: 1px solid var(--rule);
+    box-shadow: 0 0 40px -12px rgba(31, 31, 31, .4);
+    transform: translateX(-100%);
+    transition: transform var(--d-slow) var(--e-inout);
+  }
+  .nav-open .reader__nav { transform: none; }
+  /* Closed, the panel is off screen, so keep it out of the tab order too. */
+  .reader__nav { visibility: hidden; transition: transform var(--d-slow) var(--e-inout), visibility 0s linear var(--d-slow); }
+  .nav-open .reader__nav { visibility: visible; transition-delay: 0s; }
+  .reader__nav h2:first-child { margin-top: .5rem; }
+  /* Bigger targets, since this is now a touch surface. */
+  .reader__link, .reader__nav h2 a { padding-top: .625rem; padding-bottom: .625rem; }
   .specimen { grid-template-columns: 1fr; gap: 1rem; }
   .index__section a { grid-template-columns: 1fr; gap: .25rem; }
   .swatch { grid-template-columns: 4.5rem 1fr; gap: 1.25rem; }

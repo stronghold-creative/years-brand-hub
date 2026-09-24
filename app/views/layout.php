@@ -43,8 +43,13 @@ $canonical  = rtrim((string) (($config['site']['base_url'] ?? '')), '/')
 <style><?= style_css() ?></style>
 </head>
 <body<?= style_body_attributes() ?>>
-<header class="masthead">
+<header class="masthead" id="masthead">
   <?php $logo = site_logo(); ?>
+  <button class="masthead__menu" type="button" id="nav-toggle"
+          aria-expanded="false" aria-controls="reader-nav" hidden>
+    <span class="masthead__bars" aria-hidden="true"></span>
+    <span class="visually-hidden">Menu</span>
+  </button>
   <a class="masthead__mark" href="/">
     <?php if ($logo): ?>
       <img src="<?= e(asset_image_url($logo)) ?>" alt="Years" class="masthead__logo">

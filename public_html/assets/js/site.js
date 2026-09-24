@@ -41,3 +41,87 @@ document.addEventListener('click', async (event) => {
 
   chapters.forEach((chapter) => observer.observe(chapter));
 })();
+
+/**
+ * The masthead gets out of the way when you read down the page and comes back
+ * the moment you scroll up, so navigation is always one small gesture away
+ * rather than a trip to the top.
+ */
+(function () {
+  const bar = document.getElementById('masthead');
+  if (!bar) return;
+
+  const height = () => bar.offsetHeight;
+  let last = window.scrollY;
+  let ticking = false;
+
+  function update() {
+    const now = Math.max(0, window.scrollY);
+    const movement = now - last;
+
+    bar.classList.toggle('is-detached', now > 8);
+
+    // Ignore small movements, which are usually momentum rather than intent.
+    if (Math.abs(movement) > 6) {
+      // Never tuck it away before the reader has left the top of the page.
+      const tuck = movement > 0 && now > height() * 2;
+      bar.classList.toggle('is-tucked', tuck);
+      last = now;
+    }
+    ticking = false;
+  }
+
+  window.addEventListener('scroll', () => {
+    if (ticking) return;
+    ticking = true;
+    window.requestAnimationFrame(update);
+  }, { passive: true });
+
+  // Jumping to a chapter scrolls down, which would otherwise tuck the header
+  // away just as the reader arrives. Keep it visible for that moment.
+  document.addEventListener('click', (event) => {
+    const link = event.target.closest('a[href^="#"]');
+    if (!link) return;
+    bar.classList.remove('is-tucked');
+    last = window.scrollY;
+    setTimeout(() => { last = window.scrollY; }, 600);
+  });
+
+  update();
+})();
+
+/** The section rail, as a slide-out panel on narrow screens. */
+(function () {
+  const toggle = document.getElementById('nav-toggle');
+  const nav = document.getElementById('reader-nav');
+  const scrim = document.getElementById('nav-scrim');
+  if (!toggle || !nav) return;
+
+  // The button only makes sense on a page that has a rail to open.
+  toggle.hidden = false;
+
+  const setOpen = (open) => {
+    document.body.classList.toggle('nav-open', open);
+    toggle.setAttribute('aria-expanded', String(open));
+    if (scrim) scrim.hidden = !open;
+    if (open) {
+      const first = nav.querySelector('a');
+      if (first) first.focus({ preventScroll: true });
+    }
+  };
+
+  toggle.addEventListener('click', () => setOpen(!document.body.classList.contains('nav-open')));
+  if (scrim) scrim.addEventListener('click', () => setOpen(false));
+
+  // Following a link should close it, since the destination is on this page.
+  nav.addEventListener('click', (event) => {
+    if (event.target.closest('a')) setOpen(false);
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && document.body.classList.contains('nav-open')) {
+      setOpen(false);
+      toggle.focus();
+    }
+  });
+})();
