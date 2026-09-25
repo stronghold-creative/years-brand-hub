@@ -829,3 +829,48 @@ function contrast_verdict(float $ratio): array
     if ($ratio >= 3)   return ['level' => 'AA large', 'note' => 'Large text and interface parts only', 'pass' => true];
     return ['level' => 'Fails', 'note' => 'Not enough contrast for text', 'pass' => false];
 }
+
+/**
+ * Renders one block on its own, without the zone wrapper.
+ *
+ * A section opener sits outside the reading grid, so it needs no width class,
+ * no background class and no spacing: it is the full width of the page by
+ * virtue of where it sits, not by breaking out of something.
+ */
+function render_bare_block(array $block): void
+{
+    $type = (string) ($block['type'] ?? '');
+    $file = APP_DIR . '/blocks/' . $type . '.php';
+    if (!isset(block_types()[$type]) || !is_file($file)) {
+        return;
+    }
+
+    $data    = $block['data'] ?? [];
+    $options = array_merge(block_options_defaults($type), $block['options'] ?? []);
+    require $file;
+}
+
+/**
+ * Takes the opening hero off a section, if it has one.
+ *
+ * A hero is a page opener, so when the first page of a section begins with
+ * one it is lifted out and rendered above the whole section rather than
+ * halfway down a scroll beside the rail. The page keeps its remaining blocks.
+ *
+ * Returns the hero block, or null, and edits $pages in place.
+ */
+function take_section_hero(array &$pages): ?array
+{
+    if (!$pages) {
+        return null;
+    }
+
+    $first = json_decode($pages[0]['blocks'] ?? '[]', true);
+    if (!is_array($first) || !$first || ($first[0]['type'] ?? '') !== 'hero') {
+        return null;
+    }
+
+    $hero = array_shift($first);
+    $pages[0]['blocks'] = json_encode($first, JSON_UNESCAPED_SLASHES);
+    return $hero;
+}

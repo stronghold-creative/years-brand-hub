@@ -1282,12 +1282,22 @@ html, body { overflow-x: clip; }
 
 /* A hero fills its chapter rather than sitting inside its padding, and the
    chapter's dividing rule is suppressed around it. */
+/* ----------------------------------------------------------- section opener
+
+   A hero at the top of a section sits outside the reading grid, so it is
+   simply a full-width element in the document. No negative margins, no
+   viewport arithmetic, nothing to fight the rail. */
+.opener { margin-top: -1px; }   /* meets the masthead with no seam */
+.reader--opened { padding-top: 4rem; }
+
 /* A chapter that opens with a full-bleed block gives up its own frame around
    it: no dividing rule, no bottom padding, and no gap above. */
 .chapter:has(> .zone--w-screen) { padding-bottom: 0; border-bottom: 0; }
 .chapter > .zone--w-screen:first-child { margin-top: -1rem; }
 .chapter__title + .zone--w-screen,
 .chapter__summary + .zone--w-screen { margin-top: 2.5rem; }
+
+.opener .hero { padding-top: calc(var(--hero-pad) + 4.25rem); }
 
 .hero {
   --hero-bg: var(--accent);
@@ -1370,4 +1380,11 @@ html, body { overflow-x: clip; }
 @media (max-width: 48rem) {
   .hero { padding-top: calc(var(--hero-pad) + 3.5rem); }
   .hero__line { font-size: min(calc(100cqw / var(--fit, 6)), 22svh); }
+}
+.opener__note {
+  margin: 0 0 2rem;
+  padding: .5rem var(--gutter);
+  font-size: .75rem;
+  color: var(--ink-faint);
+  background: var(--raised);
 }

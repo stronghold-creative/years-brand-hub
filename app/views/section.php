@@ -7,17 +7,21 @@
 $currentSlug = slugify($section);
 ?>
 <div class="nav-scrim" id="nav-scrim" hidden></div>
-<div class="reader">
+
+<?php if (!empty($hero)): ?>
+  <?php // Outside the reading grid: nothing beside it, nothing above it. ?>
+  <div class="opener"><?php render_bare_block($hero); ?></div>
+<?php endif; ?>
+
+<div class="reader<?= !empty($hero) ? ' reader--opened' : '' ?>">
   <nav class="reader__nav" id="reader-nav" aria-label="Guidelines">
     <?php foreach ($nav as $name => $items): ?>
       <?php $isCurrent = $name === $section; ?>
-      <h2>
+      <?php // Always a link, so the current section is styled rather than
+            // structured differently and cannot drift from the others. ?>
+      <h2 class="reader__section<?= $isCurrent ? ' is-current' : '' ?>">
         <?= icon(section_icon($name), 'icon icon--small') ?>
-        <?php if ($isCurrent): ?>
-          <span><?= e($name) ?></span>
-        <?php else: ?>
-          <a href="/s/<?= e(slugify($name)) ?>"><?= e($name) ?></a>
-        <?php endif; ?>
+        <a href="/s/<?= e(slugify($name)) ?>"<?= $isCurrent ? ' aria-current="true"' : '' ?>><?= e($name) ?></a>
       </h2>
       <?php if ($isCurrent): ?>
         <?php foreach ($items as $item): ?>
@@ -31,10 +35,12 @@ $currentSlug = slugify($section);
   </nav>
 
   <main class="reader__body">
-    <header class="reader__sectionhead">
-      <h1><?= e($section) ?></h1>
-      <p class="reader__count"><?= count($pages) ?> <?= count($pages) === 1 ? 'page' : 'pages' ?></p>
-    </header>
+    <?php if (empty($hero)): ?>
+      <header class="reader__sectionhead">
+        <h1><?= e($section) ?></h1>
+        <p class="reader__count"><?= count($pages) ?> <?= count($pages) === 1 ? 'page' : 'pages' ?></p>
+      </header>
+    <?php endif; ?>
 
     <?php foreach ($pages as $entry): ?>
       <article class="chapter" id="<?= e($entry['slug']) ?>">

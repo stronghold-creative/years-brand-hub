@@ -81,10 +81,16 @@ if (preg_match('#^/s/([a-z0-9\-]+)$#', $path, $m)) {
         not_found();
     }
 
+    // A hero at the very start of the section opens it, above the rail and
+    // the chapters, rather than appearing partway down the scroll.
+    $pages = $bySection[$current];
+    $hero  = take_section_hero($pages);
+
     view('section', [
         'title'   => $current,
         'section' => $current,
-        'pages'   => $bySection[$current],
+        'pages'   => $pages,
+        'hero'    => $hero,
         'nav'     => $bySection,
         'config'  => $config,
     ]);

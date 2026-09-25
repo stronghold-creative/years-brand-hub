@@ -12,7 +12,19 @@
 <main class="reader__body">
   <h1><?= e($page['title']) ?></h1>
   <?php if (!empty($page['summary'])): ?><p class="reader__summary"><?= e($page['summary']) ?></p><?php endif; ?>
-  <?php render_blocks($blocks, !empty($editing)); ?>
+  <?php
+  // A hero at the top of a page becomes the section opener on the live site,
+  // so the preview shows it the same way rather than inside the column.
+  $opener = null;
+  if (($blocks[0]['type'] ?? '') === 'hero') {
+      $opener = array_shift($blocks);
+  }
+?>
+<?php if ($opener): ?>
+  <div class="opener"><?php render_bare_block($opener); ?></div>
+  <p class="opener__note">This opens the section on the live site.</p>
+<?php endif; ?>
+<?php render_blocks($blocks, !empty($editing)); ?>
 </main>
 <script src="<?= e(asset_url('/assets/js/vendor/motion.js')) ?>"></script>
 <script src="<?= e(asset_url('/assets/js/motion-ui.js')) ?>"></script>
