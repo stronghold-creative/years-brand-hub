@@ -351,9 +351,9 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 .m3-list { list-style: none; margin: 0; padding: 0; }
 .m3-list-item {
   display: grid;
-  grid-template-columns: minmax(10rem, 18fr) minmax(0, 30fr) 6rem 7rem 18rem;
+  grid-template-columns: 2.75rem minmax(10rem, 18fr) minmax(0, 30fr) 6rem 7rem 18rem;
   align-items: center;
-  gap: 1.5rem;
+  gap: 1rem;
   min-height: 3.5rem;
   padding: .5rem 1rem;
   border-radius: var(--md-sys-shape-s);
@@ -374,7 +374,7 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 /* A header row, so the columns are labelled like any other table. */
 .m3-list-head {
   display: grid;
-  grid-template-columns: minmax(10rem, 18fr) minmax(0, 30fr) 6rem 7rem 18rem;
+  grid-template-columns: 2.75rem minmax(10rem, 18fr) minmax(0, 30fr) 6rem 7rem 18rem;
   gap: 1.5rem;
   padding: 0 1rem .625rem;
   font-size: .75rem;
@@ -1620,3 +1620,25 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 }
 .m3-usage { grid-column: 1 / -1; margin: .75rem 0 0; font-size: .8125rem; color: var(--md-sys-color-on-surface-variant); }
 .m3-usage.is-used { color: var(--md-sys-color-on-surface); }
+
+/* Cover image, editable from the list so it does not have to be hunted for
+   inside a page's own settings. */
+.m3-cover {
+  width: 2.75rem;
+  height: 2.75rem;
+  padding: 0;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-xs);
+  background: var(--md-sys-color-surface-container);
+  overflow: hidden;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+}
+.m3-cover img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.m3-cover__empty { font-size: 1.125rem; color: var(--md-sys-color-on-surface-variant); }
+.m3-cover:hover { border-color: var(--md-sys-color-primary); }
+.picker__foot { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .75rem 1.25rem 1rem; }
+.picker__clear { border: 0; background: none; cursor: pointer; font: inherit; font-size: .8125rem; color: var(--md-sys-color-error); padding: .375rem .5rem; border-radius: var(--md-sys-shape-full); }
+.picker__clear:hover { background: var(--md-sys-color-error-container); }
+.picker__tile.is-on { outline: 2px solid var(--md-sys-color-primary); outline-offset: -2px; border-radius: var(--md-sys-shape-s); }

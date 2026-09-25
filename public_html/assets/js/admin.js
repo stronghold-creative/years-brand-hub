@@ -267,6 +267,93 @@
     if (event.target.closest('[data-close-drawer]')) UIMotion.slideOut(drawer, 'left');
   });
 
+  // ------------------------------------------------------------ image picker
+
+  /**
+   * Chooses an image from the asset library. Shared by the site logo and by
+   * page covers, so both behave identically and there is one copy to fix.
+   */
+  function openImagePicker(list, currentId, onChoose) {
+    const overlay = document.createElement('div');
+    overlay.className = 'picker';
+    overlay.innerHTML =
+      '<div class="picker__panel" role="dialog" aria-modal="true" aria-label="Choose an image">' +
+        '<header class="picker__head">' +
+          '<input class="picker__search" type="search" placeholder="Search" aria-label="Search images">' +
+          '<button type="button" class="picker__close m3-state">Close</button>' +
+        '</header><div class="picker__grid"></div>' +
+        '<footer class="picker__foot">' +
+          '<button type="button" class="picker__clear m3-state">Remove the image</button>' +
+          '<span class="picker__hint">Upload under Assets first.</span>' +
+        '</footer></div>';
+    document.body.append(overlay);
+
+    const panel = overlay.querySelector('.picker__panel');
+    UIMotion.enterDialog(panel, overlay);
+
+    const grid = overlay.querySelector('.picker__grid');
+    const close = () => UIMotion.exitDialog(panel, overlay).finished.then(() => overlay.remove());
+
+    overlay.querySelector('.picker__close').addEventListener('click', close);
+    overlay.querySelector('.picker__clear').addEventListener('click', () => { onChoose(''); close(); });
+    overlay.addEventListener('click', (event) => { if (event.target === overlay) close(); });
+    document.addEventListener('keydown', function esc(event) {
+      if (event.key !== 'Escape') return;
+      document.removeEventListener('keydown', esc);
+      close();
+    });
+
+    const draw = (items) => {
+      grid.innerHTML = items.length ? '' : 'No images yet. Upload one under Assets.';
+      items.forEach((image) => {
+        const tile = document.createElement('button');
+        tile.type = 'button';
+        tile.className = 'picker__tile m3-state' + (String(image.id) === String(currentId) ? ' is-on' : '');
+        tile.innerHTML = '<span class="picker__thumb"><img src="' + image.url + '" alt=""></span><span class="picker__label"></span>';
+        tile.querySelector('.picker__label').textContent = image.label || image.file;
+        tile.addEventListener('click', () => { onChoose(String(image.id)); close(); });
+        grid.append(tile);
+      });
+      UIMotion.enterList(grid.querySelectorAll('.picker__tile'));
+    };
+
+    draw(list);
+    const search = overlay.querySelector('.picker__search');
+    search.focus();
+    search.addEventListener('input', () => {
+      const term = search.value.trim().toLowerCase();
+      draw(!term ? list : list.filter((i) => (i.label + ' ' + i.file + ' ' + i.tags).toLowerCase().includes(term)));
+    });
+  }
+
+  // ------------------------------------------------------------ page covers
+
+  // Reuses the same image picker as the logo, and saves straight away rather
+  // than sending the person into the editor to change one image.
+  document.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-cover-for]');
+    if (!button) return;
+
+    const response = await fetch('/admin/assets.json', { headers: { Accept: 'application/json' } });
+    const images = (await response.json()).images || [];
+
+    openImagePicker(images, String(button.dataset.coverId || '0'), async (chosen) => {
+      const body = new FormData();
+      body.append('_csrf', window.CSRF);
+      body.append('asset', chosen || '0');
+
+      const saved = await fetch('/admin/pages/' + button.dataset.coverFor + '/cover', { method: 'POST', body: body });
+      if (!saved.ok) return;
+
+      button.dataset.coverId = chosen || '0';
+      const match = images.find((image) => String(image.id) === String(chosen));
+      button.innerHTML = match
+        ? '<img src="' + match.url + '" alt="">'
+        : '<span class="m3-cover__empty" aria-hidden="true">+</span>';
+      UIMotion.enter(button);
+    });
+  });
+
   // ------------------------------------------------------- section headers
 
   // The save control stays hidden until something has actually changed, so an
@@ -368,40 +455,7 @@
     };
 
     function openLogoPicker(list) {
-      const overlay = document.createElement('div');
-      overlay.className = 'picker';
-      overlay.innerHTML =
-        '<div class="picker__panel" role="dialog" aria-modal="true" aria-label="Choose a logo">' +
-          '<header class="picker__head">' +
-            '<input class="picker__search" type="search" placeholder="Search" aria-label="Search images">' +
-            '<button type="button" class="picker__close m3-state">Close</button>' +
-          '</header><div class="picker__grid"></div>' +
-          '<p class="picker__hint">Upload the logo under Assets first. SVG works best.</p></div>';
-      document.body.append(overlay);
-
-      const grid = overlay.querySelector('.picker__grid');
-      const close = () => overlay.remove();
-      overlay.querySelector('.picker__close').addEventListener('click', close);
-      overlay.addEventListener('click', (event) => { if (event.target === overlay) close(); });
-
-      const draw = (items) => {
-        grid.innerHTML = items.length ? '' : 'No images yet. Upload one under Assets.';
-        items.forEach((image) => {
-          const tile = document.createElement('button');
-          tile.type = 'button';
-          tile.className = 'picker__tile m3-state';
-          tile.innerHTML = '<span class="picker__thumb"><img src="' + image.url + '" alt=""></span><span class="picker__label"></span>';
-          tile.querySelector('.picker__label').textContent = image.label || image.file;
-          tile.addEventListener('click', () => { hidden.value = String(image.id); paint(String(image.id)); close(); });
-          grid.append(tile);
-        });
-      };
-      draw(list);
-      const search = overlay.querySelector('.picker__search');
-      search.addEventListener('input', () => {
-        const term = search.value.trim().toLowerCase();
-        draw(!term ? list : list.filter((i) => (i.label + ' ' + i.file + ' ' + i.tags).toLowerCase().includes(term)));
-      });
+      openImagePicker(list, hidden.value, (chosen) => { hidden.value = String(chosen || 0); paint(String(chosen || 0)); });
     }
 
     paint(logoMount.dataset.cover || '0');

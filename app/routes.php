@@ -140,7 +140,7 @@ if ($path === '/admin/sign-out') {
 
 if ($path === '/admin') {
     require_editor();
-    $pages = db_all('SELECT id, slug, title, section, summary, status, updated_at FROM pages ORDER BY section, sort_order, title');
+    $pages = db_all('SELECT id, slug, title, section, summary, status, cover_asset_id, updated_at FROM pages ORDER BY section, sort_order, title');
     view('admin/pages', ['title' => 'Pages', 'pages' => $pages], 'admin/layout');
     exit;
 }

@@ -74,7 +74,11 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; }
-html { -webkit-text-size-adjust: 100%; }
+/* The page background must sit on html, not only body. During a view
+   transition the browser snapshots the root, and a root with no background of
+   its own is painted white for the length of the transition, which reads as a
+   white box flashing over the page. */
+html { -webkit-text-size-adjust: 100%; background: var(--page); }
 
 body {
   margin: 0;
@@ -936,7 +940,7 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
    genuinely identical on both pages, is held. */
 
 /* Only the content moves. */
-.reader__body { view-transition-name: content; }
+.reader__body, .index { view-transition-name: content; }
 ::view-transition-old(content) { animation: none; }
 ::view-transition-new(content) {
   animation: contentin 260ms var(--e-expo) both;

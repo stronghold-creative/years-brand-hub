@@ -67,6 +67,7 @@ $stale  = count(array_filter($pages, fn($p) => strtotime($p['updated_at']) < str
       </div>
 
       <div class="m3-list-head">
+        <span><span class="visually-hidden">Cover</span></span>
         <span>Page</span>
         <span>Summary</span>
         <span>Status</span>
@@ -77,6 +78,18 @@ $stale  = count(array_filter($pages, fn($p) => strtotime($p['updated_at']) < str
       <ul class="m3-list">
         <?php foreach ($rows as $i => $page): ?>
           <li class="m3-list-item m3-state">
+            <?php $cover = !empty($page['cover_asset_id']) ? asset_find((int) $page['cover_asset_id']) : null; ?>
+            <button class="m3-cover m3-state" type="button"
+                    data-cover-for="<?= (int) $page['id'] ?>"
+                    data-cover-id="<?= (int) ($page['cover_asset_id'] ?? 0) ?>"
+                    title="Cover image on the front grid"
+                    aria-label="Change the cover image for <?= e($page['title']) ?>">
+              <?php if ($cover && asset_is_inline_image($cover)): ?>
+                <img src="<?= e(asset_image_url($cover, 400)) ?>" alt="">
+              <?php else: ?>
+                <span class="m3-cover__empty" aria-hidden="true">+</span>
+              <?php endif; ?>
+            </button>
             <a class="m3-list-item__headline" href="/admin/pages/<?= (int) $page['id'] ?>"><?= e($page['title']) ?></a>
 
             <span class="m3-list-item__summary"><?= e($page['summary'] ?? '') ?></span>
