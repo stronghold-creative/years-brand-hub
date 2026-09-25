@@ -126,7 +126,14 @@ feature('rail panel', function () {
   toggle.hidden = false;   // only pages with a rail get the button
   let offset = 0;
 
+  const isOpen = () => document.body.classList.contains('nav-open');
+
   function setOpen(open) {
+    // Guards every caller at once, so no future path can animate a panel that
+    // was never open. Defined above setOpen so it cannot be reached before it
+    // exists.
+    if (open === isOpen()) return;
+
     if (open) {
       // Fixing the body loses the scroll position, so it is recorded and put
       // back afterwards. Nothing else reliably stops iOS scrolling behind.
@@ -157,14 +164,17 @@ feature('rail panel', function () {
     }
   }
 
-  const isOpen = () => document.body.classList.contains('nav-open');
-
   toggle.addEventListener('click', function () { setOpen(!isOpen()); });
   if (scrim) scrim.addEventListener('click', function () { setOpen(false); });
 
   nav.addEventListener('click', function (event) {
     const link = event.target.closest('a');
     if (!link) return;
+
+    // Only relevant while the rail is a panel. On a wide screen it is an
+    // ordinary sidebar that is always on show, and closing it would slide a
+    // perfectly visible column off the side of the page.
+    if (!isOpen()) return;
 
     // An anchor on this page: close first, then jump, or the scroll lock
     // swallows the movement.
