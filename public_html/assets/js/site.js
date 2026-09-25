@@ -328,14 +328,16 @@ feature('hero', function () {
     // line height the wipe depends on is the real one.
     const start = function () {
       lines.forEach(function (line) {
+        // Motion writes the transform itself once the animation starts; this
+        // only holds the line in place until then.
         line.style.transform = wipe ? 'translateY(105%)' : 'translateY(24px)';
         line.style.opacity = wipe ? '1' : '0';
       });
 
       UIMotion.animate(lines,
         wipe
-          ? { transform: ['translateY(105%)', 'none'] }
-          : { transform: ['translateY(24px)', 'none'], opacity: [0, 1] },
+          ? { y: ['105%', '0%'] }
+          : { y: [24, 0], opacity: [0, 1] },
         {
           duration: UIMotion.durations.slow,
           ease: UIMotion.easings.expo,

@@ -232,7 +232,7 @@
       if (opening) {
         menu.removeAttribute('hidden');
         UIMotion.animate(menu,
-          { opacity: [0, 1], transform: ['translateY(-6px) scale(.97)', 'none'] },
+          { opacity: [0, 1], y: [-6, 0], scale: [0.97, 1] },
           { duration: UIMotion.durations.base, ease: UIMotion.easings.expo });
       } else if (!menu.hasAttribute('hidden')) {
         UIMotion.exit(menu, { duration: UIMotion.durations.swift })

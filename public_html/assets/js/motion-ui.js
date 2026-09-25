@@ -56,9 +56,16 @@ window.UIMotion = (function () {
 
   /* ----------------------------------------------------------- appearing */
 
-  /** Something arriving: a short rise, never a plain fade. */
+  /**
+   * Something arriving: a short rise, never a plain fade.
+   *
+   * Movement is expressed with Motion's own x, y and scale properties rather
+   * than a transform string. Motion reads the keyword "none" inside a
+   * transform as zero, so an animation ending at "none" ends at scale(0) and
+   * the element disappears instead of arriving.
+   */
   function enter(target, extra) {
-    return animate(target, { opacity: [0, 1], transform: ['translateY(8px)', 'none'] },
+    return animate(target, { opacity: [0, 1], y: [8, 0] },
       Object.assign({ duration: T.calm, ease: E.expo }, extra));
   }
 
@@ -66,7 +73,7 @@ window.UIMotion = (function () {
   function enterDialog(panel, scrim) {
     if (scrim) animate(scrim, { opacity: [0, 1] }, { duration: T.base });
     return animate(panel,
-      { opacity: [0, 1], transform: ['translateY(10px) scale(.985)', 'none'] },
+      { opacity: [0, 1], y: [10, 0], scale: [0.985, 1] },
       { duration: T.calm, ease: E.expo });
   }
 
@@ -75,14 +82,14 @@ window.UIMotion = (function () {
    * there is nothing left to transition. The caller waits, then removes it.
    */
   function exit(target, extra) {
-    return animate(target, { opacity: [1, 0], transform: ['none', 'translateY(6px)'] },
+    return animate(target, { opacity: [1, 0], y: [0, 6] },
       Object.assign({ duration: T.swift, ease: E.inout }, extra));
   }
 
   function exitDialog(panel, scrim) {
     if (scrim) animate(scrim, { opacity: [1, 0] }, { duration: T.swift });
     return animate(panel,
-      { opacity: [1, 0], transform: ['none', 'translateY(6px) scale(.99)'] },
+      { opacity: [1, 0], y: [0, 6], scale: [1, 0.99] },
       { duration: T.swift, ease: E.inout });
   }
 
@@ -91,7 +98,7 @@ window.UIMotion = (function () {
     if (!available || !targets || !targets.length) return { finished: Promise.resolve() };
     const stagger = reduced() ? 0 : M.stagger(0.03);
     return M.animate(targets,
-      { opacity: [0, 1], transform: ['translateY(6px)', 'none'] },
+      { opacity: [0, 1], y: [6, 0] },
       Object.assign({ duration: T.base, ease: E.out, delay: stagger }, extra));
   }
 
@@ -126,16 +133,13 @@ window.UIMotion = (function () {
 
       if (was === undefined) {
         // New to the list, so it arrives rather than moves.
-        M.animate(node, { opacity: [0, 1], transform: ['translateY(8px)', 'none'] },
-          { duration: T.base, ease: E.out });
+        M.animate(node, { opacity: [0, 1], y: [8, 0] }, { duration: T.base, ease: E.out });
         return;
       }
       const delta = was - now;
       if (Math.abs(delta) < 1) return;
 
-      M.animate(node,
-        { transform: ['translateY(' + delta + 'px)', 'none'] },
-        SPRING);
+      M.animate(node, { y: [delta, 0] }, SPRING);
     });
   }
 
@@ -144,26 +148,24 @@ window.UIMotion = (function () {
   /** A drawer or panel sliding in from an edge. */
   function slideIn(target, from) {
     const axis = from === 'left' ? '-100%' : '100%';
-    return animate(target, { transform: ['translateX(' + axis + ')', 'none'] },
-      { duration: T.slow, ease: E.inout });
+    return animate(target, { x: [axis, '0%'] }, { duration: T.slow, ease: E.inout });
   }
 
   function slideOut(target, to) {
     const axis = to === 'left' ? '-100%' : '100%';
-    return animate(target, { transform: ['none', 'translateX(' + axis + ')'] },
-      { duration: T.calm, ease: E.inout });
+    return animate(target, { x: ['0%', axis] }, { duration: T.calm, ease: E.inout });
   }
 
   /** Content swapping inside a fixed frame, as tabs do. */
   function swap(outgoing, incoming) {
     if (outgoing) animate(outgoing, { opacity: [1, 0] }, { duration: 0.08 });
-    return animate(incoming, { opacity: [0, 1], transform: ['translateY(6px)', 'none'] },
+    return animate(incoming, { opacity: [0, 1], y: [6, 0] },
       { duration: T.base, ease: E.out });
   }
 
   /** A press, given weight rather than a linear scale. */
   function press(target, down) {
-    return animate(target, { transform: down ? 'scale(.97)' : 'none' }, SPRING);
+    return animate(target, { scale: down ? 0.97 : 1 }, SPRING);
   }
 
   // Lets the stylesheets fall back to their own keyframes if the library

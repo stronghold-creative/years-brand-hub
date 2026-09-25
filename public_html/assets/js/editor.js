@@ -382,7 +382,7 @@
     if (!row) return;
     dragFrom = Number(row.dataset.index);
     row.classList.add('is-dragging');
-    UIMotion.animate(row, { transform: 'scale(.98)' }, UIMotion.spring);
+    UIMotion.press(row, true);
   });
   outline.addEventListener('dragover', (event) => {
     event.preventDefault();
