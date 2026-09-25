@@ -79,6 +79,16 @@ function asset_url(string $path): string
 }
 
 /** First character of a name, uppercased, without needing mbstring. */
+/**
+ * Uppercase that does not depend on mbstring, which is not guaranteed on the
+ * host. Falls back to ASCII-only uppercasing, which is correct for English
+ * and leaves accented characters untouched rather than mangling them.
+ */
+function str_upper(string $text): string
+{
+    return function_exists('mb_strtoupper') ? mb_strtoupper($text, 'UTF-8') : strtoupper($text);
+}
+
 function str_initial(string $text): string
 {
     $text = trim($text);

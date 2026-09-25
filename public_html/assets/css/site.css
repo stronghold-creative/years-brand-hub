@@ -30,9 +30,14 @@
    page; they are not the interface type. */
 @font-face {
   font-family: 'More Years';
-  src: url('/assets/fonts/MoreYears-Regular.woff2') format('woff2');
+  src: url('/assets/fonts/MoreYears-Regular.woff2') format('woff2'),
+       url('/assets/fonts/MoreYears-Regular.woff') format('woff');
   font-weight: 400;
-  font-display: swap;
+  /* A hero is the first thing on the page and its whole point is the type, so
+     it waits for the face rather than flashing a fallback at a size that was
+     calculated for different metrics. The block period is short, then the
+     fallback is used rather than leaving the headline invisible. */
+  font-display: block;
 }
 
 :root {
@@ -1239,3 +1244,106 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 .checks--box .checks__mark { border: 1.5px solid var(--rule-firm); border-radius: 3px; }
 .steps--number .steps__item::before { content: none; }
 .quote--normal .quote__text { font-size: 1.125rem; }
+
+/* ===========================================================================
+   Hero
+
+   Edge to edge, with each headline line sized to fill the measure. The size
+   comes from --fit, the line's width in em at font-size 1, worked out from the
+   font's own metrics in PHP. Dividing the available width by it gives a line
+   that fills the space exactly, with no measuring and no reflow.
+   =========================================================================== */
+
+/* Full viewport width, escaping both the content column and the rail. */
+.zone--w-screen {
+  width: 100vw;
+  max-width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
+  position: relative;
+  z-index: 2;   /* sits over the rail, which is sticky beneath it */
+}
+.zone--sp-none { margin-bottom: 0; }
+
+.hero {
+  --hero-bg: var(--accent);
+  --hero-ink: #fff;
+  --hero-pad: clamp(1.25rem, 4vw, 3.5rem);
+
+  position: relative;
+  display: grid;
+  padding: calc(var(--hero-pad) + 4.25rem) var(--hero-pad) var(--hero-pad);
+  background: var(--hero-bg);
+  color: var(--hero-ink);
+  overflow: hidden;
+  /* The line boxes are measured against this, so the fitting is exact. */
+  container-type: inline-size;
+}
+
+.hero--full    { min-height: 100svh; }
+.hero--tall    { min-height: 66svh; }
+.hero--natural { min-height: 0; }
+
+.hero--centre { align-content: center; justify-items: center; text-align: center; }
+.hero--left   { align-content: center; justify-items: start; text-align: left; }
+.hero--bottom { align-content: end; justify-items: start; text-align: left; }
+
+.hero__image { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.hero__veil { position: absolute; inset: 0; }
+.hero__veil--soft   { background: rgba(0, 0, 0, .3); }
+.hero__veil--strong { background: rgba(0, 0, 0, .55); }
+
+.hero__inner { position: relative; width: 100%; max-width: 100%; }
+
+.hero__label {
+  margin: 0 0 1.5rem;
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  opacity: .75;
+}
+
+.hero__headline { margin: 0; font-weight: 400; }
+
+.hero__line {
+  display: block;
+  font-family: 'More Years', var(--display);
+  /* The measure divided by the line's own width. The cap keeps a very short
+     line, or a very wide screen, from producing absurd type. */
+  font-size: min(calc(100cqw / var(--fit, 6)), 34svh);
+  line-height: .85;
+  letter-spacing: -.03em;
+  white-space: nowrap;
+}
+
+/* Container query units are well supported, but a fallback keeps the hero
+   sensible if they are not: the width of the viewport minus its padding. */
+@supports not (container-type: inline-size) {
+  .hero__line { font-size: min(calc((100vw - 2 * var(--hero-pad)) / var(--fit, 6)), 34svh); }
+}
+
+.hero__standfirst {
+  margin-top: clamp(1.25rem, 3vw, 2.5rem);
+  max-width: 44ch;
+  font-size: clamp(1rem, 1.6vw, 1.25rem);
+}
+.hero--centre .hero__standfirst { margin-inline: auto; }
+.hero__standfirst p { margin: 0 0 .75rem; }
+
+/* The reveal. Each line is masked by its own wrapper so it can wipe upwards;
+   motion-ui.js drives the timing so it matches everything else. */
+.hero__line > span { display: block; }
+.hero--reveal-clip .hero__line { overflow: hidden; }
+/* Rise needs no mask, but the rule exists so the state is explicit rather
+   than relying on the absence of one. */
+.hero--reveal-rise .hero__line { overflow: visible; }
+
+/* Without JavaScript the headline is simply there, which is the right
+   fallback for a page's opening statement. */
+.no-motion .hero__line > span { transform: none; opacity: 1; }
+
+@media (max-width: 48rem) {
+  .hero { padding-top: calc(var(--hero-pad) + 3.5rem); }
+  .hero__line { font-size: min(calc(100cqw / var(--fit, 6)), 22svh); }
+}

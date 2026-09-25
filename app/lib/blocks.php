@@ -388,6 +388,19 @@ function block_types(): array
             ],
         ],
 
+        'hero' => [
+            'label'  => 'Hero',
+            'hint'   => 'A full-bleed opener. Each line is sized to fill the width.',
+            'fields' => [
+                'label'   => ['type' => 'text',     'label' => 'Small label above', 'optional' => true],
+                'lines'   => ['type' => 'longtext', 'label' => 'Headline, one line per line'],
+                'standfirst' => ['type' => 'textarea', 'label' => 'Standfirst', 'optional' => true],
+                'background' => ['type' => 'colour', 'label' => 'Background colour'],
+                'ink'     => ['type' => 'colour',   'label' => 'Text colour'],
+                'asset'   => ['type' => 'asset',    'label' => 'Background image', 'optional' => true],
+            ],
+        ],
+
         'quote' => [
             'label'  => 'Quote',
             'hint'   => 'A line of real copy, shown as an example.',
@@ -508,8 +521,38 @@ function block_options(string $type): array
         'steps' => [
             'style' => ['label' => 'Marker', 'options' => ['number' => 'Numbered', 'line' => 'Numbered with a line']],
         ],
+        'hero' => [
+            'label'  => 'Hero',
+            'hint'   => 'A full-bleed opener. Each line is sized to fill the width.',
+            'fields' => [
+                'label'   => ['type' => 'text',     'label' => 'Small label above', 'optional' => true],
+                'lines'   => ['type' => 'longtext', 'label' => 'Headline, one line per line'],
+                'standfirst' => ['type' => 'textarea', 'label' => 'Standfirst', 'optional' => true],
+                'background' => ['type' => 'colour', 'label' => 'Background colour'],
+                'ink'     => ['type' => 'colour',   'label' => 'Text colour'],
+                'asset'   => ['type' => 'asset',    'label' => 'Background image', 'optional' => true],
+            ],
+        ],
+
         'quote' => [
             'size' => ['label' => 'Size', 'options' => ['normal' => 'Normal', 'large' => 'Large']],
+        ],
+        'hero' => [
+            'height' => ['label' => 'Height', 'options' => [
+                'full' => 'Full screen', 'tall' => 'Two thirds', 'natural' => 'Natural',
+            ]],
+            'align' => ['label' => 'Alignment', 'options' => [
+                'centre' => 'Centred', 'left' => 'Left', 'bottom' => 'Bottom left',
+            ]],
+            'case' => ['label' => 'Letter case', 'options' => [
+                'upper' => 'Uppercase', 'as-typed' => 'As typed',
+            ]],
+            'reveal' => ['label' => 'Reveal', 'options' => [
+                'rise' => 'Lines rise', 'clip' => 'Lines wipe up', 'none' => 'None',
+            ]],
+            'overlay' => ['label' => 'Image darkening', 'options' => [
+                'none' => 'None', 'soft' => 'Soft', 'strong' => 'Strong',
+            ]],
         ],
         'code' => [
             'wrap' => ['label' => 'Long lines', 'options' => ['scroll' => 'Scroll sideways', 'wrap' => 'Wrap']],
@@ -607,6 +650,20 @@ function block_defaults(string $type): array
 }
 
 /** Strip anything not described by the definition, so stored JSON stays clean. */
+
+/**
+ * A colour value that is safe to put in a style attribute.
+ *
+ * Only a six or three digit hex survives. Escaping alone is not enough here:
+ * a value like "red; display: none" cannot break out of the attribute, but it
+ * can still inject further declarations onto that element.
+ */
+function sanitise_colour(string $value, string $fallback = ''): string
+{
+    $value = trim($value);
+    return preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value) ? strtoupper($value) : $fallback;
+}
+
 function sanitise_blocks(array $blocks): array
 {
     $types = block_types();
@@ -630,6 +687,8 @@ function sanitise_blocks(array $blocks): array
                             $clean_row[$subKey] = (string) (int) $value;
                         } elseif ($subField['type'] === 'select') {
                             $clean_row[$subKey] = (string) (isset($subField['options'][$value]) ? $value : array_key_first($subField['options']));
+                        } elseif ($subField['type'] === 'colour') {
+                            $clean_row[$subKey] = sanitise_colour((string) $value);
                         } else {
                             $clean_row[$subKey] = trim((string) $value);
                         }
@@ -644,6 +703,8 @@ function sanitise_blocks(array $blocks): array
             } elseif ($field['type'] === 'asset') {
                 // Store the id only. A missing or bogus id renders as nothing.
                 $data[$key] = (string) (int) $value;
+            } elseif ($field['type'] === 'colour') {
+                $data[$key] = sanitise_colour((string) $value);
             } else {
                 $data[$key] = trim((string) $value);
             }
@@ -687,12 +748,19 @@ function render_blocks(array $blocks, bool $editable = false): void
         $options  = array_merge(block_options_defaults((string) $block['type']), $block['options'] ?? []);
         $settings = array_merge(block_settings_defaults(), $block['settings'] ?? []);
 
-        $classes = [
-            'zone',
-            'zone--w-' . $settings['width'],
-            'zone--bg-' . $settings['background'],
-            'zone--sp-' . $settings['spacing'],
-        ];
+        // A hero is always edge to edge and carries its own background, so
+        // the placement settings for width, background and spacing do not
+        // apply to it and would only fight its own layout.
+        $isHero = ($block['type'] ?? '') === 'hero';
+
+        $classes = $isHero
+            ? ['zone', 'zone--w-screen', 'zone--bg-none', 'zone--sp-none']
+            : [
+                'zone',
+                'zone--w-' . $settings['width'],
+                'zone--bg-' . $settings['background'],
+                'zone--sp-' . $settings['spacing'],
+            ];
         if (($settings['divider'] ?? 'no') === 'yes') {
             $classes[] = 'zone--ruled';
         }

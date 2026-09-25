@@ -311,3 +311,43 @@ feature('copy code', function () {
     }
   });
 });
+
+/**
+ * Hero reveal. The lines arrive one after another, which is what stops a very
+ * large headline feeling like it was simply already there.
+ */
+feature('hero', function () {
+  document.querySelectorAll('.hero').forEach(function (hero) {
+    const lines = hero.querySelectorAll('.hero__line > span');
+    if (!lines.length) return;
+    if (hero.classList.contains('hero--reveal-none')) return;
+
+    const wipe = hero.classList.contains('hero--reveal-clip');
+
+    // Set the starting state only once the font is ready, so the measured
+    // line height the wipe depends on is the real one.
+    const start = function () {
+      lines.forEach(function (line) {
+        line.style.transform = wipe ? 'translateY(105%)' : 'translateY(24px)';
+        line.style.opacity = wipe ? '1' : '0';
+      });
+
+      UIMotion.animate(lines,
+        wipe
+          ? { transform: ['translateY(105%)', 'none'] }
+          : { transform: ['translateY(24px)', 'none'], opacity: [0, 1] },
+        {
+          duration: UIMotion.durations.slow,
+          ease: UIMotion.easings.expo,
+          delay: UIMotion.reduced() ? 0 : window.Motion.stagger(0.07),
+        }
+      );
+    };
+
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(start);
+    } else {
+      start();
+    }
+  });
+});
