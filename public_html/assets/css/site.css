@@ -176,8 +176,8 @@ a:hover { color: var(--accent-deep); }
   inset: 0;
   z-index: 50;
   background: rgba(31, 31, 31, .32);
-  animation: navfade var(--d-base) var(--e-out) both;
 }
+.no-motion .nav-scrim { animation: navfade var(--d-base) var(--e-out) both; }
 .nav-scrim[hidden] { display: none; }
 
 /* With the panel open the page behind must not move. The body is fixed at its
@@ -315,7 +315,7 @@ body.nav-open {
 .reader__nav { position: sticky; top: 5.5rem; font-size: .875rem; }
 .reader__nav h2 { font-size: .6875rem; font-weight: 600; color: var(--ink-faint); margin: 2rem 0 .625rem; }
 .reader__nav h2:first-child { margin-top: 0; }
-.reader__nav a {
+.reader__nav .reader__link {
   display: block;
   padding: .3125rem 0 .3125rem .875rem;
   border-left: 1px solid var(--rule);
@@ -482,8 +482,10 @@ body.nav-open {
     border-right: 1px solid var(--rule);
     box-shadow: 0 0 40px -12px rgba(31, 31, 31, .4);
     transform: translateX(-100%);
-    transition: transform var(--d-slow) var(--e-inout);
+    /* The slide itself is driven by motion-ui.js so it can also animate out.
+       The transition below only applies when the library is unavailable. */
   }
+  .no-motion .reader__nav { transition: transform var(--d-slow) var(--e-inout); }
   .nav-open .reader__nav { transform: none; }
   /* Closed, the panel is off screen, so keep it out of the tab order too. */
   .reader__nav { visibility: hidden; transition: transform var(--d-slow) var(--e-inout), visibility 0s linear var(--d-slow); }
@@ -517,7 +519,8 @@ body.nav-open {
 /* The icon carries the section's identity, so it takes the accent while the
    label stays quiet. */
 .index__section h2 .icon,
-.reader__nav h2 .icon { color: var(--accent); }
+/* Faint by default; the current section's icon is the only thing that lifts. */
+.reader__nav h2 .icon { color: var(--rule-firm); transition: color var(--d-base) var(--e-out); }
 
 /* --------------------------------------------------------------- figures */
 
@@ -647,8 +650,12 @@ body.nav-open {
 html { scroll-behavior: smooth; }
 
 
-.reader__nav h2 a { color: inherit; text-decoration: none; }
-.reader__nav h2 a:hover { color: var(--accent); }
+/* Section headings are identical whether or not they are the current one.
+   Only colour changes, never size, weight, spacing or indent. */
+.reader__section a { color: inherit; text-decoration: none; }
+.reader__section a:hover { color: var(--accent); }
+.reader__section.is-current a { color: var(--ink); }
+.reader__section.is-current .icon { color: var(--accent); }
 .reader__link {
   display: block;
   padding: .3125rem 0 .3125rem .875rem;
@@ -904,13 +911,33 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
    pages instead of flashing white; others navigate exactly as before. */
 @view-transition { navigation: auto; }
 
-::view-transition-old(root) { animation-duration: 140ms; animation-timing-function: var(--e-out); }
-::view-transition-new(root) { animation-duration: 200ms; animation-timing-function: var(--e-out); }
+/* No cross-fade. Two versions of a page dissolving through each other is the
+   dated part, and it also makes the page unreadable while it happens. The old
+   page leaves immediately and the new content arrives with a short rise, so
+   the navigation reads as the content being replaced rather than the whole
+   window being swapped. */
+::view-transition-old(root) { animation: none; }
+::view-transition-new(root) { animation: none; }
 
-/* The bar and the rail persist across the navigation rather than fading with
-   the rest, which is what removes the jump between sections. */
+/* The frame is genuinely the same element on both pages, so it is held still
+   rather than animated at all. */
 .masthead { view-transition-name: masthead; }
-.reader__nav { view-transition-name: rail; }
+/* Only on desktop: on narrow screens the rail is a fixed, transformed panel,
+   and holding that across a navigation would carry the transform with it. */
+@media (min-width: 56.01rem) {
+  .reader__nav { view-transition-name: rail; }
+}
+
+/* Only the content moves. */
+.reader__body { view-transition-name: content; }
+::view-transition-old(content) { animation: none; }
+::view-transition-new(content) {
+  animation: contentin 260ms var(--e-expo) both;
+}
+@keyframes contentin {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
 
 @media (prefers-reduced-motion: reduce) {
   @view-transition { navigation: none; }

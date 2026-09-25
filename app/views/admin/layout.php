@@ -90,6 +90,8 @@ $isCurrent = function (array $item) use ($path): bool {
 </div>
 
 <script>window.CSRF = <?= json_encode(csrf_token()) ?>;</script>
+<script src="<?= e(asset_url('/assets/js/vendor/motion.js')) ?>"></script>
+<script src="<?= e(asset_url('/assets/js/motion-ui.js')) ?>"></script>
 <script src="<?= e(asset_url('/assets/js/admin.js')) ?>"></script>
 <script src="<?= e(asset_url('/assets/js/editor.js')) ?>"></script>
 </body>

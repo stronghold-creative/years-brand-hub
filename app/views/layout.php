@@ -82,6 +82,8 @@ $canonical  = rtrim((string) (($config['site']['base_url'] ?? '')), '/')
 <footer class="foot">
   <p><?= e((string) setting('footer_note', 'Questions about anything here, or something missing, speak to the brand team.')) ?></p>
 </footer>
+<script src="<?= e(asset_url('/assets/js/vendor/motion.js')) ?>"></script>
+<script src="<?= e(asset_url('/assets/js/motion-ui.js')) ?>"></script>
 <script src="<?= e(asset_url('/assets/js/site.js')) ?>"></script>
 </body>
 </html>

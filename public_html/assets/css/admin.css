@@ -1586,16 +1586,18 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
   to   { opacity: 1; }
 }
 
-.m3-scrim, .blockmenu__scrim, .picker { animation: fade var(--d-base) var(--e-out) both; }
-.m3-dialog, .blockmenu, .picker__panel { animation: rise var(--d-calm) var(--e-expo) both; }
-.m3-more__menu { animation: rise var(--d-base) var(--e-expo) both; transform-origin: top right; }
-
-/* The inspector changes what it shows as the selection changes, so its content
-   settles in rather than swapping abruptly. */
-.ed__inspector.is-swapping .insp__section,
-.ed__inspector.is-swapping .insp__head { animation: rise var(--d-base) var(--e-out) both; }
-.ed__inspector.is-swapping .insp__section:nth-child(2) { animation-delay: 20ms; }
-.ed__inspector.is-swapping .insp__section:nth-child(3) { animation-delay: 40ms; }
+/* Dialogs, menus and the inspector are animated by motion-ui.js, because they
+   need to animate out as well as in, and CSS cannot animate an element that
+   has already been removed. The keyframes above remain as the fallback used
+   when the library is unavailable. */
+.no-motion .m3-scrim,
+.no-motion .blockmenu__scrim,
+.no-motion .picker { animation: fade var(--d-base) var(--e-out) both; }
+.no-motion .m3-dialog,
+.no-motion .blockmenu,
+.no-motion .picker__panel { animation: rise var(--d-calm) var(--e-expo) both; }
+.m3-more__menu { transform-origin: top right; }
+.no-motion .m3-more__menu { animation: rise var(--d-base) var(--e-expo) both; }
 
 /* Banners leave rather than vanish. */
 .m3-banner { transition: opacity var(--d-calm) var(--e-out), transform var(--d-calm) var(--e-out); }

@@ -297,6 +297,14 @@
   // ============================================================== outline
 
   function renderOutline() {
+    // Rows carry a stable key so a reorder can be matched up and animated,
+    // rather than the list simply snapping into its new arrangement.
+    UIMotion.reorder(outline, '.outline__row', function () {
+      paintOutline();
+    });
+  }
+
+  function paintOutline() {
     outline.innerHTML = '';
 
     blocks.forEach((block, index) => {
@@ -304,6 +312,10 @@
       row.className = 'outline__row' + (index === selected ? ' is-selected' : '');
       row.draggable = true;
       row.dataset.index = index;
+      // Identity that survives reordering, so the animation follows the block
+      // rather than the position.
+      if (!block.__key) block.__key = 'b' + Math.random().toString(36).slice(2, 9);
+      row.dataset.key = block.__key;
 
       const grip = document.createElement('span');
       grip.className = 'outline__grip';
@@ -325,8 +337,11 @@
           select(index + 1);
           queueSave();
         }),
-        miniButton('Delete', '&times;', () => {
+        miniButton('Delete', '&times;', async () => {
           if (!window.confirm('Delete this ' + schema[block.type].label.toLowerCase() + ' block?')) return;
+          // The row leaves before it is removed; once it is gone there is
+          // nothing left to animate.
+          await UIMotion.exit(row).finished;
           blocks.splice(index, 1);
           selected = null;
           renderAll();
@@ -367,6 +382,7 @@
     if (!row) return;
     dragFrom = Number(row.dataset.index);
     row.classList.add('is-dragging');
+    UIMotion.animate(row, { transform: 'scale(.98)' }, UIMotion.spring);
   });
   outline.addEventListener('dragover', (event) => {
     event.preventDefault();
@@ -393,11 +409,6 @@
 
   function renderInspector() {
     inspector.innerHTML = '';
-    // Retriggers the settle animation on the new content. Removing the class
-    // and forcing a reflow is the only reliable way to restart a CSS animation.
-    inspector.classList.remove('is-swapping');
-    void inspector.offsetWidth;
-    inspector.classList.add('is-swapping');
 
     if (selected === null || !blocks[selected]) {
       const template = document.getElementById('page-settings-template');
@@ -468,6 +479,7 @@
 
     // Placement, shared by every block.
     const place = section('Placement');
+    // Filled below, then the whole panel settles in together at the end.
     Object.entries(settingsSchema).forEach(([key, fieldDef]) => {
       place.append(field(fieldDef, block.settings[key], (value) => {
         block.settings[key] = value;
@@ -497,6 +509,7 @@
     selected = index;
     renderOutline();
     renderInspector();
+    UIMotion.enterList(inspector.querySelectorAll('.insp__section, .insp__head'));
     if (index !== null) tell({ action: 'select', index: index });
   }
 
@@ -591,6 +604,8 @@
     draw('');
     scrim.append(menu);
     document.body.append(scrim);
+    UIMotion.enterDialog(menu, scrim);
+    UIMotion.enterList(menu.querySelectorAll('.blockmenu__item'));
 
     const search = menu.querySelector('.blockmenu__search');
     search.focus();
@@ -600,9 +615,13 @@
     document.addEventListener('keydown', onMenuKey);
   }
 
-  function closeBlockMenu() {
-    document.querySelectorAll('.blockmenu__scrim').forEach((el) => el.remove());
+  async function closeBlockMenu() {
+    const open = Array.from(document.querySelectorAll('.blockmenu__scrim'));
     document.removeEventListener('keydown', onMenuKey);
+    await Promise.all(open.map((scrim) => {
+      const panel = scrim.querySelector('.blockmenu');
+      return UIMotion.exitDialog(panel, scrim).finished.then(() => scrim.remove());
+    }));
   }
 
   function onMenuKey(event) {

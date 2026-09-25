@@ -83,13 +83,19 @@
     if (!el) return;
     dialogReturn = document.activeElement;
     el.hidden = false;
+    UIMotion.enterDialog(el.querySelector('.m3-dialog') || el, el);
     const focusable = el.querySelector('input, button, select, textarea');
     if (focusable) focusable.focus();
     document.addEventListener('keydown', onDialogKey);
   }
 
   function closeDialogs() {
-    document.querySelectorAll('.m3-scrim:not(.m3-scrim--drawer)').forEach((el) => { el.hidden = true; });
+    document.querySelectorAll('.m3-scrim:not(.m3-scrim--drawer)').forEach((el) => {
+      if (el.hidden) return;
+      // Hidden only once it has finished leaving, or it would vanish instantly.
+      UIMotion.exitDialog(el.querySelector('.m3-dialog') || el, el)
+        .finished.then(() => { el.hidden = true; });
+    });
     document.removeEventListener('keydown', onDialogKey);
     if (dialogReturn && dialogReturn.focus) dialogReturn.focus();
   }
@@ -223,7 +229,15 @@
       const owner = menu.parentElement.querySelector('[data-more]');
       const isThis = trigger && owner === trigger;
       const opening = isThis && menu.hasAttribute('hidden');
-      if (opening) { menu.removeAttribute('hidden'); } else { menu.setAttribute('hidden', ''); }
+      if (opening) {
+        menu.removeAttribute('hidden');
+        UIMotion.animate(menu,
+          { opacity: [0, 1], transform: ['translateY(-6px) scale(.97)', 'none'] },
+          { duration: UIMotion.durations.base, ease: UIMotion.easings.expo });
+      } else if (!menu.hasAttribute('hidden')) {
+        UIMotion.exit(menu, { duration: UIMotion.durations.swift })
+          .finished.then(() => menu.setAttribute('hidden', ''));
+      }
       if (owner) owner.setAttribute('aria-expanded', String(opening));
 
       // The row has to be raised too, not just the menu: each row is its own
@@ -242,6 +256,15 @@
     if (event.key !== 'Escape') return;
     document.querySelectorAll('.m3-more__menu').forEach((menu) => menu.setAttribute('hidden', ''));
     document.querySelectorAll('.has-menu').forEach((row) => row.classList.remove('has-menu'));
+  });
+
+  // The drawer uses the shared slide, so it matches the rail on the public
+  // site rather than keeping its own timing. It reuses the drawer already
+  // found above rather than declaring another.
+  document.addEventListener('click', (event) => {
+    if (!drawer) return;
+    if (event.target.closest('[data-open-drawer]')) UIMotion.slideIn(drawer, 'left');
+    if (event.target.closest('[data-close-drawer]')) UIMotion.slideOut(drawer, 'left');
   });
 
   // ------------------------------------------------------- section headers

@@ -133,13 +133,24 @@ feature('rail panel', function () {
       offset = window.scrollY;
       document.body.style.top = '-' + offset + 'px';
       document.body.classList.add('nav-open');
+      UIMotion.slideIn(nav, 'left');
+      if (scrim) UIMotion.animate(scrim, { opacity: [0, 1] }, { duration: UIMotion.durations.base });
+      UIMotion.enterList(nav.querySelectorAll('.reader__section, .reader__link'));
     } else {
-      document.body.classList.remove('nav-open');
-      document.body.style.top = '';
-      window.scrollTo(0, offset);
+      // The panel leaves before the page is unlocked, so the scroll position
+      // is restored behind a panel that has already gone.
+      UIMotion.slideOut(nav, 'left').finished.then(function () {
+        document.body.classList.remove('nav-open');
+        document.body.style.top = '';
+        window.scrollTo(0, offset);
+      });
+      if (scrim) {
+        UIMotion.animate(scrim, { opacity: [1, 0] }, { duration: UIMotion.durations.swift })
+          .finished.then(function () { scrim.hidden = true; });
+      }
     }
     toggle.setAttribute('aria-expanded', String(open));
-    if (scrim) scrim.hidden = !open;
+    if (scrim && open) scrim.hidden = false;
     if (open) {
       const first = nav.querySelector('a');
       if (first) first.focus({ preventScroll: true });
@@ -192,13 +203,25 @@ feature('tabs', function () {
     if (!tabs.length) return;
 
     function show(index) {
+      let leaving = null;
+      let arriving = null;
+
       tabs.forEach(function (tab, i) {
         const on = i === index;
         tab.setAttribute('aria-selected', String(on));
         tab.tabIndex = on ? 0 : -1;
         const panel = document.getElementById(tab.getAttribute('aria-controls'));
-        if (panel) panel.hidden = !on;
+        if (!panel) return;
+        if (on) {
+          arriving = panel.hidden ? panel : null;
+          panel.hidden = false;
+        } else {
+          if (!panel.hidden) leaving = panel;
+          panel.hidden = true;
+        }
       });
+
+      if (arriving) UIMotion.swap(null, arriving);
     }
 
     tabs.forEach(function (tab, i) {
