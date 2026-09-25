@@ -327,7 +327,9 @@ body.nav-open {
 .reader--solo { grid-template-columns: minmax(0, 1fr); max-width: 52rem; }
 .reader--solo .reader__nav { display: none; }
 
-.reader__nav { position: sticky; top: 5.5rem; font-size: .875rem; }
+/* z-index is explicit so a full-bleed block sits over the rail by rule
+   rather than by document order. */
+.reader__nav { position: sticky; top: 5.5rem; z-index: 1; font-size: .875rem; }
 .reader__nav h2 { font-size: .6875rem; font-weight: 600; color: var(--ink-faint); margin: 2rem 0 .625rem; }
 .reader__nav h2:first-child { margin-top: 0; }
 .reader__nav .reader__link {
@@ -1256,20 +1258,18 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 
 /* Full viewport width, escaping both the content column and the rail.
 
-   100vw includes the scrollbar, so on a desktop with one visible a full-bleed
-   block is about 15px wider than the window and the page scrolls sideways.
-   100dvw has the same problem. The width is therefore taken from the document
-   element, which excludes it, with 100vw as the fallback. */
-:root { --viewport: 100vw; }
-@supports (width: 100cqw) {
-  html { --viewport: 100%; }
-}
+   A custom property substitutes its token rather than a computed length, so
+   a percentage inside one resolves against whatever element uses it. Holding
+   the width in a variable therefore made this 100% of the content column and
+   the block only broke out to the right. Viewport units are used directly.
 
+   100vw includes the scrollbar, which would overhang by its width; the clip
+   on html and body below absorbs that. */
 .zone--w-screen {
-  width: var(--viewport, 100vw);
-  max-width: var(--viewport, 100vw);
-  margin-left: calc(50% - var(--viewport, 100vw) / 2);
-  margin-right: calc(50% - var(--viewport, 100vw) / 2);
+  width: 100vw;
+  max-width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
   position: relative;
   z-index: 2;   /* sits over the rail, which is sticky beneath it */
 }
@@ -1282,9 +1282,12 @@ html, body { overflow-x: clip; }
 
 /* A hero fills its chapter rather than sitting inside its padding, and the
    chapter's dividing rule is suppressed around it. */
-.chapter:has(> .zone--w-screen:first-child) { padding-bottom: 0; border-bottom: 0; }
-.zone--w-screen:first-child { margin-top: -2rem; }
-.chapter__title + .zone--w-screen, .chapter__summary + .zone--w-screen { margin-top: 2rem; }
+/* A chapter that opens with a full-bleed block gives up its own frame around
+   it: no dividing rule, no bottom padding, and no gap above. */
+.chapter:has(> .zone--w-screen) { padding-bottom: 0; border-bottom: 0; }
+.chapter > .zone--w-screen:first-child { margin-top: -1rem; }
+.chapter__title + .zone--w-screen,
+.chapter__summary + .zone--w-screen { margin-top: 2.5rem; }
 
 .hero {
   --hero-bg: var(--accent);
