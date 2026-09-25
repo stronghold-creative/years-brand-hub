@@ -1496,7 +1496,6 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 .m3-more__item:hover { background: var(--md-sys-color-surface-container-highest); }
 .m3-more__item--danger { color: var(--md-sys-color-error); }
 .m3-editor__danger { margin: 1rem 0 0; padding-top: 1rem; border-top: 1px solid var(--md-sys-color-outline-variant); }
-.m3-stylegrid { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 1rem; }
 .m3-stylegrid .m3-field { margin-bottom: 0; }
 .blk__settingstitle--spaced { margin-top: 1.5rem; }
 .blk__settingsnote { margin: 1rem 0 0; font-size: .75rem; color: var(--md-sys-color-on-surface-variant); }

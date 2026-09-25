@@ -485,11 +485,14 @@ body.nav-open {
     /* The slide itself is driven by motion-ui.js so it can also animate out.
        The transition below only applies when the library is unavailable. */
   }
-  .no-motion .reader__nav { transition: transform var(--d-slow) var(--e-inout); }
-  .nav-open .reader__nav { transform: none; }
-  /* Closed, the panel is off screen, so keep it out of the tab order too. */
-  .reader__nav { visibility: hidden; transition: transform var(--d-slow) var(--e-inout), visibility 0s linear var(--d-slow); }
-  .nav-open .reader__nav { visibility: visible; transition-delay: 0s; }
+  /* Closed: off screen and out of the tab order. Open: in place and visible.
+     The slide itself is driven by motion-ui.js so it can animate out as well
+     as in; the transition below is only for when the library is missing. */
+  .reader__nav { visibility: hidden; }
+  .no-motion .reader__nav {
+    transition: transform var(--d-slow) var(--e-inout), visibility 0s linear var(--d-slow);
+  }
+  .nav-open .reader__nav { transform: none; visibility: visible; transition-delay: 0s; }
   .reader__nav h2:first-child { margin-top: .5rem; }
   /* Bigger targets, since this is now a touch surface. */
   .reader__link, .reader__nav h2 a { padding-top: .625rem; padding-bottom: .625rem; }
@@ -605,7 +608,6 @@ body.nav-open {
 
 /* Spacing below. */
 .zone--sp-tight  { margin-bottom: 1.5rem; }
-.zone--sp-normal { margin-bottom: 4rem; }
 .zone--sp-loose  { margin-bottom: 7rem; }
 
 /* Backgrounds pad themselves so content never touches the edge. */
@@ -922,11 +924,10 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 /* The frame is genuinely the same element on both pages, so it is held still
    rather than animated at all. */
 .masthead { view-transition-name: masthead; }
-/* Only on desktop: on narrow screens the rail is a fixed, transformed panel,
-   and holding that across a navigation would carry the transform with it. */
-@media (min-width: 56.01rem) {
-  .reader__nav { view-transition-name: rail; }
-}
+/* The rail is deliberately NOT given a view-transition-name. It is sticky, and
+   a sticky element with a transition name is lifted out of the page for the
+   duration of the navigation, which makes it jump. Only the masthead, which is
+   genuinely identical on both pages, is held. */
 
 /* Only the content moves. */
 .reader__body { view-transition-name: content; }

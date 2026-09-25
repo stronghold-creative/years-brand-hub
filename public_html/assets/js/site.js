@@ -190,10 +190,39 @@ feature('rail panel', function () {
     }
   });
 
-  // Returning to a wide screen must not leave the page locked.
+  /**
+   * Motion writes inline transform and opacity onto the rail and its items.
+   * On a wide screen the rail is an ordinary sticky column, so those values
+   * have to be cleared or they follow it across the breakpoint and leave the
+   * sidebar shifted or half transparent.
+   */
+  function clearInline() {
+    nav.style.transform = '';
+    nav.style.opacity = '';
+    nav.style.visibility = '';
+    nav.querySelectorAll('.reader__section, .reader__link').forEach(function (item) {
+      item.style.transform = '';
+      item.style.opacity = '';
+    });
+  }
+
   const wide = window.matchMedia('(min-width: 56.01rem)');
-  const release = function () { if (wide.matches && isOpen()) setOpen(false); };
-  if (wide.addEventListener) { wide.addEventListener('change', release); }
+
+  function onBreakpoint() {
+    if (!wide.matches) return;
+    if (isOpen()) {
+      // Unlock without animating a panel that is no longer on screen.
+      document.body.classList.remove('nav-open');
+      document.body.style.top = '';
+      window.scrollTo(0, offset);
+      toggle.setAttribute('aria-expanded', 'false');
+      if (scrim) scrim.hidden = true;
+    }
+    clearInline();
+  }
+
+  if (wide.addEventListener) { wide.addEventListener('change', onBreakpoint); }
+  onBreakpoint();
 });
 
 /** Tabs. Arrow keys move between them, as the pattern expects. */
