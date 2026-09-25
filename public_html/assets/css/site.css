@@ -105,7 +105,6 @@ a:hover { color: var(--accent-deep); }
      menu stay, the rest steps aside. Scrolling up restores it in full. The
      bar itself never leaves, so the logo is always there. */
   transition:
-    padding var(--d-calm) var(--e-out),
     box-shadow var(--d-base) var(--e-out),
     background var(--d-base) var(--e-out);
 }
@@ -114,7 +113,14 @@ a:hover { color: var(--accent-deep); }
   background: color-mix(in srgb, var(--page) 88%, transparent);
   backdrop-filter: saturate(1.6) blur(10px);
 }
-.masthead.is-compact { padding-top: .5rem; padding-bottom: .5rem; }
+/* Deliberately NOT a padding change. Changing the bar's height moves the page
+   beneath it, which fires another scroll event, which flips the direction and
+   compacts it again: the bar ends up oscillating. The height is fixed and only
+   the contents change. */
+.masthead {
+  min-height: 4.25rem;
+  box-sizing: border-box;
+}
 
 /* What steps aside when compact. Visibility rather than display, so nothing
    reflows and the bar cannot jump as it changes. */

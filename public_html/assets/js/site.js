@@ -63,36 +63,53 @@ feature('masthead', function () {
   const bar = document.getElementById('masthead');
   if (!bar) return;
 
-  const COMPACT_AFTER = 120;   // how far down before it compacts
-  const INTENT = 5;            // movement below this is momentum, not intent
+  const COMPACT_AFTER = 120;   // how far down before it may compact at all
+  const COMMIT = 28;           // travel in one direction before the state flips
 
-  let last = window.scrollY;
+  let anchor = window.scrollY;   // where the current direction started
+  let heading = 0;               // -1 up, 1 down, 0 undecided
   let compact = false;
   let queued = false;
 
+  function set(next) {
+    if (next === compact) return;
+    compact = next;
+    bar.classList.toggle('is-compact', compact);
+  }
+
+  /**
+   * Direction is decided by how far the reader has travelled since they last
+   * changed their mind, not by the size of one scroll event. A small wobble
+   * while reading therefore does nothing, where before it flipped the state on
+   * every frame and the bar shook.
+   */
   function apply() {
+    queued = false;
     const now = Math.max(0, window.scrollY);
-    const moved = now - last;
 
     bar.classList.toggle('is-detached', now > 4);
 
     if (now <= COMPACT_AFTER) {
-      // Near the top the bar is always shown in full.
-      if (compact) { compact = false; bar.classList.remove('is-compact'); }
-      last = now;
-      queued = false;
+      set(false);
+      anchor = now;
+      heading = 0;
       return;
     }
 
-    if (Math.abs(moved) >= INTENT) {
-      const wanted = moved > 0;               // down compacts, up expands
-      if (wanted !== compact) {
-        compact = wanted;
-        bar.classList.toggle('is-compact', compact);
-      }
-      last = now;
+    const moved = now - anchor;
+    const direction = moved > 0 ? 1 : moved < 0 ? -1 : 0;
+
+    // A change of direction restarts the measurement rather than acting on it.
+    if (direction !== 0 && direction !== heading) {
+      heading = direction;
+      anchor = now;
+      return;
     }
-    queued = false;
+
+    if (Math.abs(moved) < COMMIT) return;
+
+    set(heading === 1);
+    anchor = now;
   }
 
   window.addEventListener('scroll', function () {
@@ -102,12 +119,11 @@ feature('masthead', function () {
   }, { passive: true });
 
   // Jumping to a chapter scrolls down, so the bar would compact just as the
-  // reader arrives. Show it in full for that moment instead.
+  // reader arrives. Show it in full and restart the measurement there.
   document.addEventListener('click', function (event) {
     if (!event.target.closest('a[href^="#"]')) return;
-    compact = false;
-    bar.classList.remove('is-compact');
-    window.setTimeout(function () { last = window.scrollY; }, 700);
+    set(false);
+    window.setTimeout(function () { anchor = window.scrollY; heading = 0; }, 700);
   });
 
   apply();
