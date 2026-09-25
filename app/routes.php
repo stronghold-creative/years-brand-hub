@@ -56,7 +56,7 @@ if ($path === '/components') {
 
 // A whole section on one page. Each page within it is an anchor, so the rail
 // scrolls rather than navigating, which is how people actually read guidelines.
-if (preg_match('#^/s/([a-z0-9\\-]+)$#', $path, $m)) {
+if (preg_match('#^/s/([a-z0-9\-]+)$#', $path, $m)) {
     if (site_is_private($config) && !current_user()) {
         redirect('/admin/sign-in');
     }
@@ -229,6 +229,19 @@ if (preg_match('#^/admin/pages/(\d+)/preview$#', $path, $m)) {
         'editing' => isset($_GET['edit']),
     ], null);
     exit;
+}
+
+if (preg_match('#^/admin/pages/(\d+)/cover$#', $path, $m) && $method === 'POST') {
+    require_editor();
+    csrf_check();
+    $page = db_one('SELECT id FROM pages WHERE id = ?', [(int) $m[1]]);
+    if (!$page) {
+        not_found();
+    }
+    // A cover can be cleared, which stores null rather than zero.
+    $asset = (int) ($_POST['asset'] ?? 0);
+    db_run('UPDATE pages SET cover_asset_id = ? WHERE id = ?', [$asset > 0 ? $asset : null, $page['id']]);
+    json_out(['ok' => true, 'asset' => $asset]);
 }
 
 if (preg_match('#^/admin/pages/(\d+)/delete$#', $path, $m) && $method === 'POST') {
@@ -407,7 +420,7 @@ if (preg_match('#^/admin/users/(\d+)/delete$#', $path, $m) && $method === 'POST'
 
 // Images shown inside pages. Separate from /d/ because these display rather
 // than download, and are not counted as downloads.
-if (preg_match('#^/i/(\\d+)(?:/(\\d+))?#', $path, $m)) {
+if (preg_match('#^/i/(\d+)(?:/(\d+))?#', $path, $m)) {
     if (site_is_private($config) && !current_user()) {
         not_found();
     }

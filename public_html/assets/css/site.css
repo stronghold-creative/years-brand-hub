@@ -1254,16 +1254,37 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
    that fills the space exactly, with no measuring and no reflow.
    =========================================================================== */
 
-/* Full viewport width, escaping both the content column and the rail. */
+/* Full viewport width, escaping both the content column and the rail.
+
+   100vw includes the scrollbar, so on a desktop with one visible a full-bleed
+   block is about 15px wider than the window and the page scrolls sideways.
+   100dvw has the same problem. The width is therefore taken from the document
+   element, which excludes it, with 100vw as the fallback. */
+:root { --viewport: 100vw; }
+@supports (width: 100cqw) {
+  html { --viewport: 100%; }
+}
+
 .zone--w-screen {
-  width: 100vw;
-  max-width: 100vw;
-  margin-left: calc(50% - 50vw);
-  margin-right: calc(50% - 50vw);
+  width: var(--viewport, 100vw);
+  max-width: var(--viewport, 100vw);
+  margin-left: calc(50% - var(--viewport, 100vw) / 2);
+  margin-right: calc(50% - var(--viewport, 100vw) / 2);
   position: relative;
   z-index: 2;   /* sits over the rail, which is sticky beneath it */
 }
+
+/* Belt and braces: clip rather than scroll if anything still overhangs.
+   overflow-x: clip, unlike hidden, does not create a scroll container, so
+   position: sticky keeps working on the masthead and the rail. */
+html, body { overflow-x: clip; }
 .zone--sp-none { margin-bottom: 0; }
+
+/* A hero fills its chapter rather than sitting inside its padding, and the
+   chapter's dividing rule is suppressed around it. */
+.chapter:has(> .zone--w-screen:first-child) { padding-bottom: 0; border-bottom: 0; }
+.zone--w-screen:first-child { margin-top: -2rem; }
+.chapter__title + .zone--w-screen, .chapter__summary + .zone--w-screen { margin-top: 2rem; }
 
 .hero {
   --hero-bg: var(--accent);
