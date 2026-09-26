@@ -103,15 +103,55 @@ function check_sample(array $field, string $key, string $row = '')
 }
 
 /**
- * Every editable region in some rendered HTML, as [path, the text it shows].
+ * Whether the text a field shows can be read back out of the markup.
+ *
+ * Tried rather than asked about. class_exists() says nothing about whether the
+ * class can actually be used — a build with the class disabled answers yes and
+ * then fails on the first method call — and this runs in CI against whatever
+ * PHP the runner image ships.
+ */
+function check_can_read_text(): bool
+{
+    static $can = null;
+    if ($can === null) {
+        try {
+            $probe = new DOMDocument();
+            $probe->loadHTML('<div>x</div>', LIBXML_NOWARNING | LIBXML_NOERROR);
+            $can = (new DOMXPath($probe))->query('//div')->length === 1;
+        } catch (Throwable $e) {
+            $can = false;
+        }
+    }
+    return $can;
+}
+
+/**
+ * Every editable region in some rendered HTML, as
+ * [path, the text it shows, whether it is multiline].
+ *
  * Parsed rather than matched with a regex, because the text is inside the
  * element and elements nest.
+ *
+ * Without ext-dom the text cannot be read, so only the paths come back and the
+ * text is empty, which the caller treats as nothing to compare. This gate runs
+ * in CI against whatever PHP the runner image happens to ship, and a missing
+ * optional extension should weaken the check, not stop a deploy.
  */
 function check_editable_fields(string $html): array
 {
     if (!str_contains($html, 'data-field=')) {
         return [];
     }
+
+    if (!check_can_read_text()) {
+        $out = [];
+        preg_match_all('/data-field="([^"]+)"/', $html, $found);
+        foreach ($found[1] as $path) {
+            $out[] = [$path, '', false];
+        }
+        return $out;
+    }
+
     $doc = new DOMDocument();
     // The fragment is a block, not a document, and carries no doctype.
     $previous = libxml_use_internal_errors(true);
@@ -272,6 +312,15 @@ foreach (['empty', 'filled', 'gappy'] as $mode) {
 }
 
 echo "\n" . str_repeat('=', 60) . "\n";
+
+// Said plainly rather than passing quietly at reduced strength, so a run that
+// checked less than it looks like it did says so.
+if ($editing && !check_can_read_text()) {
+    echo "NOTE: ext-dom is not loaded, so editable paths were checked for\n"
+       . "      resolving but not for pointing at the right row. Install\n"
+       . "      php-xml to get the full check.\n\n";
+}
+
 if ($problems) {
     echo count($problems) . " problem(s):\n";
     foreach (array_unique($problems) as $problem) {
