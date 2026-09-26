@@ -321,7 +321,8 @@ function block_types(): array
             'fields' => [
                 'heading' => ['type' => 'text',  'label' => 'Heading', 'optional' => true],
                 'url'     => ['type' => 'text',  'label' => 'YouTube or Vimeo address', 'optional' => true],
-                'asset'   => ['type' => 'asset', 'label' => 'Or an uploaded file', 'optional' => true],
+                // The only asset field that wants video rather than an image.
+                'asset'   => ['type' => 'asset', 'label' => 'Or an uploaded MP4', 'accept' => 'video', 'optional' => true],
                 'caption' => ['type' => 'text',  'label' => 'Caption', 'optional' => true],
             ],
         ],
@@ -736,10 +737,16 @@ function sanitise_blocks(array $blocks): array
  * Renders the blocks of a page. When $editable is true each block is tagged
  * with its index, so the editor's canvas can map a click back to a block.
  * The markup is otherwise identical, so the preview is a true preview.
+ *
+ * $indexFrom offsets those indexes. The preview lifts an opening hero out of
+ * the list before calling this, and without the offset every remaining block
+ * would report an index one lower than the one the editor holds, so every
+ * click in the canvas would select the wrong block.
  */
-function render_blocks(array $blocks, bool $editable = false): void
+function render_blocks(array $blocks, bool $editable = false, int $indexFrom = 0): void
 {
-    foreach ($blocks as $index => $block) {
+    foreach ($blocks as $offset => $block) {
+        $index = $indexFrom + (int) $offset;
         $file = APP_DIR . '/blocks/' . basename((string) $block['type']) . '.php';
         if (!is_file($file)) {
             continue;
@@ -747,6 +754,8 @@ function render_blocks(array $blocks, bool $editable = false): void
         $data     = $block['data'] ?? [];
         $options  = array_merge(block_options_defaults((string) $block['type']), $block['options'] ?? []);
         $settings = array_merge(block_settings_defaults(), $block['settings'] ?? []);
+        // Only an opener renders as a full-bleed heading; see hero.php.
+        $isOpener = false;
 
         // A hero is always edge to edge and carries its own background, so
         // the placement settings for width, background and spacing do not
@@ -771,15 +780,67 @@ function render_blocks(array $blocks, bool $editable = false): void
             $settings['anchor'] !== '' ? ' id="' . e($settings['anchor']) . '"' : '',
             $editable ? ' data-block="' . (int) $index . '"' : ''
         );
-        require $file;
+
+        if ($editable) {
+            ob_start();
+            require $file;
+            echo block_or_placeholder(ob_get_clean(), (string) $block['type']);
+        } else {
+            require $file;
+        }
         echo '</div>';
     }
+}
+
+/**
+ * A block's output, or a stand-in when it would show nothing.
+ *
+ * A block with nothing in it yet renders nothing at all, which on the editor
+ * canvas means a newly added block is invisible and has no height to click.
+ * Only ever called in edit mode, so the published page is untouched, and called
+ * from one place rather than added to 25 renderers, so it cannot drift.
+ */
+function block_or_placeholder(string $html, string $type): string
+{
+    return block_shows_something($html) ? $html : block_placeholder($type);
+}
+
+/**
+ * Whether rendered block output would actually be visible to a reader.
+ *
+ * Text is the usual test, but a block can be perfectly full and still hold no
+ * text at all: an image, an icon grid, a video. Those count too.
+ */
+function block_shows_something(string $html): bool
+{
+    if (trim(strip_tags($html)) !== '') {
+        return true;
+    }
+    return (bool) preg_match('/<(img|svg|iframe|video|audio|input)\b/i', $html);
+}
+
+/** The stand-in shown on the editor canvas for a block with nothing in it. */
+function block_placeholder(string $type): string
+{
+    $def = block_types()[$type] ?? null;
+    if (!$def) {
+        return '';
+    }
+    return '<p class="block__placeholder"><strong>' . e($def['label']) . '</strong>'
+         . ($def['hint'] ? '<span>' . e($def['hint']) . '</span>' : '')
+         . '<span class="block__placeholder-cue">Nothing in it yet. Fill it in on the right.</span></p>';
 }
 
 /** Turn plain text with blank lines into paragraphs. No HTML passes through. */
 function paragraphs(string $text): string
 {
-    $parts = preg_split("/\n\s*\n/", trim($text)) ?: [];
+    $text = trim($text);
+    // No text means no paragraph. Returning "<p></p>" instead left an empty
+    // paragraph taking up space on the page wherever a body was not filled in.
+    if ($text === '') {
+        return '';
+    }
+    $parts = preg_split("/\n\s*\n/", $text) ?: [];
     $out = '';
     foreach ($parts as $part) {
         $out .= '<p>' . nl2br(e(trim($part))) . '</p>';
@@ -837,7 +898,7 @@ function contrast_verdict(float $ratio): array
  * no background class and no spacing: it is the full width of the page by
  * virtue of where it sits, not by breaking out of something.
  */
-function render_bare_block(array $block): void
+function render_bare_block(array $block, bool $editable = false): void
 {
     $type = (string) ($block['type'] ?? '');
     $file = APP_DIR . '/blocks/' . $type . '.php';
@@ -847,6 +908,17 @@ function render_bare_block(array $block): void
 
     $data    = $block['data'] ?? [];
     $options = array_merge(block_options_defaults($type), $block['options'] ?? []);
+    // This block opens the document, so its headline is the page's heading.
+    $isOpener = true;
+
+    if ($editable) {
+        // An opener with no headline yet is as invisible as any other empty
+        // block, and it is the one block a writer starts with.
+        ob_start();
+        require $file;
+        echo block_or_placeholder(ob_get_clean(), $type);
+        return;
+    }
     require $file;
 }
 

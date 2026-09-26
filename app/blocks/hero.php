@@ -45,8 +45,15 @@ if (!empty($data['ink']))        { $style[] = '--hero-ink: ' . $data['ink']; }
       <p class="hero__label"><?= e($data['label']) ?></p>
     <?php endif; ?>
 
+    <?php
+      // When the hero opens a section it is the only heading above the
+      // chapters, so it carries the h1. A hero used partway down a page is a
+      // heading within it, and the section head holds the h1 instead. Without
+      // this a section that opened with a hero had no h1 at all.
+      $tag = !empty($isOpener) ? 'h1' : 'h2';
+    ?>
     <?php if ($lines): ?>
-      <h2 class="hero__headline">
+      <<?= $tag ?> class="hero__headline">
         <?php foreach ($lines as $i => $line): ?>
           <?php
             // Width of this line at font-size 1em, so the size that fills the
@@ -56,7 +63,7 @@ if (!empty($data['ink']))        { $style[] = '--hero-ink: ' . $data['ink']; }
           <span class="hero__line" style="--fit: <?= e(number_format($width, 3, '.', '')) ?>"
                 data-line="<?= (int) $i ?>"><span><?= e($line) ?></span></span>
         <?php endforeach; ?>
-      </h2>
+      </<?= $tag ?>>
     <?php endif; ?>
 
     <?php if (!empty($data['standfirst'])): ?>

@@ -147,6 +147,10 @@
 
     if (event.data.action === 'select') {
       paint(event.data.index);
+      // A reload re-sends the current selection only to restore the outline,
+      // and the scroll position has already been put back. Scrolling again
+      // there would drag the page away from where the writer left it.
+      if (event.data.quiet) return;
       const node = blocks().find((n) => Number(n.dataset.block) === event.data.index);
       if (node) node.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
@@ -183,5 +187,43 @@
   }
 
   addInsertPoints();
-  send({ action: 'ready', count: blocks().length });
+
+  /**
+   * Keeps the scroll position across reloads.
+   *
+   * Every autosave reloads this iframe, so without this the canvas jumped back
+   * to the top of the page roughly every time the writer stopped typing, which
+   * made editing anything below the fold impractical.
+   *
+   * sessionStorage rather than a message to the editor: the value has to be
+   * written as this document is going away, when there is no longer a reliable
+   * chance to hear a reply.
+   */
+  const SCROLL_KEY = 'brandhub.canvas.' + window.location.pathname;
+
+  function rememberScroll() {
+    try { window.sessionStorage.setItem(SCROLL_KEY, String(window.scrollY)); } catch (error) {}
+  }
+
+  // pagehide fires on the reloads beforeunload can miss, and both are cheap.
+  window.addEventListener('pagehide', rememberScroll);
+  window.addEventListener('beforeunload', rememberScroll);
+
+  let restored = 0;
+  try {
+    restored = Number(window.sessionStorage.getItem(SCROLL_KEY)) || 0;
+  } catch (error) {}
+
+  if (restored > 0) {
+    // Instantly, and without smoothing: this is not a movement the writer made,
+    // it is the page being put back where it was.
+    window.scrollTo({ top: restored, behavior: 'instant' });
+    // Images and the hero's web font change the height after first paint, so
+    // the position is set again once everything has settled.
+    window.addEventListener('load', function () {
+      window.scrollTo({ top: restored, behavior: 'instant' });
+    });
+  }
+
+  send({ action: 'ready', count: blocks().length, scrolled: restored > 0 });
 })();

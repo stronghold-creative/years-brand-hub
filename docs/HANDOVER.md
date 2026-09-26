@@ -1,7 +1,7 @@
 # Years brand hub: handover
 
 Everything needed to pick this up cold, including in a new conversation with no
-memory of the previous one. Last updated 25 September 2026.
+memory of the previous one. Last updated 26 September 2026.
 
 ---
 
@@ -36,12 +36,12 @@ app/
     styles.php                 global appearance tokens
     versions.php               version recording, collapsing and pruning
     view.php                   template rendering
-  blocks/                      24 renderers, one per block type
-  views/                       16 templates, public and admin
+  blocks/                      25 renderers, one per block type
+  views/                       15 templates, public and admin
 db/                            8 migrations, applied in filename order
 public_html/                   the only web-accessible directory
 storage/                       uploads and caches, never deployed
-tools/                         setup, migrate, create-user, export
+tools/                         setup, migrate, create-user, export, checks
 docs/HANDOVER.md               this file
 ```
 
@@ -71,10 +71,22 @@ stored JSON can only contain known keys. A new block type needs an entry in
 setting through `block_option($options, $key, $fallback, $siteKey)`. That is
 what makes Appearance in the admin move every block not deliberately overridden.
 
-The 24 block types: rich_text, colour_palette, type_specimen, do_dont, image,
+The 25 block types: rich_text, colour_palette, type_specimen, do_dont, image,
 image_grid, comparison_table, download_list, callout, clearspace,
 spacing_scale, icon_grid, contrast_pairs, misuse_gallery, spec_table,
-link_list, contacts, checklist, video, tabs, accordion, code, steps, quote.
+link_list, contacts, checklist, video, tabs, accordion, code, steps, hero,
+quote.
+
+**An asset field says what it accepts.** `'accept' => 'video'` on an asset
+field makes the picker offer MP4s instead of images. Only the video block uses
+it; everything else gets images. `/admin/assets.json` carries both, tagged with
+a `kind`, so anything reading that feed has to filter.
+
+**Empty blocks show a placeholder, but only in the editor.** `render_blocks()`
+buffers each block in edit mode and, when the output would show nothing,
+substitutes the block's label and hint. Without it a newly added block was
+invisible on the canvas and had no height to click. It lives in `render_blocks()`
+rather than in 25 renderers so it cannot drift, and never runs on a public page.
 
 ---
 
@@ -121,16 +133,49 @@ and hides the bug entirely.
 **A later CSS rule with the same specificity silently wins.** A stray
 `.masthead { position: relative }` cancelled a `position: sticky` declared
 earlier, so the header was never sticky and two rounds of JavaScript fixes
-changed nothing. Check for duplicate properties on a selector after CSS work.
+changed nothing. This has since happened twice more: a whole second copy of the
+repeater styles sat further down `admin.css` and overrode every property of the
+narrower treatment written for the inspector, and one breakpoint set
+`.m3-page` padding in two separate blocks. Run `node tools/check-css.js` after
+any CSS work; it finds these.
 
-**`site.js` is a series of immediately-invoked blocks.** One throw stops every
-block after it. Each feature is now wrapped in `feature(name, fn)`, which
-catches and logs. Keep new features inside that wrapper.
+**`site.js` and `admin.js` are series of immediately-invoked blocks.** One throw
+stops every block after it. Each feature is wrapped in `feature(name, fn)`,
+which catches and logs. Keep new features inside that wrapper. `admin.js` was
+unguarded until 26 September even though the lesson was already written down
+here, so check both files when adding one.
+
+**Lifting a block out of the list breaks the canvas.** The preview takes an
+opening hero off the array to render it full-bleed, and the remaining blocks were
+then re-indexed from zero, so every `data-block` on the canvas was one lower than
+the editor's own index and every click selected the neighbouring block.
+`render_blocks()` takes an `$indexFrom` for exactly this. Anything that changes
+the list before rendering has to pass it.
+
+**A field that displays a default but only writes on input saves nothing.** The
+colour field showed `#7257B7` for an empty value, so adding a colour and typing
+only its name stored an empty hex, which rendered as `style="--chip: "`. Blank
+repeater rows are now built by `blankRow()` in `editor.js`, mirroring
+`block_defaults()`. The two have to stay in step.
+
+**`asset_image_url()` only works for what `/i/` will serve.** The video block
+pointed a `<video>` at `/i/{id}`, which rejected anything that was not an inline
+image, so an uploaded video always 404d. `/i/` now serves inline *media*, and
+video goes out with byte range support, without which Safari will not play a
+video at all and nothing can seek.
+
+**The preview iframe reloads on every autosave.** It reloads roughly every time
+typing stops, so anything that should survive editing has to be restored
+afterwards. `preview-bridge.js` puts the scroll position back from
+`sessionStorage`; before that the canvas jumped to the top of the page
+constantly and editing below the fold was impractical.
 
 **`.m3-state` sets `isolation: isolate`,** so every row is its own stacking
 context and a menu inside one cannot paint above later rows. Raise the row.
 
-**`[hidden]` loses to any class that sets `display`.**
+**`[hidden]` loses to any class that sets `display`.** Anything hidden from
+JavaScript needs its own `[hidden] { display: none }` rule. `.m3-asset`,
+`.m3-list-item` and `.m3-section` all have one.
 
 **A state expressed as different markup will drift.** The rail styled the
 current section differently because it rendered a `<span>` where the others
@@ -166,17 +211,23 @@ green run, then Settings, Apply updates.
 
 ## 8. State of the build
 
-**Working:** deploy pipeline, three-column editor, 24 block types, 26 numeric
+**Working:** deploy pipeline, three-column editor, 25 block types, 26 numeric
 appearance settings, asset library with generated image variants and gated
-downloads, sections as scrolling pages, version history with collapsing and
-pruning, people and roles, settings, logo, area toggle, backup export, sign-in
-throttling, compact sticky header, mobile slide-out rail.
+downloads, upload from inside the editor's picker, sections as scrolling pages
+with a hero opener, version history with collapsing and pruning, people and
+roles, settings, logo, area toggle, backup export, sign-in throttling, compact
+sticky header, mobile slide-out rail, filtering on the admin pages list.
 
 **Content:** 30 pages scaffolded as drafts. One written: Tone of voice.
 
-**Not built:** search, the Components area beyond a placeholder, inline text
-editing on the canvas, motion page content, type exports in `/tokens.css`,
-password reset, pagination (deliberately deferred).
+**Not built:** search on the public site, the Components area beyond a
+placeholder, inline text editing on the canvas, motion page content, type
+exports in `/tokens.css`, password reset, pagination (deliberately deferred).
+
+**Known duplication:** the asset picker exists twice, as `openPicker()` in
+`editor.js` and `openImagePicker()` in `admin.js`. They have already diverged:
+only the editor's can upload, only the admin's marks the current selection.
+Worth merging into one file that both load before either grows again.
 
 ---
 
@@ -188,12 +239,16 @@ password reset, pagination (deliberately deferred).
    only made on upload.
 3. Self-host Plus Jakarta Sans: four woff2 files (400, 500, 600, 700) into
    `public_html/assets/fonts/`, named `plus-jakarta-sans-400.woff2` and so on.
-   The site then stops loading Google Fonts automatically.
-4. Add `MoreYears-Regular.woff2` so the Typography page can show real specimens.
-5. Turn `debug` off in `app/config.php` on the server.
-6. Decide the real domain.
+   The site then stops loading Google Fonts automatically. Deliberately not done
+   yet.
+4. Turn `debug` off in `app/config.php` on the server.
+5. Decide the real domain.
+6. Merge the two asset pickers into one, before they diverge further.
 7. Deferred from the audit: section page caching, password reset, `/tokens.css`
    type exports, search.
+
+`MoreYears-Regular.woff2` is in `public_html/assets/fonts/`, so the hero and the
+Typography page can show real specimens.
 
 ---
 
@@ -202,15 +257,36 @@ password reset, pagination (deliberately deferred).
 ```bash
 find app public_html tools -name '*.php' -print0 | xargs -0 -n1 php -l
 for f in public_html/assets/js/*.js; do node --check "$f"; done
+php tools/check-routes.php
+php tools/check-blocks.php
+php tools/check-blocks.php --edit
+node tools/check-css.js public_html/assets/css/site.css public_html/assets/css/admin.css
 ```
 
-Plus, as ad-hoc scripts: render every block type with empty data; render every
-view; confirm every CSS class used in markup or JS has a rule; confirm every
-block option value has a rule; check no property is declared twice on the same
-selector; check braces balance after any bulk CSS edit.
+The last four were ad-hoc scripts and are now committed, because each of them
+has caught something real:
+
+- `check-routes.php` renders no pages; it asserts every URL the interface calls
+  matches a route. It found a route that was never inserted and two patterns
+  with one backslash too many.
+- `check-blocks.php` renders all 25 block types twice, empty and full, through
+  the sanitiser first, and reports anything that throws, shows nothing, or puts
+  an empty value into an attribute that will be read as a colour or a link. It
+  needs no database. `--edit` additionally requires every empty block to be
+  visible, which is what the editor canvas depends on.
+- `check-css.js` checks braces balance and finds any property set twice on the
+  same selector in the same at-rule context. Read its output rather than
+  trusting it: the appearance tokens re-declare base rules with `var(--s-*)` on
+  purpose, and those hits are correct.
+
+Still worth doing by hand: render every view; confirm every CSS class used in
+markup or JS has a rule; confirm every block option value has a rule.
 
 Several bugs here rendered correct HTML and still looked wrong, so markup tests
 alone are not enough.
+
+PHP is not needed to run the site locally, but it is needed for the checks
+above. On Windows, `winget install PHP.PHP.8.3`.
 
 ---
 

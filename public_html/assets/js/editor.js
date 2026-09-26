@@ -14,6 +14,36 @@
 
   let blocks = JSON.parse(root.dataset.blocks);
 
+  // Matches the colour fallback in block_defaults() in app/lib/blocks.php. The
+  // two have to agree: a value the editor shows but never writes is saved as
+  // empty, and an empty colour renders as a broken swatch.
+  const COLOUR_DEFAULT = '#7257B7';
+
+  /**
+   * A blank row for a repeater, built from the field definitions rather than
+   * filled with empty strings.
+   *
+   * Mirrors block_defaults() on the server. Setting everything to '' looked
+   * harmless but was not: the colour field displays COLOUR_DEFAULT when its
+   * value is empty and only writes on input, so adding a colour and typing
+   * only its name saved a swatch with no hex at all.
+   */
+  function blankRow(fields) {
+    const row = {};
+    Object.entries(fields).forEach(([key, def]) => {
+      if (def.type === 'select') {
+        row[key] = String(Object.keys(def.options)[0]);
+      } else if (def.type === 'colour') {
+        row[key] = COLOUR_DEFAULT;
+      } else if (def.type === 'repeater') {
+        row[key] = [];
+      } else {
+        row[key] = '';
+      }
+    });
+    return row;
+  }
+
   const outline   = document.getElementById('outline-list');
   const inspector = document.getElementById('inspector');
   const saveState = document.getElementById('save-state');
@@ -30,30 +60,52 @@
 
   let imageCache = null;
 
-  async function loadImages() {
-    if (imageCache) return imageCache;
+  async function loadImages(refresh) {
+    if (imageCache && !refresh) return imageCache;
     const response = await fetch('/admin/assets.json', { headers: { 'Accept': 'application/json' } });
     const data = await response.json();
     imageCache = data.images || [];
     return imageCache;
   }
 
-  function openPicker(onPick) {
+  /**
+   * The asset picker.
+   *
+   * $accept is 'image' or 'video'. An image field must not offer an MP4 and the
+   * video block must not offer a PNG, so the field says what it wants and the
+   * library is filtered rather than everything being shown to everyone.
+   *
+   * It uploads too. Leaving the editor, going to Assets, uploading, coming back
+   * and finding the block again is a lot of steps to put between a writer and
+   * one picture, and it is the step writing these pages needs most often.
+   */
+  function openPicker(onPick, accept) {
+    const kind = accept === 'video' ? 'video' : 'image';
+    const noun = kind === 'video' ? 'video' : 'image';
+
     const overlay = document.createElement('div');
     overlay.className = 'picker';
     overlay.innerHTML =
-      '<div class="picker__panel" role="dialog" aria-modal="true" aria-label="Choose an image">' +
+      '<div class="picker__panel" role="dialog" aria-modal="true" aria-label="Choose a file">' +
         '<header class="picker__head">' +
-          '<input class="picker__search" type="search" placeholder="Search by name or tag" aria-label="Search images">' +
+          '<input class="picker__search" type="search" placeholder="Search by name or tag" aria-label="Search the library">' +
           '<button type="button" class="picker__close m3-state" aria-label="Close">Close</button>' +
         '</header>' +
         '<div class="picker__grid" aria-live="polite">Loading</div>' +
-        '<p class="picker__hint">Images come from the asset library. Upload new ones under Assets.</p>' +
+        '<footer class="picker__foot">' +
+          '<label class="picker__upload m3-state">' +
+            '<input type="file" hidden accept="' + (kind === 'video' ? 'video/mp4' : 'image/*') + '">' +
+            '<span>Upload a new ' + noun + '</span>' +
+          '</label>' +
+          '<span class="picker__hint">It is added to the asset library and selected here.</span>' +
+        '</footer>' +
       '</div>';
     document.body.append(overlay);
 
     const grid = overlay.querySelector('.picker__grid');
     const search = overlay.querySelector('.picker__search');
+    const hint = overlay.querySelector('.picker__hint');
+    const file = overlay.querySelector('.picker__upload input');
     const close = () => { overlay.remove(); document.removeEventListener('keydown', onKey); };
     const onKey = (event) => { if (event.key === 'Escape') close(); };
 
@@ -61,35 +113,71 @@
     overlay.addEventListener('click', (event) => { if (event.target === overlay) close(); });
     document.addEventListener('keydown', onKey);
 
-    function draw(images) {
+    const matching = (list) => list.filter((item) => (item.kind || 'image') === kind);
+
+    function draw(items) {
       grid.innerHTML = '';
-      if (!images.length) {
-        grid.textContent = 'No images yet. Upload some under Assets first.';
+      if (!items.length) {
+        grid.textContent = 'No ' + noun + 's in the library yet. Upload one below.';
         return;
       }
-      images.forEach((image) => {
+      items.forEach((item) => {
         const tile = document.createElement('button');
         tile.type = 'button';
         tile.className = 'picker__tile m3-state';
-        tile.innerHTML =
-          '<span class="picker__thumb"><img src="' + image.url + '" alt="" loading="lazy"></span>' +
-          '<span class="picker__label"></span>';
-        tile.querySelector('.picker__label').textContent = image.label || image.file;
-        tile.addEventListener('click', () => { onPick(image); close(); });
+        tile.innerHTML = item.kind === 'video'
+          ? '<span class="picker__thumb picker__thumb--file">MP4</span><span class="picker__label"></span>'
+          : '<span class="picker__thumb"><img src="' + item.url + '" alt="" loading="lazy"></span>' +
+            '<span class="picker__label"></span>';
+        tile.querySelector('.picker__label').textContent = item.label || item.file;
+        tile.addEventListener('click', () => { onPick(item); close(); });
         grid.append(tile);
       });
     }
 
-    loadImages().then((images) => {
-      draw(images);
+    function load(refresh) {
+      return loadImages(refresh).then((all) => {
+        const items = matching(all);
+        draw(items);
+        return items;
+      });
+    }
+
+    load().then((items) => {
       search.focus();
       search.addEventListener('input', () => {
         const term = search.value.trim().toLowerCase();
-        draw(!term ? images : images.filter((image) =>
-          (image.label + ' ' + image.file + ' ' + image.tags).toLowerCase().includes(term)
+        draw(!term ? items : items.filter((item) =>
+          (item.label + ' ' + item.file + ' ' + item.tags).toLowerCase().includes(term)
         ));
       });
-    }).catch(() => { grid.textContent = 'Could not load the image library.'; });
+    }).catch(() => { grid.textContent = 'Could not load the asset library.'; });
+
+    file.addEventListener('change', async () => {
+      if (!file.files.length) return;
+      const chosen = file.files[0];
+      hint.textContent = 'Uploading ' + chosen.name + '…';
+
+      const body = new FormData();
+      body.append('_csrf', window.CSRF);
+      body.append('file', chosen);
+      try {
+        const response = await fetch('/admin/assets/add', { method: 'POST', body: body });
+        const result = await response.json();
+        if (!response.ok || !result.ok) throw new Error(result.error || 'Upload failed');
+        // The cache is dropped and the new file added to it before the block is
+        // told, because selecting it immediately re-reads the library to draw
+        // its thumbnail. Clearing the cache afterwards instead left that read
+        // looking at a stale list and reporting the file as missing.
+        imageCache = imageCache ? [result.asset].concat(imageCache) : [result.asset];
+        // Straight into the block, which is the point of uploading from here.
+        onPick(result.asset);
+        close();
+      } catch (error) {
+        hint.textContent = error.message;
+        file.value = '';
+      }
+    });
   }
 
   function assetField(def, value, onInput) {
@@ -104,10 +192,12 @@
     shown.className = 'assetpick';
     wrap.append(shown);
 
+    const accept = def.accept === 'video' ? 'video' : 'image';
+
     function paint(id) {
       shown.innerHTML = '';
-      const choose = button(id ? 'Change' : 'Choose an image', () => {
-        openPicker((image) => { onInput(String(image.id)); paint(String(image.id)); });
+      const choose = button(id ? 'Change' : 'Choose ' + (accept === 'video' ? 'a video' : 'an image'), () => {
+        openPicker((image) => { onInput(String(image.id)); paint(String(image.id)); }, accept);
       });
       choose.className = 'assetpick__choose m3-state';
 
@@ -117,7 +207,9 @@
           const preview = document.createElement('span');
           preview.className = 'assetpick__preview';
           if (match) {
-            preview.innerHTML = '<img src="' + match.url + '" alt="">';
+            preview.innerHTML = match.kind === 'video'
+              ? '<span class="assetpick__file">MP4</span>'
+              : '<img src="' + match.url + '" alt="">';
             const name = document.createElement('span');
             name.className = 'assetpick__name';
             name.textContent = match.label || match.file;
@@ -172,12 +264,12 @@
       input.type = 'text';
       input.className = 'm3-field__input';
       input.placeholder = ' ';
-      input.value = value || '#7257B7';
+      input.value = value || COLOUR_DEFAULT;
 
       const chip = document.createElement('input');
       chip.type = 'color';
       chip.className = 'field__chip';
-      chip.value = /^#[0-9a-f]{6}$/i.test(input.value) ? input.value : '#7257B7';
+      chip.value = /^#[0-9a-f]{6}$/i.test(input.value) ? input.value : COLOUR_DEFAULT;
       chip.addEventListener('input', () => { input.value = chip.value; onInput(chip.value); });
       input.addEventListener('input', () => {
         if (/^#[0-9a-f]{6}$/i.test(input.value)) chip.value = input.value;
@@ -213,6 +305,22 @@
     return wrap;
   }
 
+  /**
+   * The first bit of text in a row, for labelling it.
+   *
+   * A list of eight rows all headed "Colour 3" tells the writer nothing about
+   * which one they are looking at. Its own name does.
+   */
+  function rowTitle(def, row, index) {
+    const fallback = (def.item || 'Item') + ' ' + (index + 1);
+    for (const [key, fieldDef] of Object.entries(def.fields)) {
+      if (fieldDef.type !== 'text' && fieldDef.type !== 'textarea') continue;
+      const value = (row[key] || '').trim();
+      if (value) return value.length > 34 ? value.slice(0, 34) + '…' : value;
+    }
+    return fallback;
+  }
+
   function repeater(def, rows, onChange) {
     const wrap = document.createElement('div');
     wrap.className = 'repeater';
@@ -220,6 +328,12 @@
     const head = document.createElement('div');
     head.className = 'repeater__head';
     head.textContent = def.label;
+    if (rows.length) {
+      const count = document.createElement('span');
+      count.className = 'repeater__count';
+      count.textContent = String(rows.length);
+      head.append(count);
+    }
     wrap.append(head);
 
     rows.forEach((row, index) => {
@@ -228,26 +342,43 @@
 
       const bar = document.createElement('div');
       bar.className = 'repeater__bar';
-      bar.innerHTML = '<span>' + (def.item || 'Item') + ' ' + (index + 1) + '</span>';
 
-      const up = button('Move up', () => { move(rows, index, index - 1); onChange(rows); });
-      const down = button('Move down', () => { move(rows, index, index + 1); onChange(rows); });
-      const remove = button('Remove', () => { rows.splice(index, 1); onChange(rows); });
-      remove.className = 'danger';
+      const name = document.createElement('span');
+      name.className = 'repeater__name';
+      name.textContent = rowTitle(def, row, index);
+      // The number stays available as the position, since the name replaced it.
+      name.title = (def.item || 'Item') + ' ' + (index + 1);
+      bar.append(name);
+
+      // Compact controls, and disabled at the ends rather than doing nothing
+      // when pressed, which gave no clue that the row was already first.
+      const up = miniButton('Move up', '&uarr;', () => { move(rows, index, index - 1); onChange(rows); });
+      const down = miniButton('Move down', '&darr;', () => { move(rows, index, index + 1); onChange(rows); });
+      up.disabled = index === 0;
+      down.disabled = index === rows.length - 1;
+
+      const remove = miniButton('Remove', '&times;', () => {
+        rows.splice(index, 1);
+        onChange(rows);
+      }, 'is-danger');
+
       bar.append(up, down, remove);
       item.append(bar);
 
       Object.entries(def.fields).forEach(([key, fieldDef]) => {
-        item.append(field(fieldDef, row[key], (value) => { row[key] = value; onChange(rows, true); }));
+        item.append(field(fieldDef, row[key], (value) => {
+          row[key] = value;
+          // Keep the row's own label in step as it is typed.
+          name.textContent = rowTitle(def, row, index);
+          onChange(rows, true);
+        }));
       });
 
       wrap.append(item);
     });
 
     const add = button('Add ' + (def.item || 'item').toLowerCase(), () => {
-      const blank = {};
-      Object.keys(def.fields).forEach((key) => { blank[key] = ''; });
-      rows.push(blank);
+      rows.push(blankRow(def.fields));
       onChange(rows);
     });
     add.className = 'repeater__add';
@@ -304,6 +435,22 @@
     });
   }
 
+  /**
+   * Updates one row's description without rebuilding the list.
+   *
+   * Typing in the inspector used to call renderOutline() on every character,
+   * which rebuilt every row and measured each one's position for a reorder
+   * animation that was never going to happen. On a long page that is a forced
+   * layout per keystroke, and the typing stuttered. The only thing that can
+   * actually change while typing is the description of the selected block.
+   */
+  function touchOutline() {
+    if (selected === null || !blocks[selected]) return;
+    const row = outline.querySelector('.outline__row[data-index="' + selected + '"]');
+    const desc = row && row.querySelector('.outline__desc');
+    if (desc) desc.textContent = describe(blocks[selected]);
+  }
+
   function paintOutline() {
     outline.innerHTML = '';
 
@@ -333,7 +480,12 @@
       acts.className = 'outline__acts';
       acts.append(
         miniButton('Duplicate', '&#10697;', () => {
-          blocks.splice(index + 1, 0, copy(ensure(blocks[index])));
+          const twin = copy(ensure(blocks[index]));
+          // The copy needs its own identity. Sharing the original's key made two
+          // rows indistinguishable to the reorder animation, which then measured
+          // one and moved the other.
+          delete twin.__key;
+          blocks.splice(index + 1, 0, twin);
           select(index + 1);
           queueSave();
         }),
@@ -364,10 +516,14 @@
     }
   }
 
+  /**
+   * A small square icon button. Used by the outline rows and by repeater rows,
+   * which both want the same thing, so both get it from here.
+   */
   function miniButton(label, glyph, handler, className) {
     const el = document.createElement('button');
     el.type = 'button';
-    el.className = 'outline__act ' + (className || '');
+    el.className = 'miniact ' + (className || '');
     el.innerHTML = glyph;
     el.title = label;
     el.setAttribute('aria-label', label);
@@ -448,14 +604,20 @@
         if (!Array.isArray(block.data[key])) block.data[key] = [];
         content.append(repeater(fieldDef, block.data[key], (rows, inPlace) => {
           block.data[key] = rows;
-          if (!inPlace) renderInspector();
-          renderOutline();
+          // Typing inside a row changes only the text; adding or removing one
+          // changes the shape of the list and needs the panel rebuilt.
+          if (inPlace) {
+            touchOutline();
+          } else {
+            renderInspector();
+            renderOutline();
+          }
           queueSave();
         }));
       } else {
         content.append(field(fieldDef, block.data[key], (value) => {
           block.data[key] = value;
-          renderOutline();
+          touchOutline();
           queueSave();
         }));
       }
@@ -528,7 +690,9 @@
     if (event.data.action === 'ready') {
       previewReady = true;
       sendLabels();
-      if (selected !== null) tell({ action: 'select', index: selected });
+      // Quiet: the canvas has already restored its own scroll position, so the
+      // selection is only being re-marked, not navigated to.
+      if (selected !== null) tell({ action: 'select', index: selected, quiet: true });
     }
     if (event.data.action === 'select') {
       selected = event.data.index;

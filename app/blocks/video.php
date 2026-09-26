@@ -1,6 +1,11 @@
 <?php
 /** @var array $data @var array $options */
 $asset = ((int) ($data['asset'] ?? 0)) > 0 ? asset_find((int) $data['asset']) : null;
+// Only a real video goes in a video element. Anything else is ignored rather
+// than producing a player pointed at a file that cannot play.
+if ($asset && !asset_is_inline_video($asset)) {
+    $asset = null;
+}
 $url   = trim((string) ($data['url'] ?? ''));
 $embed = null;
 

@@ -21,7 +21,7 @@ $currentSlug = slugify($section);
             // structured differently and cannot drift from the others. ?>
       <h2 class="reader__section<?= $isCurrent ? ' is-current' : '' ?>">
         <?= icon(section_icon($name), 'icon icon--small') ?>
-        <a href="/s/<?= e(slugify($name)) ?>"<?= $isCurrent ? ' aria-current="true"' : '' ?>><?= e($name) ?></a>
+        <a href="/s/<?= e(slugify($name)) ?>"<?= $isCurrent ? ' aria-current="page"' : '' ?>><?= e($name) ?></a>
       </h2>
       <?php if ($isCurrent): ?>
         <?php foreach ($items as $item): ?>

@@ -655,6 +655,34 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 .m3-empty-state p { margin: 0 0 1.5rem; font-size: .875rem; }
 
 .m3-section { margin-bottom: 2rem; }
+
+/* Finding a page in a long list ------------------------------------------- */
+
+.m3-pagefilter {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  margin: 0 .5rem 1.5rem;
+  flex-wrap: wrap;
+}
+.m3-pagefilter .m3-field { flex: 1 1 16rem; margin: 0; max-width: 24rem; }
+.m3-pagefilter__chips { display: flex; gap: .375rem; }
+.m3-pagefilter__count {
+  font-size: .8125rem;
+  color: var(--md-sys-color-on-surface-variant);
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+
+/* [hidden] has to be spelled out for anything whose own class sets display,
+   or the attribute silently loses and the row stays on screen. Both of these
+   set display, so both need it. */
+.m3-list-item[hidden],
+.m3-section[hidden] { display: none; }
+
+@media (max-width: 52rem) {
+  .m3-pagefilter__count { margin-left: 0; }
+}
 .m3-section__head { display: flex; align-items: center; gap: .5rem; padding: 0 .5rem; margin-bottom: .5rem; }
 .m3-section__form { display: flex; align-items: center; gap: .5rem; margin: 0; }
 /* Save appears only once something has been changed. */
@@ -908,20 +936,29 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 }
 .outline__row.is-selected .outline__type { color: var(--md-sys-color-on-secondary-container); }
 .outline__acts { display: flex; gap: .125rem; padding-right: .25rem; }
-.outline__act {
+
+/* A small square icon button, shared by outline rows and repeater rows. */
+.miniact {
+  flex: none;
   width: 1.75rem; height: 1.75rem;
   display: grid; place-items: center;
   border: 0; border-radius: var(--md-sys-shape-full);
   background: none; cursor: pointer;
   color: var(--md-sys-color-on-surface-variant);
   font-size: .875rem; line-height: 1;
-  opacity: 0;
-  transition: opacity var(--md-sys-motion-short);
+  /* Transition is declared once in the Motion section at the end of this file,
+     so it is not set twice on the same thing with different values. */
 }
-.outline__row:hover .outline__act,
-.outline__row:focus-within .outline__act { opacity: 1; }
-.outline__act:hover { background: var(--md-sys-color-surface-container-highest); }
-.outline__act.is-danger:hover { color: var(--md-sys-color-error); }
+.miniact:hover { background: var(--md-sys-color-surface-container-highest); }
+.miniact.is-danger:hover { color: var(--md-sys-color-error); }
+.miniact:disabled { opacity: .3; cursor: default; background: none; }
+
+/* In the outline they stay out of the way until the row is pointed at. */
+.outline__acts .miniact { opacity: 0; }
+.outline__row:hover .outline__acts .miniact,
+.outline__row:focus-within .outline__acts .miniact { opacity: 1; }
+.outline__row:hover .outline__acts .miniact:disabled,
+.outline__row:focus-within .outline__acts .miniact:disabled { opacity: .3; }
 .outline__empty { padding: .75rem 1rem; font-size: .8125rem; color: var(--md-sys-color-on-surface-variant); }
 
 .outline__add {
@@ -1056,9 +1093,16 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 /* Repeaters sit inside the inspector, so they need a narrower treatment. */
 .repeater { margin: 0 0 1.25rem; }
 .repeater__head {
+  display: flex; align-items: center; gap: .375rem;
   font-size: .75rem; font-weight: 500;
   color: var(--md-sys-color-on-surface-variant);
   margin-bottom: .5rem;
+}
+.repeater__count {
+  font-variant-numeric: tabular-nums;
+  background: var(--md-sys-color-surface-container-highest);
+  border-radius: var(--md-sys-shape-full);
+  padding: 0 .375rem;
 }
 .repeater__item {
   background: var(--md-sys-color-surface-container-low);
@@ -1072,15 +1116,18 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
   margin-bottom: .625rem;
   font-size: .6875rem; color: var(--md-sys-color-on-surface-variant);
 }
-.repeater__bar span { margin-right: auto; font-weight: 500; }
-.repeater__bar button {
-  background: none; border: 0; cursor: pointer;
-  color: var(--md-sys-color-on-surface-variant);
-  font-size: .6875rem; padding: .1875rem .375rem;
-  border-radius: var(--md-sys-shape-full);
+/* The row's own name, so a list of eight is navigable. It takes the space and
+   the controls sit to the right of it. */
+.repeater__name {
+  margin-right: auto;
+  font-weight: 500;
+  font-size: .75rem;
+  color: var(--md-sys-color-on-surface);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.repeater__bar button:hover { background: var(--md-sys-color-surface-container-highest); }
-.repeater__bar button.danger:hover { color: var(--md-sys-color-error); }
+.repeater__bar .miniact { opacity: 1; }
 .repeater__add {
   width: 100%; height: 2.25rem;
   background: none;
@@ -1185,7 +1232,9 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
     width: 17.5rem;
     z-index: 110;
     transform: translateX(-100%);
-    transition: transform var(--md-sys-motion-medium) var(--md-sys-motion-emphasised);
+    /* Timing comes from the Motion section at the end of this file, where the
+       drawer is given the same slide as the rail on the public site. A
+       transition declared here as well was simply overridden. */
     box-shadow: var(--md-sys-elevation-2);
     border-radius: 0 var(--md-sys-shape-l) var(--md-sys-shape-l) 0;
   }
@@ -1193,7 +1242,8 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
   .m3-drawer__dismiss { display: inline-grid; }
   .m3-scrim--drawer { display: block; z-index: 105; }
   .m3-scrim--drawer[hidden] { display: none; }
-  .m3-page { padding: 0 1rem 5rem; }
+  /* .m3-page padding is set in the other 52rem block further down; declaring it
+     here too just lost to it. */
   .m3-page__bar { padding-top: .5rem; flex-wrap: wrap; }
   .m3-page__action { margin-left: 0; width: 100%; }
   .m3-table { display: block; overflow-x: auto; white-space: nowrap; }
@@ -1407,55 +1457,11 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
   .m3-assets { grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr)); gap: .75rem; }
 }
 
-/* ------------------------------------------------------------- repeaters */
-
-.repeater { margin: 0 0 1.5rem; }
-.repeater__head {
-  font-size: .75rem;
-  font-weight: 500;
-  letter-spacing: .04167em;
-  color: var(--md-sys-color-on-surface-variant);
-  margin-bottom: .625rem;
-}
-.repeater__item {
-  background: var(--md-sys-color-surface-container-high);
-  border-radius: var(--md-sys-shape-s);
-  padding: 1rem 1rem .25rem;
-  margin-bottom: .75rem;
-}
-.repeater__item .m3-field__label { background: var(--md-sys-color-surface-container-high); }
-.repeater__bar {
-  display: flex;
-  align-items: center;
-  gap: .25rem;
-  margin-bottom: .75rem;
-  font-size: .75rem;
-  color: var(--md-sys-color-on-surface-variant);
-}
-.repeater__bar span { margin-right: auto; font-weight: 500; }
-.repeater__bar button {
-  background: none;
-  border: 0;
-  cursor: pointer;
-  color: var(--md-sys-color-on-surface-variant);
-  font-size: .75rem;
-  padding: .25rem .5rem;
-  border-radius: var(--md-sys-shape-full);
-}
-.repeater__bar button:hover { background: var(--md-sys-color-surface-container-highest); }
-.repeater__bar button.danger:hover { color: var(--md-sys-color-error); }
-.repeater__add {
-  width: 100%;
-  height: 2.5rem;
-  background: none;
-  border: 1px dashed var(--md-sys-color-outline);
-  border-radius: var(--md-sys-shape-full);
-  color: var(--md-sys-color-primary);
-  font-size: .875rem;
-  font-weight: 500;
-  cursor: pointer;
-}
-.repeater__add:hover { background: var(--md-sys-color-surface-container-highest); border-style: solid; }
+/* The repeater styles live with the inspector, further up this file. A second
+   copy used to sit here, identical in structure but with larger spacing, and
+   being later it won every property: the narrower treatment written for the
+   inspector never applied to anything. Deleted rather than reconciled, because
+   two copies would only diverge again. */
 
 /* Section reordering sits beside the rename control. */
 .m3-section__move { display: flex; gap: .125rem; }
@@ -1560,12 +1566,13 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 .m3-drawer__item[aria-current='page'] .icon { transform: none; }
 
 /* Buttons: a small press, which is what makes a click feel physical. */
-.m3-button, .m3-icon-button, .m3-chip--filter, .outline__act, .blk__act {
+.m3-button, .m3-icon-button, .m3-chip--filter, .miniact, .blk__act {
   transition:
     background var(--d-swift) var(--e-out),
     color var(--d-swift) linear,
     box-shadow var(--d-base) var(--e-out),
-    transform var(--d-swift) var(--e-out);
+    transform var(--d-swift) var(--e-out),
+    opacity var(--d-swift) var(--e-out);
 }
 .m3-button:active:not(:disabled),
 .m3-icon-button:active:not(:disabled) { transform: scale(.97); }
@@ -1642,3 +1649,35 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 .picker__clear { border: 0; background: none; cursor: pointer; font: inherit; font-size: .8125rem; color: var(--md-sys-color-error); padding: .375rem .5rem; border-radius: var(--md-sys-shape-full); }
 .picker__clear:hover { background: var(--md-sys-color-error-container); }
 .picker__tile.is-on { outline: 2px solid var(--md-sys-color-primary); outline-offset: -2px; border-radius: var(--md-sys-shape-s); }
+
+/* Upload from inside the picker, so choosing a picture that is not in the
+   library yet does not mean leaving the page being written. */
+.picker__foot .picker__hint { padding: 0; text-align: right; }
+.picker__upload {
+  flex: none;
+  cursor: pointer;
+  font-size: .8125rem;
+  font-weight: 500;
+  padding: .5rem .875rem;
+  border-radius: var(--md-sys-shape-full);
+  border: 1px solid var(--md-sys-color-outline);
+  color: var(--md-sys-color-primary);
+  white-space: nowrap;
+}
+.picker__upload:hover { background: var(--md-sys-color-surface-container-highest); }
+.picker__upload:focus-within { outline: 2px solid var(--md-sys-color-primary); outline-offset: 2px; }
+
+/* A file with no picture to show: video, and anything else non-visual. */
+.picker__thumb--file,
+.assetpick__file {
+  display: grid;
+  place-items: center;
+  font-size: .6875rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: var(--md-sys-color-on-surface-variant);
+  background: var(--md-sys-color-surface-container-highest);
+  border-radius: var(--md-sys-shape-s);
+}
+.picker__thumb--file { height: 5rem; }
+.assetpick__file { width: 100%; height: 100%; }

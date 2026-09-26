@@ -420,6 +420,13 @@ body.nav-open {
 .swatch__chip:hover .swatch__copy,
 .swatch__chip:focus-visible .swatch__copy { opacity: 1; }
 .swatch__chip.is-copied .swatch__copy { opacity: 1; background: var(--positive); }
+/* A colour with no hex set. Reads as unfinished rather than as black, which is
+   what an undefined --chip would otherwise paint. */
+.swatch__chip--unset {
+  cursor: default;
+  background:
+    repeating-linear-gradient(45deg, var(--raised) 0 8px, var(--rule) 8px 16px);
+}
 .swatch__meta h4 { margin: 0 0 .625rem; font-size: 1rem; font-weight: 600; }
 .swatch__meta dl { display: grid; grid-template-columns: 4rem 1fr; margin: 0; font-size: .875rem; }
 .swatch__meta dt { color: var(--ink-faint); }
@@ -926,40 +933,10 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
   .masthead__title { display: none; }
 }
 
-/* Cross-document view transitions. Supporting browsers cross-fade between
-   pages instead of flashing white; others navigate exactly as before. */
-@view-transition { navigation: auto; }
-
-/* No cross-fade. Two versions of a page dissolving through each other is the
-   dated part, and it also makes the page unreadable while it happens. The old
-   page leaves immediately and the new content arrives with a short rise, so
-   the navigation reads as the content being replaced rather than the whole
-   window being swapped. */
-::view-transition-old(root) { animation: none; }
-::view-transition-new(root) { animation: none; }
-
-/* The frame is genuinely the same element on both pages, so it is held still
-   rather than animated at all. */
-.masthead { view-transition-name: masthead; }
-/* The rail is deliberately NOT given a view-transition-name. It is sticky, and
-   a sticky element with a transition name is lifted out of the page for the
-   duration of the navigation, which makes it jump. Only the masthead, which is
-   genuinely identical on both pages, is held. */
-
-/* Only the content moves. */
-.reader__body, .index { view-transition-name: content; }
-::view-transition-old(content) { animation: none; }
-::view-transition-new(content) {
-  animation: contentin 260ms var(--e-expo) both;
-}
-@keyframes contentin {
-  from { opacity: 0; transform: translateY(10px); }
-  to   { opacity: 1; transform: none; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  @view-transition { navigation: none; }
-}
+/* No cross-document view transitions. This is a reference tool: people arrive
+   from the grid wanting to read something, and any animation between pages is
+   time spent before the words are legible. Navigation is left alone, which is
+   also the fastest thing a browser can do. */
 
 /* ===========================================================================
    Motion
@@ -1038,6 +1015,26 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 
 .block__note { margin: 1rem 0 0; font-size: .875rem; color: var(--ink-faint); max-width: var(--s-measure, 70ch); }
 .block__empty { margin: 0; padding: 1rem; background: var(--raised); border-radius: var(--s-radius, 6px); font-size: .875rem; color: var(--ink-soft); }
+
+/* The stand-in for a block with nothing in it yet. Only ever rendered in the
+   editor canvas, so it needs no scoping: render_blocks() emits it in edit mode
+   and never on a published page. It has to have real height, because its whole
+   job is giving a new block something visible to click. */
+.block__placeholder {
+  display: grid;
+  gap: .25rem;
+  margin: 0;
+  padding: 1.25rem 1.375rem;
+  min-height: 4.5rem;
+  align-content: center;
+  border: 1px dashed var(--rule-firm);
+  border-radius: var(--s-radius, 6px);
+  background: var(--raised);
+  max-width: var(--s-measure, 70ch);
+}
+.block__placeholder strong { font-size: .9375rem; font-weight: 600; color: var(--ink); }
+.block__placeholder span { font-size: .8125rem; color: var(--ink-soft); }
+.block__placeholder-cue { color: var(--ink-faint); }
 
 /* Clearspace --------------------------------------------------------------- */
 .clearspace { margin: 0; }

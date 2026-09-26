@@ -24,6 +24,26 @@ $stale  = count(array_filter($pages, fn($p) => strtotime($p['updated_at']) < str
     </div>
   </div>
 
+  <?php if (count($pages) > 8): ?>
+    <?php // Thirty pages across eight sections is more than a screen. Filtering
+          // beats scrolling for finding the one being written today. ?>
+    <div class="m3-pagefilter">
+      <div class="m3-field m3-field--dense">
+        <input class="m3-field__input" type="search" id="page-search" placeholder=" "
+               autocomplete="off" aria-controls="page-sections">
+        <label class="m3-field__label" for="page-search">Find a page</label>
+      </div>
+      <span class="m3-pagefilter__chips">
+        <button class="m3-chip m3-chip--filter is-on m3-state" type="button" data-page-state="">All</button>
+        <button class="m3-chip m3-chip--filter m3-state" type="button" data-page-state="draft">Drafts</button>
+        <button class="m3-chip m3-chip--filter m3-state" type="button" data-page-state="published">Published</button>
+      </span>
+      <span class="m3-pagefilter__count" id="page-count" aria-live="polite"></span>
+    </div>
+  <?php endif; ?>
+
+  <div id="page-sections">
+
   <?php if (!$pages): ?>
     <div class="m3-empty-state">
       <h2>No pages yet</h2>
@@ -77,7 +97,10 @@ $stale  = count(array_filter($pages, fn($p) => strtotime($p['updated_at']) < str
       <hr class="m3-divider">
       <ul class="m3-list">
         <?php foreach ($rows as $i => $page): ?>
-          <li class="m3-list-item m3-state">
+          <?php // The filter matches on these, so it never has to read the markup. ?>
+          <li class="m3-list-item m3-state"
+              data-page-name="<?= e(strtolower($page['title'] . ' ' . $page['section'] . ' ' . ($page['summary'] ?? ''))) ?>"
+              data-page-state="<?= $page['status'] === 'published' ? 'published' : 'draft' ?>">
             <?php $cover = !empty($page['cover_asset_id']) ? asset_find((int) $page['cover_asset_id']) : null; ?>
             <button class="m3-cover m3-state" type="button"
                     data-cover-for="<?= (int) $page['id'] ?>"
@@ -135,6 +158,9 @@ $stale  = count(array_filter($pages, fn($p) => strtotime($p['updated_at']) < str
       </ul>
     </section>
   <?php endforeach; ?>
+  </div>
+
+  <p class="m3-empty-state" id="page-none" hidden>No page matches that.</p>
 
   <section class="m3-card" id="newpage">
     <h2 class="m3-card__title">Add a page</h2>

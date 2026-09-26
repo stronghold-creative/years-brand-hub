@@ -11,18 +11,29 @@ $values = block_option($options, 'values', 'all');
   <?php endif; ?>
   <ul class="swatches swatches--<?= e($layout) ?> swatches--<?= e($size) ?> swatches--shape-<?= e($shape) ?>">
     <?php foreach (($data['colours'] ?? []) as $colour): ?>
-      <li class="swatch">
-        <button class="swatch__chip" type="button"
-                style="--chip: <?= e($colour['hex']) ?>"
-                data-copy="<?= e($colour['hex']) ?>"
-                aria-label="Copy <?= e($colour['hex']) ?>">
-          <span class="swatch__copy">Copy</span>
-        </button>
+      <?php
+        // A colour with no hex has nothing to show and nothing to copy. Rows
+        // like that exist, because the editor once saved a blank hex while
+        // displaying a default, so this has to cope rather than emit an empty
+        // custom property and a Copy button that copies nothing.
+        $hex = sanitise_colour((string) ($colour['hex'] ?? ''));
+      ?>
+      <li class="swatch<?= $hex === '' ? ' swatch--unset' : '' ?>">
+        <?php if ($hex !== ''): ?>
+          <button class="swatch__chip" type="button"
+                  style="--chip: <?= e($hex) ?>"
+                  data-copy="<?= e($hex) ?>"
+                  aria-label="Copy <?= e($hex) ?>">
+            <span class="swatch__copy">Copy</span>
+          </button>
+        <?php else: ?>
+          <span class="swatch__chip swatch__chip--unset" aria-hidden="true"></span>
+        <?php endif; ?>
         <div class="swatch__meta">
           <h4><?= e($colour['name']) ?></h4>
-          <?php if ($values !== 'none'): ?>
+          <?php if ($values !== 'none' && $hex !== ''): ?>
             <dl>
-              <dt>Hex</dt><dd><?= e($colour['hex']) ?></dd>
+              <dt>Hex</dt><dd><?= e($hex) ?></dd>
               <?php if ($values === 'all'): ?>
                 <?php if (!empty($colour['cmyk'])): ?><dt>CMYK</dt><dd><?= e($colour['cmyk']) ?></dd><?php endif; ?>
                 <?php if (!empty($colour['pantone'])): ?><dt>Pantone</dt><dd><?= e($colour['pantone']) ?></dd><?php endif; ?>

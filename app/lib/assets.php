@@ -262,9 +262,31 @@ function asset_is_inline_image(array $asset): bool
     return in_array($asset['mime'], ['image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/svg+xml'], true);
 }
 
+/** Video that plays in a page rather than downloading. */
+function asset_is_inline_video(array $asset): bool
+{
+    return $asset['mime'] === 'video/mp4';
+}
+
 /**
- * Streams an image for display rather than download. SVG is served with a
+ * Anything that displays in a page rather than downloading.
+ *
+ * The video block offers an uploaded file as an alternative to a YouTube or
+ * Vimeo link, and that file has to be served somewhere. It cannot go through
+ * the download route, which sends everything as an attachment, so it comes
+ * through the same inline route as images.
+ */
+function asset_is_inline_media(array $asset): bool
+{
+    return asset_is_inline_image($asset) || asset_is_inline_video($asset);
+}
+
+/**
+ * Streams a file for display rather than download. SVG is served with a
  * restrictive CSP, because an SVG can carry script and is same-origin here.
+ *
+ * Video is served with byte range support. Without it Safari will not play a
+ * video at all, and no browser can seek within one.
  */
 function asset_send_inline(array $asset, ?int $width = null): never
 {
@@ -284,7 +306,6 @@ function asset_send_inline(array $asset, ?int $width = null): never
     }
 
     header('Content-Type: ' . $asset['mime']);
-    header('Content-Length: ' . filesize($path));
     header('X-Content-Type-Options: nosniff');
     header('Content-Security-Policy: default-src \'none\'; style-src \'unsafe-inline\'; sandbox');
     // Cached hard: the URL carries the version, so a replacement busts it.
@@ -293,7 +314,70 @@ function asset_send_inline(array $asset, ?int $width = null): never
     while (ob_get_level()) {
         ob_end_clean();
     }
+
+    if (asset_is_inline_video($asset)) {
+        asset_send_range($path);
+    }
+
+    header('Content-Length: ' . filesize($path));
     readfile($path);
+    exit;
+}
+
+/**
+ * Serves a file honouring a Range request, for media that is played rather
+ * than loaded in one go. An unsatisfiable or absent range sends the whole
+ * file, so this is always safe to call.
+ */
+function asset_send_range(string $path): never
+{
+    $size  = (int) filesize($path);
+    $range = (string) ($_SERVER['HTTP_RANGE'] ?? '');
+    header('Accept-Ranges: bytes');
+
+    $start = 0;
+    $end   = $size - 1;
+
+    if (preg_match('/^bytes=(\d*)-(\d*)$/', trim($range), $m)) {
+        // "bytes=-500" means the last 500 bytes, not a range starting at zero.
+        if ($m[1] === '' && $m[2] !== '') {
+            $start = max(0, $size - (int) $m[2]);
+        } else {
+            $start = (int) $m[1];
+            if ($m[2] !== '') {
+                $end = (int) $m[2];
+            }
+        }
+        $end = min($end, $size - 1);
+
+        if ($start > $end || $start >= $size) {
+            http_response_code(416);
+            header('Content-Range: bytes */' . $size);
+            exit;
+        }
+        http_response_code(206);
+        header('Content-Range: bytes ' . $start . '-' . $end . '/' . $size);
+    }
+
+    header('Content-Length: ' . ($end - $start + 1));
+
+    $handle = fopen($path, 'rb');
+    if (!$handle) {
+        not_found();
+    }
+    fseek($handle, $start);
+    $remaining = $end - $start + 1;
+    // Read in chunks so a large file never has to fit in memory at once.
+    while ($remaining > 0 && !feof($handle)) {
+        $chunk = fread($handle, (int) min(262144, $remaining));
+        if ($chunk === false || $chunk === '') {
+            break;
+        }
+        echo $chunk;
+        flush();
+        $remaining -= strlen($chunk);
+    }
+    fclose($handle);
     exit;
 }
 

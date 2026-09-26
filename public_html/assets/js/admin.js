@@ -1,6 +1,21 @@
 (function () {
   'use strict';
 
+  /**
+   * Each feature runs inside its own guard, for the same reason site.js does:
+   * this file is a series of blocks that run on load, and one throw stops every
+   * block after it. The admin has more screens than the public site and most
+   * blocks only apply to one of them, so a single missing element on a single
+   * screen could take the drawer, the menus and the pickers down with it.
+   */
+  function feature(name, run) {
+    try {
+      run();
+    } catch (error) {
+      console.error('admin.js: ' + name + ' failed', error);
+    }
+  }
+
   // ------------------------------------------------------------- drawer
 
   const drawer = document.getElementById('drawer');
@@ -39,39 +54,43 @@
   // ------------------------------------------------------------- banners
 
   // Confirmations are transient. Errors stay until dismissed.
-  document.querySelectorAll('.m3-banner').forEach((banner) => {
-    const dismiss = document.createElement('button');
-    dismiss.type = 'button';
-    dismiss.className = 'm3-banner__dismiss';
-    dismiss.setAttribute('aria-label', 'Dismiss');
-    dismiss.textContent = '\u00d7';
-    dismiss.addEventListener('click', () => banner.remove());
-    banner.append(dismiss);
+  feature('banners', function () {
+    document.querySelectorAll('.m3-banner').forEach((banner) => {
+      const dismiss = document.createElement('button');
+      dismiss.type = 'button';
+      dismiss.className = 'm3-banner__dismiss';
+      dismiss.setAttribute('aria-label', 'Dismiss');
+      dismiss.textContent = '\u00d7';
+      dismiss.addEventListener('click', () => banner.remove());
+      banner.append(dismiss);
 
-    if (!banner.classList.contains('m3-banner--error')) {
-      setTimeout(() => {
-        banner.classList.add('is-going');
-        setTimeout(() => banner.remove(), 300);
-      }, 6000);
+      if (!banner.classList.contains('m3-banner--error')) {
+        setTimeout(() => {
+          banner.classList.add('is-going');
+          setTimeout(() => banner.remove(), 300);
+        }, 6000);
+      }
+    });
+
+    // Clear the notice from the address bar, so a refresh does not repeat it.
+    if (window.location.search.includes('notice=')) {
+      const url = new URL(window.location.href);
+      url.searchParams.delete('notice');
+      window.history.replaceState({}, '', url);
     }
   });
-
-  // Clear the notice from the address bar, so a refresh does not repeat it.
-  if (window.location.search.includes('notice=')) {
-    const url = new URL(window.location.href);
-    url.searchParams.delete('notice');
-    window.history.replaceState({}, '', url);
-  }
 
   // --------------------------------------------------- destructive actions
 
   // Any form marked as destructive confirms before submitting, so the
   // behaviour cannot be forgotten on a new screen.
-  document.querySelectorAll('form[data-confirm]').forEach((form) => {
-    form.addEventListener('submit', (event) => {
-      if (!window.confirm(form.dataset.confirm)) {
-        event.preventDefault();
-      }
+  feature('confirmations', function () {
+    document.querySelectorAll('form[data-confirm]').forEach((form) => {
+      form.addEventListener('submit', (event) => {
+        if (!window.confirm(form.dataset.confirm)) {
+          event.preventDefault();
+        }
+      });
     });
   });
 
@@ -117,6 +136,7 @@
 
   const assetDialog = document.getElementById('asset-dialog');
 
+  feature('asset detail', function () {
   document.querySelectorAll('[data-asset]').forEach((tile) => {
     tile.addEventListener('click', () => {
       const asset = JSON.parse(tile.dataset.asset);
@@ -180,11 +200,14 @@
       openDialog(assetDialog);
     });
   });
+  });
 
   // Search and tag filtering, both client side over the rendered grid.
-  const search = document.getElementById('asset-search');
-  const grid = document.getElementById('asset-grid');
-  if (search && grid) {
+  feature('asset filtering', function () {
+    const search = document.getElementById('asset-search');
+    const grid = document.getElementById('asset-grid');
+    if (!search || !grid) return;
+
     const tiles = Array.from(grid.querySelectorAll('.m3-asset'));
     const none = document.getElementById('asset-none');
     let tag = '';
@@ -206,18 +229,95 @@
     search.addEventListener('input', apply);
     document.querySelectorAll('[data-tag]').forEach((chip) => {
       chip.addEventListener('click', () => {
-        tag = chip.dataset.tag;
-        document.querySelectorAll('[data-tag]').forEach((other) => other.classList.toggle('is-on', other === chip));
+        // Clicking the chip that is already on clears the filter, rather than
+        // leaving no way back to everything.
+        const wasOn = chip.classList.contains('is-on');
+        tag = wasOn ? '' : chip.dataset.tag;
+        document.querySelectorAll('[data-tag]').forEach((other) => {
+          other.classList.toggle('is-on', !wasOn && other === chip);
+        });
         apply();
       });
     });
-  }
+  });
+
+  // ------------------------------------------------------------ page filter
+
+  /**
+   * Finds a page in the list, by name and by state.
+   *
+   * Client side, over the rows already rendered, exactly as the asset grid
+   * does: there are tens of pages, not thousands, and a round trip to filter
+   * them would be slower than not filtering at all. A section with nothing left
+   * in it hides itself, so the list does not become a column of empty headings.
+   */
+  feature('page filter', function () {
+    const search = document.getElementById('page-search');
+    const scope = document.getElementById('page-sections');
+    if (!search || !scope) return;
+
+    const rows = Array.from(scope.querySelectorAll('.m3-list-item[data-page-name]'));
+    const sections = Array.from(scope.querySelectorAll('.m3-section'));
+    const none = document.getElementById('page-none');
+    const count = document.getElementById('page-count');
+    let state = '';
+
+    function apply() {
+      const term = search.value.trim().toLowerCase();
+      let shown = 0;
+
+      rows.forEach((row) => {
+        const matchesTerm = !term || row.dataset.pageName.includes(term);
+        const matchesState = !state || row.dataset.pageState === state;
+        const show = matchesTerm && matchesState;
+        row.hidden = !show;
+        if (show) shown += 1;
+      });
+
+      // A heading with no rows under it is noise, so it goes too.
+      sections.forEach((section) => {
+        const any = Array.from(section.querySelectorAll('.m3-list-item[data-page-name]'))
+          .some((row) => !row.hidden);
+        section.hidden = !any;
+      });
+
+      if (none) none.hidden = shown > 0;
+      if (count) {
+        count.textContent = (term || state)
+          ? shown + (shown === 1 ? ' page' : ' pages')
+          : '';
+      }
+    }
+
+    search.addEventListener('input', apply);
+    // Escape clears, rather than leaving a filtered list with no obvious way out.
+    search.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape' && search.value !== '') {
+        event.stopPropagation();
+        search.value = '';
+        apply();
+      }
+    });
+
+    document.querySelectorAll('[data-page-state]').forEach((chip) => {
+      if (chip.tagName !== 'BUTTON') return;
+      chip.addEventListener('click', () => {
+        state = chip.dataset.pageState;
+        document.querySelectorAll('button[data-page-state]').forEach((other) => {
+          other.classList.toggle('is-on', other === chip);
+        });
+        apply();
+      });
+    });
+  });
 
   // The file input inside a drop zone should show what was chosen.
-  document.querySelectorAll('.m3-drop input[type="file"]').forEach((input) => {
-    input.addEventListener('change', () => {
-      const text = input.parentElement.querySelector('.m3-drop__text');
-      if (text && input.files.length) text.textContent = input.files[0].name;
+  feature('drop zones', function () {
+    document.querySelectorAll('.m3-drop input[type="file"]').forEach((input) => {
+      input.addEventListener('change', () => {
+        const text = input.parentElement.querySelector('.m3-drop__text');
+        if (text && input.files.length) text.textContent = input.files[0].name;
+      });
     });
   });
 
@@ -247,11 +347,7 @@
     });
   });
 
-  document.addEventListener('keydown', (event) => {
-    if (event.key !== 'Escape') return;
-    document.querySelectorAll('.has-menu').forEach((row) => row.classList.remove('has-menu'));
-  });
-
+  // One Escape handler. There were two, the first a subset of the second.
   document.addEventListener('keydown', (event) => {
     if (event.key !== 'Escape') return;
     document.querySelectorAll('.m3-more__menu').forEach((menu) => menu.setAttribute('hidden', ''));
@@ -335,7 +431,8 @@
     if (!button) return;
 
     const response = await fetch('/admin/assets.json', { headers: { Accept: 'application/json' } });
-    const images = (await response.json()).images || [];
+    // A cover is an image; the feed also carries video for the video block.
+    const images = ((await response.json()).images || []).filter((i) => i.kind !== 'video');
 
     openImagePicker(images, String(button.dataset.coverId || '0'), async (chosen) => {
       const body = new FormData();
@@ -358,25 +455,28 @@
 
   // The save control stays hidden until something has actually changed, so an
   // unchanged section header has nothing to click by accident.
-  document.querySelectorAll('[data-autosave]').forEach((form) => {
-    const initial = new FormData(form);
-    const isDirty = () => {
-      const now = new FormData(form);
-      for (const [key, value] of now.entries()) {
-        if (key === '_csrf') continue;
-        if (String(initial.get(key)) !== String(value)) return true;
-      }
-      return false;
-    };
-    const update = () => form.classList.toggle('is-dirty', isDirty());
-    form.addEventListener('input', update);
-    form.addEventListener('change', update);
-    update();
+  feature('dirty tracking', function () {
+    document.querySelectorAll('[data-autosave]').forEach((form) => {
+      const initial = new FormData(form);
+      const isDirty = () => {
+        const now = new FormData(form);
+        for (const [key, value] of now.entries()) {
+          if (key === '_csrf') continue;
+          if (String(initial.get(key)) !== String(value)) return true;
+        }
+        return false;
+      };
+      const update = () => form.classList.toggle('is-dirty', isDirty());
+      form.addEventListener('input', update);
+      form.addEventListener('change', update);
+      update();
+    });
   });
 
   // ------------------------------------------------- appearance controls
 
   // A number box, a slider and any presets all drive the same value.
+  feature('appearance controls', function () {
   document.querySelectorAll('.numfield').forEach((field) => {
     const input  = field.querySelector('.numfield__input');
     const slider = field.querySelector('.numfield__slider');
@@ -403,19 +503,22 @@
       });
     }
   });
+  });
 
   // ------------------------------------------------------------ logo picker
 
   // Reuses the same asset library dialog as the block editor.
-  const logoMount = document.getElementById('logo-picker');
-  if (logoMount) {
+  feature('logo picker', function () {
+    const logoMount = document.getElementById('logo-picker');
+    if (!logoMount) return;
     const hidden = document.getElementById('site_logo');
     let images = null;
 
     const load = async () => {
       if (images) return images;
       const response = await fetch('/admin/assets.json', { headers: { Accept: 'application/json' } });
-      images = (await response.json()).images || [];
+      // The feed carries video too, for the video block. A logo is an image.
+      images = ((await response.json()).images || []).filter((i) => i.kind !== 'video');
       return images;
     };
 
@@ -459,12 +562,13 @@
     }
 
     paint(logoMount.dataset.cover || '0');
-  }
+  });
 
   // ------------------------------------------------------- scroll shadow
 
-  const bar = document.querySelector('.m3-page__bar');
-  if (bar) {
+  feature('scroll shadow', function () {
+    const bar = document.querySelector('.m3-page__bar');
+    if (!bar) return;
     const main = document.querySelector('.m3-shell__main');
     const target = main || window;
     const onScroll = () => {
@@ -473,5 +577,5 @@
     };
     target.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
-  }
+  });
 })();

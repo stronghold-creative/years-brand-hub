@@ -78,18 +78,28 @@ deploy can never overwrite your credentials or uploaded files.
 ## What is built
 
 - Block editor: outline, live canvas, contextual inspector
-- Nine block types, each with its own options, inheriting from global settings
+- 25 block types, each with its own options, inheriting from global settings
 - Appearance: numeric global styling, colours, widths, type scale
-- Assets: upload, versioning, replace in place, ZIP bundles, gated downloads
-- Pages: sections, ordering, drafts, version history with restore
+- Assets: upload, versioning, replace in place, ZIP bundles, gated downloads,
+  and upload from inside the editor's picker
+- Pages: sections, ordering, drafts, version history with restore, filtering
 - People and roles, settings, site logo, area toggle
 
 ## Not built yet
 
 - Search across pages
 - The Components area, beyond a placeholder
-- Ten block types the page inventory will need: clearspace diagram, spacing
-  scale, icon grid, contrast pairs, before and after, video embed, spec table,
-  link list, contacts, checklist
 - `/tokens.css` exports colours only, not type
 - Inline text editing on the canvas; text is edited in the inspector
+
+## Checks
+
+`tools/` holds four checks worth running after any change. They need PHP on the
+path and, for the CSS one, Node. See section 10 of
+[docs/HANDOVER.md](docs/HANDOVER.md).
+
+```bash
+php tools/check-routes.php
+php tools/check-blocks.php
+node tools/check-css.js public_html/assets/css/site.css public_html/assets/css/admin.css
+```

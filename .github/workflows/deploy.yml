@@ -14,6 +14,22 @@ jobs:
       - name: Check PHP syntax
         run: find app public_html tools -name '*.php' -print0 | xargs -0 -n1 php -l
 
+      - name: Check JavaScript syntax
+        run: for f in public_html/assets/js/*.js; do node --check "$f"; done
+
+      # None of these need a database, so they can gate the deploy. Each one
+      # has caught a bug that looked fine in the source.
+      - name: Check every URL routes
+        run: php tools/check-routes.php
+
+      - name: Check every block renders
+        run: |
+          php tools/check-blocks.php
+          php tools/check-blocks.php --edit
+
+      - name: Check the stylesheets
+        run: node tools/check-css.js public_html/assets/css/site.css public_html/assets/css/admin.css
+
       - name: Upload application files
         uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:

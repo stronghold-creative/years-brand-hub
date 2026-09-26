@@ -424,25 +424,28 @@ if (preg_match('#^/admin/users/(\d+)/delete$#', $path, $m) && $method === 'POST'
 
 // ------------------------------------------------------------------ settings
 
-// Images shown inside pages. Separate from /d/ because these display rather
-// than download, and are not counted as downloads.
-if (preg_match('#^/i/(\d+)(?:/(\d+))?#', $path, $m)) {
+// Images and video shown inside pages. Separate from /d/ because these display
+// rather than download, and are not counted as downloads. Anchored, so
+// /i/9/anything cannot reach here on a partial match.
+if (preg_match('#^/i/(\d+)(?:/(\d+))?$#', $path, $m)) {
     if (site_is_private($config) && !current_user()) {
         not_found();
     }
     $asset = asset_find((int) $m[1]);
-    if (!$asset || !asset_is_inline_image($asset)) {
+    if (!$asset || !asset_is_inline_media($asset)) {
         not_found();
     }
     asset_send_inline($asset, isset($m[2]) ? (int) $m[2] : null);
 }
 
-// Feeds the image picker in the editor.
+// Feeds the asset picker in the editor. Carries video as well as images, with
+// a kind on each one, because the video block needs to offer uploaded files and
+// an image field must not offer them.
 if ($path === '/admin/assets.json') {
     require_editor();
     $out = [];
     foreach (db_all('SELECT * FROM assets ORDER BY uploaded_at DESC') as $asset) {
-        if (!asset_is_inline_image($asset)) {
+        if (!asset_is_inline_media($asset)) {
             continue;
         }
         $out[] = [
@@ -450,6 +453,7 @@ if ($path === '/admin/assets.json') {
             'label' => $asset['label'],
             'file'  => $asset['original_name'],
             'url'   => asset_image_url($asset),
+            'kind'  => asset_is_inline_video($asset) ? 'video' : 'image',
             'tags'  => (string) $asset['tags'],
         ];
     }
@@ -509,6 +513,59 @@ if ($path === '/admin/assets/upload' && $method === 'POST') {
     );
     asset_clear_bundles();
     redirect('/admin/assets?notice=' . urlencode('Uploaded.'));
+}
+
+// Upload from inside the block editor, answering with JSON so the picker can
+// select the new file straight away. Same validation and variant generation as
+// the Assets screen; only the reply differs.
+if ($path === '/admin/assets/add' && $method === 'POST') {
+    require_editor();
+    csrf_check();
+    $file = $_FILES['file'] ?? [];
+    $error = asset_validation_error($file);
+    if ($error) {
+        json_out(['ok' => false, 'error' => $error], 422);
+    }
+
+    $stored = asset_stored_name((string) $file['name']);
+    if (!is_dir(asset_storage_dir())) {
+        @mkdir(asset_storage_dir(), 0775, true);
+    }
+    if (!move_uploaded_file((string) $file['tmp_name'], asset_storage_dir() . '/' . $stored)) {
+        json_out(['ok' => false, 'error' => 'Could not save the file. Check storage permissions.'], 500);
+    }
+
+    $mime = asset_detect_mime(asset_storage_dir() . '/' . $stored);
+    asset_make_variants($stored, $mime);
+
+    db_run(
+        'INSERT INTO assets (stored_name, original_name, label, mime, bytes, version, tags, uploaded_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+            $stored,
+            basename((string) $file['name']),
+            pathinfo((string) $file['name'], PATHINFO_FILENAME),
+            $mime,
+            (int) $file['size'],
+            '1.0',
+            '',
+            current_user()['id'],
+        ]
+    );
+    asset_clear_bundles();
+
+    $asset = asset_find((int) db()->lastInsertId());
+    if (!$asset || !asset_is_inline_media($asset)) {
+        json_out(['ok' => false, 'error' => 'That file uploaded, but it cannot be shown in a page. Find it under Assets.'], 422);
+    }
+    json_out(['ok' => true, 'asset' => [
+        'id'    => (int) $asset['id'],
+        'label' => $asset['label'],
+        'file'  => $asset['original_name'],
+        'url'   => asset_image_url($asset),
+        'kind'  => asset_is_inline_video($asset) ? 'video' : 'image',
+        'tags'  => '',
+    ]]);
 }
 
 if (preg_match('#^/admin/assets/(\d+)/update$#', $path, $m) && $method === 'POST') {
@@ -593,7 +650,7 @@ if (preg_match('#^/admin/assets/(\d+)/delete$#', $path, $m) && $method === 'POST
 // ----------------------------------------------------------------- downloads
 
 // Every file is served through here, so gating and logging always apply.
-if (preg_match('#^/d/(\d+)#', $path, $m)) {
+if (preg_match('#^/d/(\d+)$#', $path, $m)) {
     if (site_is_private($config) && !current_user()) {
         redirect('/admin/sign-in');
     }
