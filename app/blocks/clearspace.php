@@ -2,11 +2,13 @@
 /** @var array $data @var array $options */
 $asset = ((int) ($data['asset'] ?? 0)) > 0 ? asset_find((int) $data['asset']) : null;
 $ratio = (int) ($data['ratio'] ?? 50);
+$tone  = block_option($options, 'tone', 'accent');
+$back  = block_option($options, 'background', 'panel');
 ?>
 <section class="block block--clearspace">
   <?php if (!empty($data['heading'])): ?><h3><?= e($data['heading']) ?></h3><?php endif; ?>
   <?php if ($asset): ?>
-    <figure class="clearspace" style="--pad: <?= $ratio ?>%">
+    <figure class="clearspace clearspace--<?= e($tone) ?> clearspace--bg-<?= e($back) ?>" style="--pad: <?= $ratio ?>%">
       <div class="clearspace__frame">
         <div class="clearspace__mark">
           <img src="<?= e(asset_image_url($asset, 800)) ?>" alt="<?= e($data['heading'] ?? 'The mark') ?>" loading="lazy">

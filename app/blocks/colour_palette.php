@@ -1,15 +1,23 @@
 <?php
 /** @var array $data @var array $options */
-$layout = block_option($options, 'layout', 'list', 'swatch_layout');
-$shape  = block_option($options, 'shape', 'square', 'swatch_shape');
-$size   = block_option($options, 'size', 'medium');
-$values = block_option($options, 'values', 'all');
+$layout  = block_option($options, 'layout', 'list', 'swatch_layout');
+$shape   = block_option($options, 'shape', 'square', 'swatch_shape');
+$size    = block_option($options, 'size', 'medium');
+$values  = block_option($options, 'values', 'all');
+$columns = block_option($options, 'columns', 'auto');
+$ratio   = block_option($options, 'ratio', 'square');
+$labels  = block_option($options, 'labels', 'below');
+
+// A fixed column count is a number; "auto" lets the grid fit the space. Only
+// ever a number from the option list, so it cannot carry anything else into
+// the style attribute.
+$columnStyle = ctype_digit($columns) ? ' style="--cols: ' . (int) $columns . '"' : '';
 ?>
 <section class="block block--palette">
   <?php if (!empty($data['heading'])): ?>
     <h3><?= e($data['heading']) ?></h3>
   <?php endif; ?>
-  <ul class="swatches swatches--<?= e($layout) ?> swatches--<?= e($size) ?> swatches--shape-<?= e($shape) ?>">
+  <ul class="swatches swatches--<?= e($layout) ?> swatches--<?= e($size) ?> swatches--shape-<?= e($shape) ?> swatches--ratio-<?= e($ratio) ?> swatches--labels-<?= e($labels) ?><?= $columns !== 'auto' ? ' swatches--fixed' : '' ?>"<?= $columnStyle ?>>
     <?php foreach (($data['colours'] ?? []) as $colour): ?>
       <?php
         // A colour with no hex has nothing to show and nothing to copy. Rows

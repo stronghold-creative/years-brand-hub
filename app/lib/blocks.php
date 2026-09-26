@@ -41,6 +41,59 @@ function block_types(): array
             ],
         ],
 
+        'colour_ramp' => [
+            'label'  => 'Colour ramp',
+            'hint'   => 'Families of colour, each with its own steps. The scale is whatever you give it.',
+            'fields' => [
+                'heading'  => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
+                'families' => [
+                    'type'   => 'repeater',
+                    'label'  => 'Families',
+                    'item'   => 'Family',
+                    'fields' => [
+                        'name'  => ['type' => 'text', 'label' => 'Family name, for example Purple'],
+                        'note'  => ['type' => 'text', 'label' => 'Note', 'optional' => true],
+                        // A repeater inside a repeater, so a family can have
+                        // eleven steps or three, and the labels are yours.
+                        'steps' => [
+                            'type'   => 'repeater',
+                            'label'  => 'Steps',
+                            'item'   => 'Step',
+                            'fields' => [
+                                'step' => ['type' => 'text',   'label' => 'Step, for example 500'],
+                                'hex'  => ['type' => 'colour', 'label' => 'Hex'],
+                                'use'  => ['type' => 'text',   'label' => 'Used for', 'optional' => true],
+                            ],
+                        ],
+                    ],
+                ],
+            ],
+        ],
+
+        'colour_story' => [
+            'label'  => 'Primary and secondary',
+            'hint'   => 'The brand\'s colours as one composition, sized by how much each one carries.',
+            'fields' => [
+                'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
+                'intro'   => ['type' => 'textarea', 'label' => 'Intro', 'optional' => true],
+                'colours' => [
+                    'type'   => 'repeater',
+                    'label'  => 'Colours',
+                    'item'   => 'Colour',
+                    'fields' => [
+                        'name'    => ['type' => 'text',   'label' => 'Name'],
+                        'hex'     => ['type' => 'colour', 'label' => 'Hex'],
+                        'role'    => ['type' => 'select', 'label' => 'Role', 'options' => [
+                            'primary'   => 'Primary',
+                            'secondary' => 'Secondary',
+                        ]],
+                        'pantone' => ['type' => 'text', 'label' => 'Pantone', 'optional' => true],
+                        'usage'   => ['type' => 'text', 'label' => 'Where to use it', 'optional' => true],
+                    ],
+                ],
+            ],
+        ],
+
         'type_specimen' => [
             'label'  => 'Type specimen',
             'hint'   => 'Shows a style at its real size, with the spec beside it.',
@@ -436,6 +489,7 @@ function block_options(string $type): array
         'colour_palette' => [
             'layout' => ['label' => 'Layout', 'options' => [
                 'inherit' => 'Site default', 'list' => 'List', 'cards' => 'Cards', 'grid' => 'Grid',
+                'strip' => 'Continuous strip', 'stack' => 'Stacked bands',
             ]],
             'shape' => ['label' => 'Swatch shape', 'options' => [
                 'inherit' => 'Site default', 'square' => 'Square', 'rounded' => 'Rounded', 'circle' => 'Circle',
@@ -443,8 +497,80 @@ function block_options(string $type): array
             'size' => ['label' => 'Swatch size', 'options' => [
                 'small' => 'Small', 'medium' => 'Medium', 'large' => 'Large',
             ]],
+            'columns' => ['label' => 'Columns, when a grid', 'options' => [
+                'auto' => 'Fit the space', '2' => 'Two', '3' => 'Three',
+                '4' => 'Four', '6' => 'Six', '11' => 'Eleven',
+            ]],
+            'ratio' => ['label' => 'Swatch shape ratio', 'options' => [
+                'square' => 'Square', 'tall' => 'Tall', 'wide' => 'Wide', 'line' => 'Thin line',
+            ]],
             'values' => ['label' => 'Show', 'options' => [
                 'all' => 'Every value', 'hex' => 'Hex only', 'none' => 'Name only',
+            ]],
+            'labels' => ['label' => 'Label position', 'options' => [
+                'below' => 'Below the swatch', 'inside' => 'Inside the swatch',
+            ]],
+        ],
+
+        'colour_ramp' => [
+            'layout' => ['label' => 'Layout', 'options' => [
+                'strip' => 'Continuous strip', 'separate' => 'Separate swatches',
+            ]],
+            'height' => ['label' => 'Ramp height', 'options' => [
+                'short' => 'Short', 'medium' => 'Medium', 'tall' => 'Tall',
+            ]],
+            'labels' => ['label' => 'Step labels', 'options' => [
+                'inside' => 'Inside the ramp', 'below' => 'Below it', 'none' => 'None',
+            ]],
+            'values' => ['label' => 'Show the hex', 'options' => [
+                'hover' => 'On hover', 'always' => 'Always', 'never' => 'Never',
+            ]],
+            'name' => ['label' => 'Family name', 'options' => [
+                'above' => 'Above the ramp', 'beside' => 'Beside it',
+            ]],
+        ],
+
+        'colour_story' => [
+            'emphasis' => ['label' => 'Primary size', 'options' => [
+                'half' => 'Half the width', 'two-thirds' => 'Two thirds', 'full' => 'Its own row',
+            ]],
+            'height' => ['label' => 'Height', 'options' => [
+                'short' => 'Short', 'medium' => 'Medium', 'tall' => 'Tall',
+            ]],
+            'values' => ['label' => 'Show', 'options' => [
+                'all' => 'Name, hex and use', 'hex' => 'Name and hex', 'name' => 'Name only',
+            ]],
+            'gap' => ['label' => 'Between panels', 'options' => [
+                'none' => 'None, one surface', 'thin' => 'A thin line', 'wide' => 'Spaced apart',
+            ]],
+        ],
+
+        // These three had no options at all, so they alone could not follow the
+        // site's appearance or be overridden per block.
+        'clearspace' => [
+            'tone' => ['label' => 'Diagram colour', 'options' => [
+                'accent' => 'Accent', 'ink' => 'Text colour', 'faint' => 'Faint',
+            ]],
+            'background' => ['label' => 'Behind the mark', 'options' => [
+                'panel' => 'Panel', 'none' => 'None', 'dark' => 'Dark',
+            ]],
+        ],
+
+        'video' => [
+            'width' => ['label' => 'Width', 'options' => [
+                'text' => 'Text column', 'wide' => 'Wider than the text',
+            ]],
+            'frame' => ['label' => 'Frame', 'options' => [
+                'none' => 'None', 'panel' => 'Panel', 'shadow' => 'Shadow',
+            ]],
+        ],
+
+        'accordion' => [
+            'density' => ['label' => 'Density', 'options' => [
+                'normal' => 'Normal', 'tight' => 'Tight',
+            ]],
+            'first' => ['label' => 'First entry', 'options' => [
+                'closed' => 'Closed', 'open' => 'Open',
             ]],
         ],
         'type_specimen' => [
@@ -665,6 +791,52 @@ function sanitise_colour(string $value, string $fallback = ''): string
     return preg_match('/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value) ? strtoupper($value) : $fallback;
 }
 
+/**
+ * Cleans one set of values against one set of field definitions.
+ *
+ * Recursive, because a repeater can hold a repeater: a colour ramp is a list of
+ * families, each holding its own list of steps. Flattening this into a single
+ * level of nesting would have run a nested array through trim() and destroyed
+ * it on the first save.
+ *
+ * $depth stops a definition that somehow refers to itself from recursing
+ * forever. Three levels is far more than any block needs.
+ */
+function sanitise_fields(array $fields, array $values, int $depth = 0): array
+{
+    $clean = [];
+
+    foreach ($fields as $key => $field) {
+        $value = $values[$key] ?? null;
+
+        if ($field['type'] === 'repeater') {
+            $rows = [];
+            if ($depth < 3) {
+                foreach (is_array($value) ? $value : [] as $row) {
+                    $rows[] = sanitise_fields($field['fields'], is_array($row) ? $row : [], $depth + 1);
+                }
+            }
+            $clean[$key] = $rows;
+        } elseif ($field['type'] === 'select') {
+            // Cast to string: PHP turns numeric option keys into integers, and
+            // stored JSON should hold one consistent type.
+            $flat = is_scalar($value) ? (string) $value : '';
+            $clean[$key] = (string) (isset($field['options'][$flat]) ? $flat : array_key_first($field['options']));
+        } elseif ($field['type'] === 'asset') {
+            // Store the id only. A missing or bogus id renders as nothing.
+            $clean[$key] = (string) (int) (is_scalar($value) ? $value : 0);
+        } elseif ($field['type'] === 'colour') {
+            $clean[$key] = sanitise_colour(is_scalar($value) ? (string) $value : '');
+        } else {
+            // Anything that is not a scalar cannot be text, so it becomes empty
+            // rather than "Array".
+            $clean[$key] = is_scalar($value) ? trim((string) $value) : '';
+        }
+    }
+
+    return $clean;
+}
+
 function sanitise_blocks(array $blocks): array
 {
     $types = block_types();
@@ -675,41 +847,8 @@ function sanitise_blocks(array $blocks): array
         if (!isset($types[$type])) {
             continue;
         }
-        $data = [];
-        foreach ($types[$type]['fields'] as $key => $field) {
-            $value = $block['data'][$key] ?? null;
-            if ($field['type'] === 'repeater') {
-                $rows = [];
-                foreach (is_array($value) ? $value : [] as $row) {
-                    $clean_row = [];
-                    foreach ($field['fields'] as $subKey => $subField) {
-                        $value = $row[$subKey] ?? '';
-                        if ($subField['type'] === 'asset') {
-                            $clean_row[$subKey] = (string) (int) $value;
-                        } elseif ($subField['type'] === 'select') {
-                            $clean_row[$subKey] = (string) (isset($subField['options'][$value]) ? $value : array_key_first($subField['options']));
-                        } elseif ($subField['type'] === 'colour') {
-                            $clean_row[$subKey] = sanitise_colour((string) $value);
-                        } else {
-                            $clean_row[$subKey] = trim((string) $value);
-                        }
-                    }
-                    $rows[] = $clean_row;
-                }
-                $data[$key] = $rows;
-            } elseif ($field['type'] === 'select') {
-                // Cast to string: PHP turns numeric option keys into integers,
-                // and stored JSON should hold one consistent type.
-                $data[$key] = (string) (isset($field['options'][$value]) ? $value : array_key_first($field['options']));
-            } elseif ($field['type'] === 'asset') {
-                // Store the id only. A missing or bogus id renders as nothing.
-                $data[$key] = (string) (int) $value;
-            } elseif ($field['type'] === 'colour') {
-                $data[$key] = sanitise_colour((string) $value);
-            } else {
-                $data[$key] = trim((string) $value);
-            }
-        }
+        $data = sanitise_fields($types[$type]['fields'], is_array($block['data'] ?? null) ? $block['data'] : []);
+
         $settings = [];
         foreach (block_settings_fields() as $key => $field) {
             $value = $block['settings'][$key] ?? null;

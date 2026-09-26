@@ -719,13 +719,27 @@ if ($path === '/admin/settings') {
     require_admin();
     if ($method === 'POST') {
         csrf_check();
+
+        // Each form on this screen saves only its own settings. Writing all of
+        // them on every post meant the Site form, which has no Areas fields,
+        // silently turned the areas toggle off and reset both labels to their
+        // defaults: rename your areas, then change the site name a week later,
+        // and the renaming was gone. The forms used to carry hidden copies of
+        // each other's values to work around it, which only held while the page
+        // was freshly loaded.
+        $form = $_POST['form'] ?? 'site';
+
+        if ($form === 'areas') {
+            setting_save('components_enabled', isset($_POST['components_enabled']) ? '1' : '0');
+            setting_save('area_one_label', trim($_POST['area_one_label'] ?? '') ?: 'Brand');
+            setting_save('area_two_label', trim($_POST['area_two_label'] ?? '') ?: 'Components');
+            redirect('/admin/settings?notice=' . urlencode('Areas saved.'));
+        }
+
         setting_save('require_login_to_view', isset($_POST['require_login_to_view']) ? '1' : '0');
         setting_save('site_name', trim($_POST['site_name'] ?? '') ?: 'Years brand hub');
         setting_save('footer_note', trim($_POST['footer_note'] ?? ''));
         setting_save('site_logo', (string) (int) ($_POST['site_logo'] ?? 0));
-        setting_save('components_enabled', isset($_POST['components_enabled']) ? '1' : '0');
-        setting_save('area_one_label', trim($_POST['area_one_label'] ?? '') ?: 'Brand');
-        setting_save('area_two_label', trim($_POST['area_two_label'] ?? '') ?: 'Components');
         redirect('/admin/settings?notice=Saved.');
     }
     view('admin/settings', [

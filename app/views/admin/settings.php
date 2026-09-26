@@ -18,6 +18,8 @@
 
   <form method="post" class="m3-card">
     <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
+    <?php // Names which settings this form owns; it saves those and nothing else. ?>
+    <input type="hidden" name="form" value="site">
 
     <div class="m3-field">
       <input class="m3-field__input" type="text" name="site_name" id="site_name" placeholder=" "
@@ -49,12 +51,7 @@
 
   <form method="post" class="m3-card">
     <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
-    <input type="hidden" name="site_name" value="<?= e((string) setting('site_name', 'Years brand hub')) ?>">
-    <input type="hidden" name="footer_note" value="<?= e((string) setting('footer_note', '')) ?>">
-    <input type="hidden" name="site_logo" value="<?= (int) setting('site_logo', 0) ?>">
-    <?php if (site_is_private($config)): ?>
-      <input type="hidden" name="require_login_to_view" value="1">
-    <?php endif; ?>
+    <input type="hidden" name="form" value="areas">
 
     <h2 class="m3-card__title">Areas</h2>
     <p class="m3-body-medium">The toggle in the middle of the top bar. Brand is these guidelines.

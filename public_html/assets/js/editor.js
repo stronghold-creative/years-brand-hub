@@ -239,6 +239,22 @@
       return assetField(def, value, onInput);
     }
 
+    /**
+     * A repeater inside a repeater, which is what a colour ramp needs: a list
+     * of families, each holding its own list of steps. field() is what a
+     * repeater row calls for each of its fields, so handling it here is what
+     * makes nesting work at any depth rather than only at the top level.
+     *
+     * The value is the array itself, so onInput is handed the same array back
+     * after it has been changed in place.
+     */
+    if (def.type === 'repeater') {
+      const rows = Array.isArray(value) ? value : [];
+      return repeater(def, rows, function (changed, inPlace) {
+        onInput(changed, inPlace);
+      }, dense);
+    }
+
     // Material outlined text field: the control comes first, the label second,
     // so the label can float using the sibling selector in CSS.
     const wrap = document.createElement('div');
@@ -321,9 +337,9 @@
     return fallback;
   }
 
-  function repeater(def, rows, onChange) {
+  function repeater(def, rows, onChange, dense) {
     const wrap = document.createElement('div');
-    wrap.className = 'repeater';
+    wrap.className = 'repeater' + (dense ? ' repeater--nested' : '');
 
     const head = document.createElement('div');
     head.className = 'repeater__head';
@@ -366,12 +382,15 @@
       item.append(bar);
 
       Object.entries(def.fields).forEach(([key, fieldDef]) => {
-        item.append(field(fieldDef, row[key], (value) => {
+        // inPlace comes back from a nested repeater: adding or removing one of
+        // its rows changes the shape of the panel and has to rebuild it, where
+        // typing in one of its fields does not.
+        item.append(field(fieldDef, row[key], (value, inPlace) => {
           row[key] = value;
           // Keep the row's own label in step as it is typed.
           name.textContent = rowTitle(def, row, index);
-          onChange(rows, true);
-        }));
+          onChange(rows, fieldDef.type === 'repeater' ? inPlace : true);
+        }, dense));
       });
 
       wrap.append(item);

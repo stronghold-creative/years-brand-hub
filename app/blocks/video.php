@@ -17,19 +17,21 @@ if (preg_match('#youtube\.com/watch\?v=([A-Za-z0-9_-]{6,20})#', $url, $m)
 } elseif (preg_match('#vimeo\.com/(?:video/)?(\d{6,12})#', $url, $m)) {
     $embed = 'https://player.vimeo.com/video/' . $m[1];
 }
+$width = block_option($options, 'width', 'text');
+$frame = block_option($options, 'frame', 'none');
 ?>
-<section class="block block--video">
+<section class="block block--video block--video-<?= e($width) ?>">
   <?php if (!empty($data['heading'])): ?><h3><?= e($data['heading']) ?></h3><?php endif; ?>
 
   <?php if ($embed): ?>
-    <div class="video">
+    <div class="video video--<?= e($frame) ?>">
       <iframe src="<?= e($embed) ?>" title="<?= e($data['heading'] ?? 'Video') ?>"
               loading="lazy" allowfullscreen
               allow="accelerometer; clipboard-write; encrypted-media; picture-in-picture"
               referrerpolicy="strict-origin-when-cross-origin"></iframe>
     </div>
   <?php elseif ($asset): ?>
-    <div class="video">
+    <div class="video video--<?= e($frame) ?>">
       <video controls preload="metadata" src="<?= e(asset_image_url($asset)) ?>"></video>
     </div>
   <?php elseif ($url !== ''): ?>

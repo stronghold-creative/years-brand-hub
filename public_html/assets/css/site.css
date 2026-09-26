@@ -521,7 +521,11 @@ body.nav-open {
 .empty { color: var(--ink-faint); }
 
 @media (max-width: 56rem) {
-  .reader { grid-template-columns: 1fr; gap: 0; }
+  /* minmax(0, 1fr), not 1fr. A plain 1fr track is free to grow to its content's
+     minimum width, so a wide block — a colour ramp of eleven steps — stretched
+     the whole column past the screen instead of scrolling inside it. The
+     desktop rule above has always had the minmax; this one had lost it. */
+  .reader { grid-template-columns: minmax(0, 1fr); gap: 0; }
 
   /* The rail becomes a panel that slides in from the left, rather than a long
      list of every page pushing the content down the screen. */
@@ -879,6 +883,65 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 .swatches--shape-circle .swatch__chip { border-radius: 50%; }
 .swatches--shape-circle .swatch__copy { display: none; }
 
+/* Two more layouts, for a palette that is a scale rather than a set.
+   A strip runs the swatches together into one object; stacked bands give each
+   colour a full-width row with its values set inside it. */
+.swatches--strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  border-radius: var(--s-radius, 6px);
+  overflow: hidden;
+}
+.swatches--strip .swatch { display: block; min-width: 0; }
+.swatches--strip .swatch__chip { border: 0; }
+.swatches--strip .swatch__meta { padding: .5rem; }
+.swatches--strip .swatch__meta h4 { margin: 0; font-size: .8125rem; }
+.swatches--strip .swatch__usage,
+.swatches--strip dl { display: none; }
+
+.swatches--stack { display: grid; gap: 1px; background: var(--rule); }
+.swatches--stack .swatch {
+  display: grid;
+  grid-template-columns: var(--sw, var(--s-swatch, 6rem)) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: center;
+  background: var(--page);
+  padding: 1rem;
+}
+.swatches--stack .swatch__chip { aspect-ratio: auto; height: 100%; min-height: 3.5rem; }
+
+/* A fixed column count, for a palette that has to line up with a scale, in
+   place of fitting as many as the space allows. */
+.swatches--fixed.swatches--grid,
+.swatches--fixed.swatches--cards {
+  grid-template-columns: repeat(var(--cols, 4), minmax(0, 1fr));
+}
+
+/* The swatch's own proportions. A thin line suits a long scale where a square
+   would take the whole screen. */
+.swatches--ratio-tall .swatch__chip { aspect-ratio: 3 / 4; }
+.swatches--ratio-wide .swatch__chip { aspect-ratio: 16 / 9; }
+.swatches--ratio-line .swatch__chip { aspect-ratio: auto; height: 2.5rem; }
+
+/* Labels inside the swatch rather than under it. The text colour cannot be
+   measured here as it is in the ramp, so it is placed on a plate that works on
+   any colour instead of guessing. */
+.swatches--labels-inside .swatch { position: relative; }
+.swatches--labels-inside .swatch__meta {
+  position: absolute;
+  inset: auto 0 0 0;
+  padding: .5rem .625rem;
+  background: linear-gradient(to top, rgba(31, 31, 31, .78), rgba(31, 31, 31, 0));
+  color: #fff;
+  pointer-events: none;
+}
+.swatches--labels-inside .swatch__meta h4 { margin: 0; font-size: .8125rem; color: #fff; }
+.swatches--labels-inside .swatch__meta dl,
+.swatches--labels-inside .swatch__usage { display: none; }
+.swatches--labels-inside.swatches--list .swatch__meta { position: static; background: none; color: inherit; }
+.swatches--labels-inside.swatches--list .swatch__meta h4 { color: inherit; }
+
 /* Do and do not */
 .rules--columns {
   display: grid;
@@ -1099,6 +1162,15 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 .clearspace__mark img { display: block; max-width: 100%; height: auto; }
 .clearspace__measure { margin: .75rem 0 0; font-size: .8125rem; color: var(--ink-faint); }
 
+/* The diagram's own colour and the surface behind the mark, so a clearspace
+   block can sit on a dark page or be drawn faintly. */
+.clearspace--accent .clearspace__frame { border-color: var(--accent); }
+.clearspace--ink .clearspace__frame    { border-color: var(--ink); }
+.clearspace--faint .clearspace__frame  { border-color: var(--rule-firm); }
+.clearspace--bg-panel .clearspace__mark { background: var(--raised); }
+.clearspace--bg-none .clearspace__mark  { background: none; }
+.clearspace--bg-dark .clearspace__mark  { background: var(--ink); }
+
 /* Spacing scale ------------------------------------------------------------ */
 .scale { list-style: none; margin: 0; padding: 0; display: grid; gap: .75rem; }
 .scale__row { display: grid; grid-template-columns: 7rem minmax(0, 1fr) 5rem; align-items: center; gap: 1rem; }
@@ -1108,6 +1180,179 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 .scale__value { font-size: .8125rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 .scale__use { font-size: .8125rem; color: var(--ink-faint); grid-column: 2 / -1; }
 @media (max-width: 40rem) { .scale__row { grid-template-columns: 5rem minmax(0, 1fr) 4rem; } }
+
+/* Colour ramps -------------------------------------------------------------
+   A family of colour drawn as its own steps. The scale comes from the content,
+   so nothing here counts the steps or assumes there are eleven: the row simply
+   divides by however many it is given. */
+
+.ramp { margin-bottom: 2.5rem; }
+.ramp:last-child { margin-bottom: 0; }
+.ramp__head { margin-bottom: .75rem; }
+.ramp__name { margin: 0; font-size: 1rem; font-weight: 600; }
+.ramp__note { margin: .125rem 0 0; font-size: .8125rem; color: var(--ink-soft); }
+
+.ramp__steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  /* Equal columns, one per step, whatever the count. */
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+}
+.ramp__step { min-width: 0; }
+.ramp__chip {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: .125rem;
+  width: 100%;
+  padding: .5rem;
+  border: 0;
+  background: var(--step);
+  cursor: pointer;
+  font: inherit;
+  text-align: left;
+  color: var(--ink);
+}
+/* Measured against the step itself in PHP, never guessed from the hex. */
+.ramp__step.is-dark .ramp__chip { color: #fff; }
+
+.ramps--h-short .ramp__chip  { min-height: 3rem; }
+.ramps--h-medium .ramp__chip { min-height: 5rem; }
+.ramps--h-tall .ramp__chip   { min-height: 8rem; }
+
+/* A continuous strip reads as one object; separate swatches read as a set. */
+.ramps--separate .ramp__steps { gap: .375rem; }
+.ramps--separate .ramp__chip { border-radius: var(--s-radius, 6px); }
+
+.ramp__label { font-size: .75rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.ramp__hex {
+  font-size: .6875rem;
+  opacity: 0;
+  transition: opacity var(--d-swift) var(--e-out);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ramp__hex.is-shown { opacity: .75; }
+.ramp__chip:hover .ramp__hex,
+.ramp__chip:focus-visible .ramp__hex { opacity: .85; }
+.ramp__step.is-copied .ramp__chip { outline: 2px solid var(--ink); outline-offset: -2px; }
+
+.ramp__under {
+  display: block;
+  padding-top: .375rem;
+  font-size: .75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-soft);
+}
+.ramp__use { display: block; font-size: .6875rem; color: var(--ink-faint); }
+
+/* The name beside the ramp rather than above it, where there is room for it. */
+@media (min-width: 52rem) {
+  .ramps--beside .ramp { display: grid; grid-template-columns: 8rem minmax(0, 1fr); gap: 1.25rem; align-items: start; }
+  .ramps--beside .ramp__head { margin-bottom: 0; }
+}
+
+/* A ramp of eleven steps cannot stay legible at phone width, so it scrolls
+   rather than shrinking each step to nothing. */
+@media (max-width: 40rem) {
+  .ramp__steps {
+    grid-auto-columns: minmax(3.25rem, 1fr);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x proximity;
+    padding-bottom: .5rem;
+  }
+  .ramp__step { scroll-snap-align: start; }
+}
+
+/* Primary and secondary ----------------------------------------------------
+   The arrangement is the point: the primaries take the large panels and the
+   secondaries tile beside them, so the proportions say which colours carry the
+   brand before a word is read. */
+
+.story {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  align-items: stretch;
+  border-radius: var(--s-radius, 6px);
+  overflow: hidden;
+}
+.story--two-thirds { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
+.story--full { grid-template-columns: minmax(0, 1fr); }
+
+.story__lead, .story__rest { display: grid; min-width: 0; }
+/* The column count is worked out from how many secondaries there are, in PHP,
+   so the tiles divide the space evenly instead of packing as many as will fit
+   and leaving the last one beside a hole. */
+.story__rest { grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr)); }
+.story__rest--stretch .story__panel:last-child { grid-column: 1 / -1; }
+
+/* All of these classes sit on the same element, so they are chained, not
+   descended. Written as descendants they would match nothing. */
+.story--h-short  { min-height: 16rem; }
+.story--h-medium { min-height: 24rem; }
+.story--h-tall   { min-height: 34rem; }
+
+.story--gap-thin { gap: 1px; background: var(--rule); }
+.story--gap-thin .story__lead,
+.story--gap-thin .story__rest { gap: 1px; }
+.story--gap-wide { gap: .5rem; background: none; }
+.story--gap-wide .story__lead,
+.story--gap-wide .story__rest { gap: .5rem; }
+.story--gap-wide .story__panel { border-radius: var(--s-radius, 6px); }
+
+.story__panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  min-width: 0;
+  padding: var(--s-pad, 1.5rem);
+  background: var(--panel);
+  color: var(--ink);
+}
+.story__panel.is-dark { color: #fff; }
+
+.story__meta { display: grid; gap: .125rem; min-width: 0; }
+.story__name { font-size: 1.125rem; font-weight: 600; }
+.story__panel--lead .story__name { font-size: clamp(1.25rem, 2.5vw, 1.75rem); }
+.story__hex, .story__pantone {
+  font-size: .8125rem;
+  opacity: .8;
+  font-variant-numeric: tabular-nums;
+}
+.story__usage { font-size: .8125rem; opacity: .75; max-width: 28ch; margin-top: .25rem; }
+
+/* The whole panel copies its value, so the control covers it rather than
+   sitting in a corner where it would have to be hunted for. */
+.story__copy {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+  padding: 0;
+  color: inherit;
+}
+.story__copy .swatch__copy {
+  inset: auto .5rem .5rem auto;
+  left: auto;
+  right: .5rem;
+  border-radius: var(--s-radius, 6px);
+}
+.story__copy:hover .swatch__copy,
+.story__copy:focus-visible .swatch__copy { opacity: 1; }
+.story__panel .story__meta { position: relative; pointer-events: none; }
+
+@media (max-width: 48rem) {
+  .story, .story--two-thirds { grid-template-columns: minmax(0, 1fr); }
+  /* Stacked, so a fixed overall height would only stretch the first panel. */
+  .story--h-short, .story--h-medium, .story--h-tall { min-height: 0; }
+  .story__panel { min-height: 9rem; }
+}
 
 /* Icon grid ---------------------------------------------------------------- */
 .icons { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; }
@@ -1213,6 +1458,10 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 /* Video -------------------------------------------------------------------- */
 .video { position: relative; aspect-ratio: 16 / 9; background: #000; border-radius: var(--s-radius, 6px); overflow: hidden; }
 .video iframe, .video video { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+/* A video wider than the measure, and the surface it sits on. */
+.block--video-wide .video { width: var(--breakout, 100%); max-width: none; }
+.video--panel { outline: 1px solid var(--rule); outline-offset: .5rem; }
+.video--shadow { box-shadow: 0 2px 8px -4px rgba(31,31,31,.3), 0 18px 40px -24px rgba(31,31,31,.45); }
 
 /* Tabs --------------------------------------------------------------------- */
 .tabs__list { display: flex; gap: .25rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
@@ -1251,6 +1500,10 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 }
 .accordion__item[open] .accordion__head::after { transform: rotate(-135deg); }
 .accordion__body { padding-bottom: 1.25rem; }
+/* Tighter rows, for a long reference list where the default spacing turns
+   twenty entries into a lot of scrolling. */
+.accordion--tight .accordion__head { padding-top: .625rem; padding-bottom: .625rem; }
+.accordion--tight .accordion__body { padding-bottom: .75rem; }
 
 /* Code --------------------------------------------------------------------- */
 .code { margin: 0; border: 1px solid var(--rule); border-radius: var(--s-radius, 6px); overflow: hidden; }
