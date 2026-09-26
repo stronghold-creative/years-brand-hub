@@ -470,6 +470,106 @@
     if (desc) desc.textContent = describe(blocks[selected]);
   }
 
+  /* ------------------------------------------------- undo, copy, reordering */
+
+  /**
+   * Undo, for the things that are hard to put back by hand.
+   *
+   * Version history already covers a whole page, but restoring a version to
+   * recover one deleted block is a sledgehammer. This holds the last few
+   * arrangements of the blocks so a delete, a duplicate or a reorder can be
+   * taken back immediately. Typing is not recorded: the field still holds what
+   * was typed, and the browser's own undo works inside it.
+   */
+  const history = [];
+  const HISTORY_DEPTH = 40;
+
+  function remember() {
+    history.push({ blocks: copy(blocks), selected: selected });
+    if (history.length > HISTORY_DEPTH) history.shift();
+  }
+
+  function undo() {
+    const previous = history.pop();
+    if (!previous) {
+      say('Nothing to undo.');
+      return;
+    }
+    blocks = previous.blocks;
+    selected = previous.selected !== null && previous.selected < blocks.length
+      ? previous.selected
+      : null;
+    renderAll();
+    queueSave();
+    say('Undone.');
+  }
+
+  /** Says something to the person, and to a screen reader, without a dialog. */
+  function say(message) {
+    if (!saveState) return;
+    saveState.textContent = message;
+    saveState.dataset.state = 'note';
+    // The save state takes the strip back over as soon as anything is saved.
+  }
+
+  function modifierName() {
+    return /Mac|iPhone|iPad/.test(window.navigator.platform || '') ? 'Cmd' : 'Ctrl';
+  }
+
+  function moveBlock(from, to) {
+    if (to < 0 || to >= blocks.length || from === to) return;
+    remember();
+    blocks.splice(to, 0, blocks.splice(from, 1)[0]);
+    select(to);
+    queueSave();
+  }
+
+  /**
+   * A block copied here can be pasted into any page.
+   *
+   * It goes through localStorage rather than the system clipboard, because the
+   * system clipboard cannot be read without a permission prompt and this has to
+   * survive navigating to the other page. The same download list or contacts
+   * block is wanted on several pages, and rebuilding it each time is the sort
+   * of work this editor exists to remove.
+   */
+  const CLIPBOARD = 'brandhub.block';
+
+  function copyBlock(index) {
+    const block = copy(ensure(blocks[index]));
+    delete block.__key;
+    try {
+      window.localStorage.setItem(CLIPBOARD, JSON.stringify(block));
+      say(schema[block.type].label + ' copied. Paste it on any page.');
+      paintOutline();
+    } catch (error) {
+      say('Could not copy that block.');
+    }
+  }
+
+  /** What is on the clipboard, if it is still a block this site understands. */
+  function clipboardBlock() {
+    try {
+      const raw = window.localStorage.getItem(CLIPBOARD);
+      if (!raw) return null;
+      const block = JSON.parse(raw);
+      // A block type can be removed between copying and pasting.
+      return (block && schema[block.type]) ? block : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function pasteBlock(at) {
+    const block = clipboardBlock();
+    if (!block) return;
+    remember();
+    blocks.splice(at, 0, ensure(copy(block)));
+    select(at);
+    queueSave();
+    say(schema[block.type].label + ' pasted.');
+  }
+
   function paintOutline() {
     outline.innerHTML = '';
 
@@ -497,8 +597,22 @@
 
       const acts = document.createElement('span');
       acts.className = 'outline__acts';
+
+      // Reordering was drag-only, which no keyboard can do and a touch screen
+      // does badly. These are the same movement, reachable by tab.
+      const up = miniButton('Move up', '&uarr;', () => moveBlock(index, index - 1));
+      const down = miniButton('Move down', '&darr;', () => moveBlock(index, index + 1));
+      up.disabled = index === 0;
+      down.disabled = index === blocks.length - 1;
+
       acts.append(
+        up,
+        down,
+        miniButton('Copy', '&#9112;', () => {
+          copyBlock(index);
+        }),
         miniButton('Duplicate', '&#10697;', () => {
+          remember();
           const twin = copy(ensure(blocks[index]));
           // The copy needs its own identity. Sharing the original's key made two
           // rows indistinguishable to the reorder animation, which then measured
@@ -510,13 +624,15 @@
         }),
         miniButton('Delete', '&times;', async () => {
           if (!window.confirm('Delete this ' + schema[block.type].label.toLowerCase() + ' block?')) return;
+          remember();
           // The row leaves before it is removed; once it is gone there is
           // nothing left to animate.
-          await UIMotion.exit(row).finished;
+          await UIMotion.settled(UIMotion.exit(row));
           blocks.splice(index, 1);
           selected = null;
           renderAll();
           queueSave();
+          say('Block deleted. Undo with ' + modifierName() + ' Z.');
         }, 'is-danger')
       );
 
@@ -533,6 +649,30 @@
       empty.textContent = 'No blocks yet.';
       outline.append(empty);
     }
+
+    paintPaste();
+  }
+
+  /**
+   * The paste control, shown only when there is something to paste. A button
+   * that does nothing most of the time is worse than no button.
+   */
+  function paintPaste() {
+    const holder = document.getElementById('outline-paste');
+    if (!holder) return;
+
+    const block = clipboardBlock();
+    holder.innerHTML = '';
+    holder.hidden = !block;
+    if (!block) return;
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'outline__paste m3-state';
+    button.textContent = 'Paste ' + schema[block.type].label.toLowerCase();
+    button.title = 'Copied from this or another page';
+    button.addEventListener('click', () => pasteBlock(blocks.length));
+    holder.append(button);
   }
 
   /**
@@ -570,6 +710,7 @@
     const row = event.target.closest('.outline__row');
     if (row && dragFrom !== null) {
       const to = Number(row.dataset.index);
+      remember();
       blocks.splice(to, 0, blocks.splice(dragFrom, 1)[0]);
       select(to);
       queueSave();
@@ -770,6 +911,7 @@
         item.querySelector('.blockmenu__label').textContent = def.label;
         item.querySelector('.blockmenu__hint').textContent = def.hint || '';
         item.addEventListener('click', () => {
+          remember();
           blocks.splice(index, 0, {
             type: type,
             data: copy(defaults[type]),
@@ -803,7 +945,7 @@
     document.removeEventListener('keydown', onMenuKey);
     await Promise.all(open.map((scrim) => {
       const panel = scrim.querySelector('.blockmenu');
-      return UIMotion.exitDialog(panel, scrim).finished.then(() => scrim.remove());
+      return UIMotion.settled(UIMotion.exitDialog(panel, scrim)).then(() => scrim.remove());
     }));
   }
 
@@ -956,10 +1098,56 @@
     });
   });
 
-  // Escape returns to page settings; that is the only shortcut for now.
+  /**
+   * Keyboard.
+   *
+   * Everything here is deliberately inert while a field has focus, so typing
+   * into a block is never interrupted: the browser's own undo belongs to the
+   * field, and a bare arrow key belongs to the text. Only the modifier
+   * combinations reach across from a field, and only undo does that.
+   */
+  function isTyping(target) {
+    if (!target) return false;
+    const tag = target.tagName;
+    return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable;
+  }
+
   document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape' && selected !== null && !document.querySelector('.picker, .blockmenu__scrim')) {
+    const overlay = document.querySelector('.picker, .blockmenu__scrim');
+
+    if (event.key === 'Escape' && selected !== null && !overlay) {
       select(null);
+      return;
+    }
+    if (overlay) return;
+
+    const modifier = event.metaKey || event.ctrlKey;
+
+    // Undo works from anywhere except inside a field, where the field's own
+    // undo is the one that is wanted.
+    if (modifier && !event.shiftKey && event.key.toLowerCase() === 'z' && !isTyping(event.target)) {
+      event.preventDefault();
+      undo();
+      return;
+    }
+
+    if (selected === null || isTyping(event.target)) return;
+
+    // Moving the selected block, with the modifier so a bare arrow key still
+    // scrolls the page.
+    if (modifier && (event.key === 'ArrowUp' || event.key === 'ArrowDown')) {
+      event.preventDefault();
+      moveBlock(selected, selected + (event.key === 'ArrowUp' ? -1 : 1));
+      return;
+    }
+    if (modifier && event.key.toLowerCase() === 'c') {
+      event.preventDefault();
+      copyBlock(selected);
+      return;
+    }
+    if (modifier && event.key.toLowerCase() === 'v') {
+      event.preventDefault();
+      pasteBlock(selected + 1);
     }
   });
 

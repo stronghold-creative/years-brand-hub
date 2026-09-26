@@ -51,6 +51,8 @@ $isAdmin = (current_user()['role'] ?? '') === 'admin';
     </div>
     <ol class="outline" id="outline-list"></ol>
     <button class="outline__add m3-state" type="button" id="outline-add">Add a block</button>
+    <?php // Filled in by the editor, and only when a block has been copied. ?>
+    <div id="outline-paste" hidden></div>
   </nav>
 
   <!-- Canvas: the real page, clickable. -->

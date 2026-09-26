@@ -54,6 +54,27 @@ window.UIMotion = (function () {
     return M.animate(target, keyframes, options(extra));
   }
 
+  /**
+   * Waits for an animation, but never indefinitely.
+   *
+   * An animation only advances while the page is being painted, so in a tab
+   * that is hidden or behind another window it never finishes and its promise
+   * never resolves. Anything that waits on one before removing an element or
+   * closing a panel therefore stops: the menu stays open, the block is not
+   * deleted, and nothing says why.
+   *
+   * Use this wherever a promise gates a change of state, rather than .finished
+   * directly. The animation is decoration; the change is the point.
+   */
+  function settled(controls, after) {
+    const finished = (controls && controls.finished) || Promise.resolve();
+    const limit = (after || T.slow) * 1000 + 120;
+    return Promise.race([
+      finished,
+      new Promise(function (resolve) { window.setTimeout(resolve, limit); }),
+    ]);
+  }
+
   /* ----------------------------------------------------------- appearing */
 
   /**
@@ -181,6 +202,7 @@ window.UIMotion = (function () {
     spring: SPRING,
     reduced: reduced,
     animate: animate,
+    settled: settled,
     enter: enter,
     enterDialog: enterDialog,
     enterList: enterList,

@@ -112,8 +112,8 @@
     document.querySelectorAll('.m3-scrim:not(.m3-scrim--drawer)').forEach((el) => {
       if (el.hidden) return;
       // Hidden only once it has finished leaving, or it would vanish instantly.
-      UIMotion.exitDialog(el.querySelector('.m3-dialog') || el, el)
-        .finished.then(() => { el.hidden = true; });
+      UIMotion.settled(UIMotion.exitDialog(el.querySelector('.m3-dialog') || el, el))
+        .then(() => { el.hidden = true; });
     });
     document.removeEventListener('keydown', onDialogKey);
     if (dialogReturn && dialogReturn.focus) dialogReturn.focus();
@@ -335,8 +335,8 @@
           { opacity: [0, 1], y: [-6, 0], scale: [0.97, 1] },
           { duration: UIMotion.durations.base, ease: UIMotion.easings.expo });
       } else if (!menu.hasAttribute('hidden')) {
-        UIMotion.exit(menu, { duration: UIMotion.durations.swift })
-          .finished.then(() => menu.setAttribute('hidden', ''));
+        UIMotion.settled(UIMotion.exit(menu, { duration: UIMotion.durations.swift }))
+          .then(() => menu.setAttribute('hidden', ''));
       }
       if (owner) owner.setAttribute('aria-expanded', String(opening));
 
@@ -388,7 +388,7 @@
     UIMotion.enterDialog(panel, overlay);
 
     const grid = overlay.querySelector('.picker__grid');
-    const close = () => UIMotion.exitDialog(panel, overlay).finished.then(() => overlay.remove());
+    const close = () => UIMotion.settled(UIMotion.exitDialog(panel, overlay)).then(() => overlay.remove());
 
     overlay.querySelector('.picker__close').addEventListener('click', close);
     overlay.querySelector('.picker__clear').addEventListener('click', () => { onChoose(''); close(); });

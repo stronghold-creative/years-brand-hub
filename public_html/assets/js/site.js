@@ -166,14 +166,14 @@ feature('rail panel', function () {
     } else {
       // The panel leaves before the page is unlocked, so the scroll position
       // is restored behind a panel that has already gone.
-      UIMotion.slideOut(nav, 'left').finished.then(function () {
+      UIMotion.settled(UIMotion.slideOut(nav, 'left')).then(function () {
         document.body.classList.remove('nav-open');
         document.body.style.top = '';
         window.scrollTo(0, offset);
       });
       if (scrim) {
-        UIMotion.animate(scrim, { opacity: [1, 0] }, { duration: UIMotion.durations.swift })
-          .finished.then(function () { scrim.hidden = true; });
+        UIMotion.settled(UIMotion.animate(scrim, { opacity: [1, 0] }, { duration: UIMotion.durations.swift }))
+          .then(function () { scrim.hidden = true; });
       }
     }
     toggle.setAttribute('aria-expanded', String(open));
@@ -339,7 +339,7 @@ feature('hero', function () {
     // begins. Setting it here instead meant the headline painted in full and was
     // then snapped away, which is what made this look wrong on a slow load.
     const start = function () {
-      UIMotion.animate(lines,
+      const running = UIMotion.animate(lines,
         wipe
           ? { y: ['105%', '0%'] }
           : { y: [24, 0], opacity: [0, 1] },
@@ -348,7 +348,8 @@ feature('hero', function () {
           ease: UIMotion.easings.expo,
           delay: UIMotion.reduced() ? 0 : window.Motion.stagger(0.07),
         }
-      ).finished.then(function () {
+      );
+      UIMotion.settled(running).then(function () {
         hero.classList.add('is-revealed');
       });
     };

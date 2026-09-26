@@ -868,6 +868,32 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 #save-state[data-state='pending'] { background: var(--md-sys-color-surface-container-highest); border-color: transparent; }
 #save-state[data-state='saved']   { background: var(--md-sys-color-secondary-container); color: var(--md-sys-color-on-secondary-container); border-color: transparent; }
 #save-state[data-state='error']   { background: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container); border-color: transparent; }
+/* Something the editor is telling you, rather than a save state: copied,
+   pasted, undone. The next save takes the strip back. */
+#save-state[data-state='note']    { background: var(--md-sys-color-surface-container-highest); border-color: transparent; }
+
+/* Paste, shown only when a block has been copied. It sits under Add a block
+   and matches it, because it is the same kind of action. */
+.outline__paste {
+  width: calc(100% - 1rem);
+  margin: 0 .5rem .5rem;
+  height: 2.25rem;
+  border: 1px dashed var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-full);
+  background: none;
+  color: var(--md-sys-color-on-surface-variant);
+  font: inherit; font-size: .8125rem; font-weight: 500;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.outline__paste:hover {
+  border-style: solid;
+  color: var(--md-sys-color-primary);
+  background: var(--md-sys-color-surface-container-high);
+}
+#outline-paste[hidden] { display: none; }
 
 /* ------------------------------------------------------------- outline */
 
