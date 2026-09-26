@@ -63,8 +63,12 @@ feature('masthead', function () {
   const bar = document.getElementById('masthead');
   if (!bar) return;
 
-  const COMPACT_AFTER = 120;   // how far down before it may compact at all
-  const COMMIT = 28;           // travel in one direction before the state flips
+  // Both of these were low enough that an ordinary reading scroll, or a single
+  // notch of a wheel, was enough to change the bar. It read as the bar reacting
+  // to everything. A commit distance of most of a screen's worth of reading
+  // means the state changes when the reader has genuinely changed direction.
+  const COMPACT_AFTER = 200;   // how far down before it may compact at all
+  const COMMIT = 90;           // travel in one direction before the state flips
 
   let anchor = window.scrollY;   // where the current direction started
   let heading = 0;               // -1 up, 1 down, 0 undecided
@@ -320,20 +324,21 @@ feature('hero', function () {
   document.querySelectorAll('.hero').forEach(function (hero) {
     const lines = hero.querySelectorAll('.hero__line > span');
     if (!lines.length) return;
-    if (hero.classList.contains('hero--reveal-none')) return;
+
+    // Nothing to reveal, so the stylesheet is told the reveal is over and the
+    // lines show. Otherwise a hero set to no reveal would stay hidden.
+    if (hero.classList.contains('hero--reveal-none')) {
+      hero.classList.add('is-revealed');
+      return;
+    }
 
     const wipe = hero.classList.contains('hero--reveal-clip');
 
-    // Set the starting state only once the font is ready, so the measured
-    // line height the wipe depends on is the real one.
+    // The starting state comes from the stylesheet, before the first paint, so
+    // there is nothing to set here: the lines are already where the animation
+    // begins. Setting it here instead meant the headline painted in full and was
+    // then snapped away, which is what made this look wrong on a slow load.
     const start = function () {
-      lines.forEach(function (line) {
-        // Motion writes the transform itself once the animation starts; this
-        // only holds the line in place until then.
-        line.style.transform = wipe ? 'translateY(105%)' : 'translateY(24px)';
-        line.style.opacity = wipe ? '1' : '0';
-      });
-
       UIMotion.animate(lines,
         wipe
           ? { y: ['105%', '0%'] }
@@ -343,13 +348,38 @@ feature('hero', function () {
           ease: UIMotion.easings.expo,
           delay: UIMotion.reduced() ? 0 : window.Motion.stagger(0.07),
         }
-      );
+      ).finished.then(function () {
+        hero.classList.add('is-revealed');
+      });
     };
 
-    if (document.fonts && document.fonts.ready) {
-      document.fonts.ready.then(start);
-    } else {
-      start();
-    }
+    /**
+     * The reveal waits for the web font, because the wipe depends on the
+     * measured line height and the wrong font gives the wrong one. But waiting
+     * on fonts.ready alone made the same navigation behave differently every
+     * time: on a cold cache the lines were held, then revealed; on a warm one
+     * the promise resolved during first paint and the headline was simply
+     * already there.
+     *
+     * So the wait is capped, and the start is pushed to the next frame either
+     * way. The reveal then always happens, always after layout, and always over
+     * the same duration.
+     */
+    const fontsReady = (document.fonts && document.fonts.ready)
+      ? document.fonts.ready
+      : Promise.resolve();
+
+    const capped = new Promise(function (resolve) {
+      window.setTimeout(resolve, 300);
+    });
+
+    Promise.race([fontsReady, capped]).then(function () {
+      window.requestAnimationFrame(start);
+    });
+
+    // Whatever happens above, the headline appears. The reveal is worth having
+    // but it is not worth a blank opener, and the animation is long finished by
+    // now, so this only ever takes effect if something went wrong.
+    window.setTimeout(function () { hero.classList.add('is-revealed'); }, 1500);
   });
 });

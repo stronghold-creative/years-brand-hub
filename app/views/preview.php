@@ -10,6 +10,9 @@
 <?php endif; ?>
 <link rel="stylesheet" href="<?= e(asset_url('/assets/css/site.css')) ?>">
 <style><?= style_css() ?></style>
+<?php // As in the public layout: the hero's starting state has to be in place
+      // before anything paints, or the preview shows the headline twice. ?>
+<script>document.documentElement.classList.add('js-hero');</script>
 </head>
 <body class="is-preview"<?= style_body_attributes() ?>>
 <?php

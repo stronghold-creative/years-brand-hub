@@ -41,8 +41,21 @@ $canonical  = rtrim((string) (($config['site']['base_url'] ?? '')), '/')
 <?php endif; ?>
 <link rel="stylesheet" href="<?= e(asset_url('/assets/css/site.css')) ?>">
 <style><?= style_css() ?></style>
+<?php
+// Marks the document as able to reveal the hero, before anything paints, so the
+// stylesheet can hold the headline in its starting state. Doing this from
+// site.js at the end of the body is too late: the words paint in full first and
+// are then snapped away to be animated back in. If scripting is off the class
+// never arrives and the headline is simply there.
+?>
+<script>document.documentElement.classList.add('js-hero');</script>
 </head>
 <body<?= style_body_attributes() ?>>
+<?php // Every section page lists each section, then every chapter in the current
+      // one, before the content. Without this a keyboard reader tabs through the
+      // whole rail on every page before reaching a word of it. ?>
+<a class="skip" href="#content">Skip to the content</a>
+<span id="top"></span>
 <header class="masthead" id="masthead">
   <?php $logo = site_logo(); ?>
   <button class="masthead__menu" type="button" id="nav-toggle"
@@ -82,6 +95,26 @@ $canonical  = rtrim((string) (($config['site']['base_url'] ?? '')), '/')
 <footer class="foot">
   <p><?= e((string) setting('footer_note', 'Questions about anything here, or something missing, speak to the brand team.')) ?></p>
 </footer>
+<?php
+// Clicking a category in the rail loads a whole document, where clicking a
+// chapter only scrolls, and the pause between the two is what made moving
+// between categories feel awkward. Rather than cover the gap with an animation,
+// the next section is fetched while the pointer is still on the link, so by the
+// time it is clicked there is usually nothing to wait for.
+//
+// "moderate" means on hover, not on sight, so idle reading does not pull down
+// every section. Browsers without speculation rules ignore this entirely and
+// navigate exactly as before.
+?>
+<script type="speculationrules">
+{
+  "prefetch": [{
+    "source": "document",
+    "where": { "href_matches": "/s/*" },
+    "eagerness": "moderate"
+  }]
+}
+</script>
 <script src="<?= e(asset_url('/assets/js/vendor/motion.js')) ?>"></script>
 <script src="<?= e(asset_url('/assets/js/motion-ui.js')) ?>"></script>
 <script src="<?= e(asset_url('/assets/js/site.js')) ?>"></script>

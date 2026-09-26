@@ -1,4 +1,4 @@
-<main class="index">
+<main class="index" id="content">
   <div class="index__empty">
     <h1>Components are coming.</h1>
     <p>This is where web components will be documented for design and development:

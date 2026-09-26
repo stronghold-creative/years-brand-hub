@@ -27,14 +27,16 @@ $currentSlug = slugify($section);
         <?php foreach ($items as $item): ?>
           <a class="reader__link" href="#<?= e($item['slug']) ?>" data-anchor="<?= e($item['slug']) ?>">
             <?= e($item['title']) ?>
-            <?php if ($item['status'] !== 'published'): ?><span class="reader__draftdot" title="Draft"></span><?php endif; ?>
+            <?php // An empty span with a title attribute is not reliably read out,
+                  // so the word itself is there for anyone not seeing the dot. ?>
+            <?php if ($item['status'] !== 'published'): ?><span class="reader__draftdot" aria-hidden="true"></span><span class="visually-hidden">Draft</span><?php endif; ?>
           </a>
         <?php endforeach; ?>
       <?php endif; ?>
     <?php endforeach; ?>
   </nav>
 
-  <main class="reader__body">
+  <main class="reader__body" id="content">
     <?php if (empty($hero)): ?>
       <header class="reader__sectionhead">
         <h1><?= e($section) ?></h1>
@@ -55,5 +57,10 @@ $currentSlug = slugify($section);
         <p class="chapter__updated">Last updated <?= e(date('j F Y', strtotime($entry['updated_at']))) ?></p>
       </article>
     <?php endforeach; ?>
+
+    <?php // A section is deliberately one long scroll, so the end of it is a long
+          // way from the rail. On a narrow screen the rail is a panel behind a
+          // button, which makes this the only way back without a gesture. ?>
+    <p class="backtotop"><a href="#top">Back to the top of <?= e($section) ?></a></p>
   </main>
 </div>

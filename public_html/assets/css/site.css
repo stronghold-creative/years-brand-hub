@@ -99,6 +99,25 @@ a { color: var(--accent); text-underline-offset: 2px; }
 a:hover { color: var(--accent-deep); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 
+/* Off screen until focused, then a real control in the top left. Not
+   display:none, which would take it out of the tab order and defeat the point. */
+.skip {
+  position: fixed;
+  top: .75rem;
+  left: .75rem;
+  z-index: 200;
+  padding: .625rem 1rem;
+  background: var(--ink);
+  color: #fff;
+  border-radius: var(--s-radius, 6px);
+  text-decoration: none;
+  font-size: .875rem;
+  font-weight: 500;
+  transform: translateY(-200%);
+  transition: transform var(--d-base) var(--e-out);
+}
+.skip:focus-visible { transform: none; color: #fff; }
+
 /* ------------------------------------------------------------------ chrome */
 
 .masthead {
@@ -203,6 +222,18 @@ body.nav-open {
   inset: 0;
   width: 100%;
   overflow: hidden;
+}
+/* Fixing the body moves everything inside it, including a sticky bar, by the
+   recorded scroll offset. Opening the panel part way down a section therefore
+   took the masthead off the top of the screen with it: the logo went, and so
+   did the button that closes the panel, leaving the scrim or the Escape key as
+   the only way out. Fixed to the viewport instead, so it stays where the panel
+   already reserves room for it. */
+.nav-open .masthead {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
 }
 @keyframes navfade { from { opacity: 0; } to { opacity: 1; } }
 .masthead__mark {
@@ -340,7 +371,11 @@ body.nav-open {
   color: var(--ink-soft);
 }
 .reader__nav a:hover { color: var(--accent); border-left-color: var(--rule-firm); }
-.reader__nav a[aria-current='page'] { border-left-color: var(--accent); color: var(--ink); font-weight: 600; }
+/* The current section's own link. It sits in an h2, which is already 600, so
+   this only settles the colour. It carries no border, so no rule is set here:
+   an earlier version of this rail linked to a page per chapter and the border
+   belonged to that; the border now lives on .reader__link alone. */
+.reader__nav a[aria-current='page'] { color: var(--ink); }
 .reader__draftdot {
   display: inline-block;
   width: .375rem; height: .375rem;
@@ -691,6 +726,10 @@ html { scroll-behavior: smooth; }
   font-size: .875rem;
 }
 .reader__link:hover { color: var(--accent); border-left-color: var(--rule-firm); }
+/* This changes weight as well as colour, where the section headings above
+   deliberately do not. Measured at the rail's real width of 16rem: the weight
+   change does not move anything, including titles long enough to wrap to two
+   lines, so it stays. Worth re-measuring if the rail is ever narrowed. */
 .reader__link.is-current {
   border-left-color: var(--accent);
   color: var(--ink);
@@ -715,6 +754,10 @@ html { scroll-behavior: smooth; }
   scroll-margin-top: 6rem;
 }
 .chapter:last-child { border-bottom: 0; }
+
+.backtotop { margin: 0; font-size: .875rem; }
+.backtotop a { color: var(--ink-soft); text-decoration: none; }
+.backtotop a:hover { color: var(--accent); }
 /* A long heading on one line is hard to scan, so headings keep a measure too. */
 .chapter__title {
   max-width: 24ch;
@@ -1006,6 +1049,13 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
     animation-duration: 1ms !important;
     animation-delay: 0ms !important;
     transition-duration: 1ms !important;
+  }
+  /* Nothing is revealed, so nothing is hidden waiting to be. Both selectors are
+     spelled out to match the specificity of the rules that hide them. */
+  .js-hero:not(.no-motion) .hero--reveal-rise .hero__line > span,
+  .js-hero:not(.no-motion) .hero--reveal-clip .hero__line > span {
+    opacity: 1;
+    transform: none;
   }
 }
 
@@ -1370,9 +1420,27 @@ html, body { overflow-x: clip; }
    than relying on the absence of one. */
 .hero--reveal-rise .hero__line { overflow: visible; }
 
-/* Without JavaScript the headline is simply there, which is the right
-   fallback for a page's opening statement. */
-.no-motion .hero__line > span { transform: none; opacity: 1; }
+/* The state the reveal starts from, set here rather than in JavaScript.
+   Setting it in JavaScript meant the headline painted in full first and was
+   only then snapped away and animated back in, so a cold load showed the
+   words twice and a warm one appeared to show no animation at all.
+
+   .js-hero is added by an inline script in the head, so it is in place before
+   the first paint. Without JavaScript the class never arrives and the headline
+   is simply there, which is the right fallback for a page's opening statement.
+   .no-motion means the animation library failed, so the same applies. */
+.js-hero:not(.no-motion) .hero--reveal-rise .hero__line > span {
+  opacity: 0;
+  transform: translateY(24px);
+}
+.js-hero:not(.no-motion) .hero--reveal-clip .hero__line > span {
+  transform: translateY(105%);
+}
+
+/* Once the reveal has finished. Motion holds the end state in inline styles,
+   which beat this, so it only takes effect if those are ever cleared: a safety
+   net so a headline can never be left invisible. */
+.hero.is-revealed .hero__line > span { opacity: 1; transform: none; }
 
 @media (max-width: 48rem) {
   .hero { padding-top: calc(var(--hero-pad) + 3.5rem); }

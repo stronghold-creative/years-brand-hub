@@ -13,7 +13,7 @@ foreach ($sections as $section => $items) {
     }
 }
 ?>
-<main class="index">
+<main class="index" id="content">
   <?php if (!$all): ?>
     <div class="index__empty">
       <h1>Nothing published yet.</h1>
