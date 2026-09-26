@@ -71,11 +71,20 @@ stored JSON can only contain known keys. A new block type needs an entry in
 setting through `block_option($options, $key, $fallback, $siteKey)`. That is
 what makes Appearance in the admin move every block not deliberately overridden.
 
-The 25 block types: rich_text, colour_palette, type_specimen, do_dont, image,
-image_grid, comparison_table, download_list, callout, clearspace,
-spacing_scale, icon_grid, contrast_pairs, misuse_gallery, spec_table,
-link_list, contacts, checklist, video, tabs, accordion, code, steps, hero,
-quote.
+The 27 block types: rich_text, colour_palette, colour_ramp, colour_story,
+type_specimen, do_dont, image, image_grid, comparison_table, download_list,
+callout, clearspace, spacing_scale, icon_grid, contrast_pairs, misuse_gallery,
+spec_table, link_list, contacts, checklist, video, tabs, accordion, code,
+steps, hero, quote. Every one of them now has appearance options; clearspace,
+video and accordion had none until 26 September and so could not follow the
+site's appearance at all.
+
+**A repeater can hold a repeater.** `field()` in `editor.js` handles a nested
+one and `sanitise_fields()` is recursive, which is what `colour_ramp` needs: a
+list of families, each with its own list of steps, so the scale comes from the
+content rather than being fixed in the definition. The sanitiser understood
+exactly one level of nesting before that and would have run a nested array
+through `trim()`, destroying it on the first save.
 
 **An asset field says what it accepts.** `'accept' => 'video'` on an asset
 field makes the picker offer MP4s instead of images. Only the video block uses
