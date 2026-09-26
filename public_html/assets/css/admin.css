@@ -1208,6 +1208,23 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
   margin-bottom: .625rem;
   font-size: .6875rem; color: var(--md-sys-color-on-surface-variant);
 }
+/* The grip is what makes a row draggable, and only while it is held: a row
+   that is always draggable swallows text selection in the fields inside it. */
+.repeater__grip {
+  flex: none;
+  width: .875rem;
+  height: 1rem;
+  cursor: grab;
+  background-image: radial-gradient(currentColor 1px, transparent 1px);
+  background-size: 4px 4px;
+  background-position: 1px 2px;
+  color: var(--md-sys-color-outline);
+  opacity: .8;
+}
+.repeater__grip:active { cursor: grabbing; }
+.repeater__item.is-dragging { opacity: .5; }
+.repeater__item.is-over { outline: 2px solid var(--md-sys-color-primary); outline-offset: 1px; }
+
 /* The row's own name, so a list of eight is navigable. It takes the space and
    the controls sit to the right of it. */
 .repeater__name {

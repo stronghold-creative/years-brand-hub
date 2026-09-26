@@ -92,6 +92,8 @@ $isCurrent = function (array $item) use ($path): bool {
 <script>window.CSRF = <?= json_encode(csrf_token()) ?>;</script>
 <script src="<?= e(asset_url('/assets/js/vendor/motion.js')) ?>"></script>
 <script src="<?= e(asset_url('/assets/js/motion-ui.js')) ?>"></script>
+<?php // The asset picker, shared by the block editor, page covers and the logo. ?>
+<script src="<?= e(asset_url('/assets/js/picker.js')) ?>"></script>
 <script src="<?= e(asset_url('/assets/js/admin.js')) ?>"></script>
 <script src="<?= e(asset_url('/assets/js/editor.js')) ?>"></script>
 </body>

@@ -55,131 +55,13 @@
 
   const clone = (value) => JSON.parse(JSON.stringify(value));
 
-
-  // ---------------------------------------------------------- image picker
-
-  let imageCache = null;
-
-  async function loadImages(refresh) {
-    if (imageCache && !refresh) return imageCache;
-    const response = await fetch('/admin/assets.json', { headers: { 'Accept': 'application/json' } });
-    const data = await response.json();
-    imageCache = data.images || [];
-    return imageCache;
-  }
+  // ---------------------------------------------------------- asset fields
 
   /**
-   * The asset picker.
-   *
-   * $accept is 'image' or 'video'. An image field must not offer an MP4 and the
-   * video block must not offer a PNG, so the field says what it wants and the
-   * library is filtered rather than everything being shown to everyone.
-   *
-   * It uploads too. Leaving the editor, going to Assets, uploading, coming back
-   * and finding the block again is a lot of steps to put between a writer and
-   * one picture, and it is the step writing these pages needs most often.
+   * The picker itself lives in picker.js, shared with the site logo and page
+   * covers in admin.js. It used to be implemented twice and the two copies had
+   * already drifted apart.
    */
-  function openPicker(onPick, accept) {
-    const kind = accept === 'video' ? 'video' : 'image';
-    const noun = kind === 'video' ? 'video' : 'image';
-
-    const overlay = document.createElement('div');
-    overlay.className = 'picker';
-    overlay.innerHTML =
-      '<div class="picker__panel" role="dialog" aria-modal="true" aria-label="Choose a file">' +
-        '<header class="picker__head">' +
-          '<input class="picker__search" type="search" placeholder="Search by name or tag" aria-label="Search the library">' +
-          '<button type="button" class="picker__close m3-state" aria-label="Close">Close</button>' +
-        '</header>' +
-        '<div class="picker__grid" aria-live="polite">Loading</div>' +
-        '<footer class="picker__foot">' +
-          '<label class="picker__upload m3-state">' +
-            '<input type="file" hidden accept="' + (kind === 'video' ? 'video/mp4' : 'image/*') + '">' +
-            '<span>Upload a new ' + noun + '</span>' +
-          '</label>' +
-          '<span class="picker__hint">It is added to the asset library and selected here.</span>' +
-        '</footer>' +
-      '</div>';
-    document.body.append(overlay);
-
-    const grid = overlay.querySelector('.picker__grid');
-    const search = overlay.querySelector('.picker__search');
-    const hint = overlay.querySelector('.picker__hint');
-    const file = overlay.querySelector('.picker__upload input');
-    const close = () => { overlay.remove(); document.removeEventListener('keydown', onKey); };
-    const onKey = (event) => { if (event.key === 'Escape') close(); };
-
-    overlay.querySelector('.picker__close').addEventListener('click', close);
-    overlay.addEventListener('click', (event) => { if (event.target === overlay) close(); });
-    document.addEventListener('keydown', onKey);
-
-    const matching = (list) => list.filter((item) => (item.kind || 'image') === kind);
-
-    function draw(items) {
-      grid.innerHTML = '';
-      if (!items.length) {
-        grid.textContent = 'No ' + noun + 's in the library yet. Upload one below.';
-        return;
-      }
-      items.forEach((item) => {
-        const tile = document.createElement('button');
-        tile.type = 'button';
-        tile.className = 'picker__tile m3-state';
-        tile.innerHTML = item.kind === 'video'
-          ? '<span class="picker__thumb picker__thumb--file">MP4</span><span class="picker__label"></span>'
-          : '<span class="picker__thumb"><img src="' + item.url + '" alt="" loading="lazy"></span>' +
-            '<span class="picker__label"></span>';
-        tile.querySelector('.picker__label').textContent = item.label || item.file;
-        tile.addEventListener('click', () => { onPick(item); close(); });
-        grid.append(tile);
-      });
-    }
-
-    function load(refresh) {
-      return loadImages(refresh).then((all) => {
-        const items = matching(all);
-        draw(items);
-        return items;
-      });
-    }
-
-    load().then((items) => {
-      search.focus();
-      search.addEventListener('input', () => {
-        const term = search.value.trim().toLowerCase();
-        draw(!term ? items : items.filter((item) =>
-          (item.label + ' ' + item.file + ' ' + item.tags).toLowerCase().includes(term)
-        ));
-      });
-    }).catch(() => { grid.textContent = 'Could not load the asset library.'; });
-
-    file.addEventListener('change', async () => {
-      if (!file.files.length) return;
-      const chosen = file.files[0];
-      hint.textContent = 'Uploading ' + chosen.name + '…';
-
-      const body = new FormData();
-      body.append('_csrf', window.CSRF);
-      body.append('file', chosen);
-      try {
-        const response = await fetch('/admin/assets/add', { method: 'POST', body: body });
-        const result = await response.json();
-        if (!response.ok || !result.ok) throw new Error(result.error || 'Upload failed');
-        // The cache is dropped and the new file added to it before the block is
-        // told, because selecting it immediately re-reads the library to draw
-        // its thumbnail. Clearing the cache afterwards instead left that read
-        // looking at a stale list and reporting the file as missing.
-        imageCache = imageCache ? [result.asset].concat(imageCache) : [result.asset];
-        // Straight into the block, which is the point of uploading from here.
-        onPick(result.asset);
-        close();
-      } catch (error) {
-        hint.textContent = error.message;
-        file.value = '';
-      }
-    });
-  }
-
   function assetField(def, value, onInput) {
     const wrap = document.createElement('div');
     wrap.className = 'field field--asset';
@@ -197,12 +79,16 @@
     function paint(id) {
       shown.innerHTML = '';
       const choose = button(id ? 'Change' : 'Choose ' + (accept === 'video' ? 'a video' : 'an image'), () => {
-        openPicker((image) => { onInput(String(image.id)); paint(String(image.id)); }, accept);
+        AssetPicker.open({
+          accept: accept,
+          current: id,
+          onPick: (image) => { onInput(String(image.id)); paint(String(image.id)); },
+        });
       });
       choose.className = 'assetpick__choose m3-state';
 
       if (id) {
-        loadImages().then((images) => {
+        AssetPicker.load().then((images) => {
           const match = images.find((image) => String(image.id) === String(id));
           const preview = document.createElement('span');
           preview.className = 'assetpick__preview';
@@ -355,9 +241,25 @@
     rows.forEach((row, index) => {
       const item = document.createElement('div');
       item.className = 'repeater__item';
+      item.dataset.row = index;
 
       const bar = document.createElement('div');
       bar.className = 'repeater__bar';
+
+      /**
+       * Dragging is switched on by the grip, not left on the row.
+       *
+       * A permanently draggable row swallows text selection in the fields
+       * inside it, so the browser starts a drag when you try to select a word.
+       * The grip turns it on while it is held and dragend turns it off again.
+       */
+      const grip = document.createElement('span');
+      grip.className = 'repeater__grip';
+      grip.title = 'Drag to reorder';
+      grip.setAttribute('aria-hidden', 'true');
+      grip.addEventListener('mousedown', () => { item.draggable = true; });
+      grip.addEventListener('touchstart', () => { item.draggable = true; }, { passive: true });
+      bar.append(grip);
 
       const name = document.createElement('span');
       name.className = 'repeater__name';
@@ -368,12 +270,21 @@
 
       // Compact controls, and disabled at the ends rather than doing nothing
       // when pressed, which gave no clue that the row was already first.
-      const up = miniButton('Move up', '&uarr;', () => { move(rows, index, index - 1); onChange(rows); });
-      const down = miniButton('Move down', '&darr;', () => { move(rows, index, index + 1); onChange(rows); });
+      //
+      // Each of these changes the shape of the list, so each is remembered for
+      // undo. Typing inside a row is not: the field still holds what was typed
+      // and the browser's own undo works there.
+      const up = miniButton('Move up', '&uarr;', () => {
+        remember(); move(rows, index, index - 1); onChange(rows);
+      });
+      const down = miniButton('Move down', '&darr;', () => {
+        remember(); move(rows, index, index + 1); onChange(rows);
+      });
       up.disabled = index === 0;
       down.disabled = index === rows.length - 1;
 
       const remove = miniButton('Remove', '&times;', () => {
+        remember();
         rows.splice(index, 1);
         onChange(rows);
       }, 'is-danger');
@@ -396,7 +307,53 @@
       wrap.append(item);
     });
 
+    // Dragging a row to reorder it. Up and down remain, because they are the
+    // ones a keyboard can reach; this is for a palette of eleven steps where
+    // moving one to the other end is nine clicks.
+    let dragging = null;
+
+    wrap.addEventListener('dragstart', (event) => {
+      const item = event.target.closest('.repeater__item');
+      if (!item || item.parentElement !== wrap) return;
+      dragging = Number(item.dataset.row);
+      item.classList.add('is-dragging');
+      if (event.dataTransfer) event.dataTransfer.effectAllowed = 'move';
+    });
+
+    wrap.addEventListener('dragover', (event) => {
+      if (dragging === null) return;
+      event.preventDefault();
+      const item = event.target.closest('.repeater__item');
+      wrap.querySelectorAll('.is-over').forEach((el) => el.classList.remove('is-over'));
+      if (item && item.parentElement === wrap) item.classList.add('is-over');
+    });
+
+    wrap.addEventListener('drop', (event) => {
+      if (dragging === null) return;
+      event.preventDefault();
+      const item = event.target.closest('.repeater__item');
+      if (item && item.parentElement === wrap) {
+        const to = Number(item.dataset.row);
+        if (to !== dragging) {
+          remember();
+          rows.splice(to, 0, rows.splice(dragging, 1)[0]);
+          // Not in place: the rows have swapped, so the panel is rebuilt.
+          onChange(rows);
+        }
+      }
+      dragging = null;
+    });
+
+    wrap.addEventListener('dragend', () => {
+      dragging = null;
+      wrap.querySelectorAll('.repeater__item').forEach((el) => {
+        el.classList.remove('is-dragging', 'is-over');
+        el.draggable = false;
+      });
+    });
+
     const add = button('Add ' + (def.item || 'item').toLowerCase(), () => {
+      remember();
       rows.push(blankRow(def.fields));
       onChange(rows);
     });
