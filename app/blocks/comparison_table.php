@@ -10,18 +10,18 @@ $strike  = block_option($options, 'strike', 'struck');
   <table class="comparison comparison--<?= e($density) ?> comparison--<?= e($strike) ?>">
     <thead>
       <tr>
-        <th scope="col"><?= e($data['left'] ?? '') ?></th>
-        <th scope="col"><?= e($data['right'] ?? '') ?></th>
+        <th scope="col"<?= editable('left') ?>><?= e($data['left'] ?? '') ?></th>
+        <th scope="col"<?= editable('right') ?>><?= e($data['right'] ?? '') ?></th>
       </tr>
     </thead>
     <tbody>
-      <?php foreach (($data['rows'] ?? []) as $row): ?>
+      <?php foreach (($data['rows'] ?? []) as $i => $row): ?>
         <tr>
-          <td class="comparison__yes"><?= e($row['left'] ?? '') ?></td>
-          <td class="comparison__no"><?= e($row['right'] ?? '') ?></td>
+          <td class="comparison__yes"<?= editable("rows.$i.left") ?>><?= e($row['left'] ?? '') ?></td>
+          <td class="comparison__no"<?= editable("rows.$i.right") ?>><?= e($row['right'] ?? '') ?></td>
         </tr>
         <?php if (!empty($row['note'])): ?>
-          <tr class="comparison__noterow"><td colspan="2"><?= e($row['note']) ?></td></tr>
+          <tr class="comparison__noterow"><td colspan="2"<?= editable("rows.$i.note") ?>><?= e($row['note']) ?></td></tr>
         <?php endif; ?>
       <?php endforeach; ?>
     </tbody>

@@ -15,9 +15,9 @@ $back  = block_option($options, 'background', 'panel');
         </div>
       </div>
       <?php if (!empty($data['measure'])): ?>
-        <figcaption class="clearspace__measure"><?= e($data['measure']) ?></figcaption>
+        <figcaption class="clearspace__measure"<?= editable('measure') ?>><?= e($data['measure']) ?></figcaption>
       <?php endif; ?>
     </figure>
   <?php endif; ?>
-  <?php if (!empty($data['note'])): ?><p class="block__note"><?= e($data['note']) ?></p><?php endif; ?>
+  <?php if (!empty($data['note'])): ?><p class="block__note"<?= editable('note') ?>><?= e($data['note']) ?></p><?php endif; ?>
 </section>

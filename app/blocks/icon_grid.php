@@ -25,5 +25,5 @@ $names = block_option($options, 'names', 'show');
       <?php endforeach; ?>
     </ul>
   <?php endif; ?>
-  <?php if (!empty($data['note'])): ?><p class="block__note"><?= e($data['note']) ?></p><?php endif; ?>
+  <?php if (!empty($data['note'])): ?><p class="block__note"<?= editable('note') ?>><?= e($data['note']) ?></p><?php endif; ?>
 </section>

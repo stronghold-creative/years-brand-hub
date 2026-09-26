@@ -15,7 +15,7 @@ if ($asset && asset_is_inline_image($asset)):
        <?php if ($size): ?>width="<?= $size['width'] ?>" height="<?= $size['height'] ?>"<?php endif; ?>
        loading="lazy" decoding="async">
   <?php if (!empty($data['caption'])): ?>
-    <figcaption><?= e($data['caption']) ?></figcaption>
+    <figcaption<?= editable('caption') ?>><?= e($data['caption']) ?></figcaption>
   <?php endif; ?>
 </figure>
 <?php endif; ?>

@@ -12,5 +12,5 @@ $lang = (string) ($data['language'] ?? 'plain');
     </figcaption>
     <pre class="code__pre"><code><?= e($data['code'] ?? '') ?></code></pre>
   </figure>
-  <?php if (!empty($data['caption'])): ?><p class="block__note"><?= e($data['caption']) ?></p><?php endif; ?>
+  <?php if (!empty($data['caption'])): ?><p class="block__note"<?= editable('caption') ?>><?= e($data['caption']) ?></p><?php endif; ?>
 </section>

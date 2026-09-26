@@ -111,6 +111,18 @@ reloads the iframe; during an inline edit that would take the cursor and the
 half-finished sentence with it, so the reload is deferred until the text is
 left.
 
+**An `editable()` path must be the key in the stored data, never the position
+in the drawn list.** Several renderers filter before drawing — a colour with no
+hex, an image whose asset has gone, a family with no steps — and
+`array_values()` over the result renumbers what is left. A path built from that
+renumbering resolves perfectly and edits the wrong row, which is the worst kind
+of wrong: nothing errors, the typing just lands somewhere else. Keep the keys
+(`foreach ($families as $f => $family)` over a filtered array without
+`array_values()`), or carry the original index with each item, as `image_grid`
+and `colour_story` do. `check-blocks.php --edit` has a "gappy" pass that leaves
+the first row of every repeater blank and compares the text on the page with the
+value at the path, which catches exactly this.
+
 **Empty blocks show a placeholder, but only in the editor.** `render_blocks()`
 buffers each block in edit mode and, when the output would show nothing,
 substitutes the block's label and hint. Without it a newly added block was
@@ -253,10 +265,10 @@ sticky header, mobile slide-out rail, filtering on the admin pages list.
 placeholder, motion page content, type
 exports in `/tokens.css`, password reset, pagination (deliberately deferred).
 
-**Known duplication:** the asset picker exists twice, as `openPicker()` in
-`editor.js` and `openImagePicker()` in `admin.js`. They have already diverged:
-only the editor's can upload, only the admin's marks the current selection.
-Worth merging into one file that both load before either grows again.
+**The asset picker is one file, `picker.js`,** loaded before both `admin.js` and
+`editor.js` and used by block fields, page covers and the site logo. It was
+written twice and the two copies had already diverged; anything added to it
+belongs there, not in a caller.
 
 ---
 
@@ -272,7 +284,8 @@ Worth merging into one file that both load before either grows again.
    yet.
 4. Turn `debug` off in `app/config.php` on the server.
 5. Decide the real domain.
-6. Merge the two asset pickers into one, before they diverge further.
+6. Instrument the remaining block text for editing in place, if any turns out to
+   be missing. Everything visible is covered bar the deliberate exceptions.
 7. Deferred from the audit: section page caching, password reset, `/tokens.css`
    type exports, search.
 
@@ -298,11 +311,15 @@ has caught something real:
 - `check-routes.php` renders no pages; it asserts every URL the interface calls
   matches a route. It found a route that was never inserted and two patterns
   with one backslash too many.
-- `check-blocks.php` renders all 25 block types twice, empty and full, through
-  the sanitiser first, and reports anything that throws, shows nothing, or puts
-  an empty value into an attribute that will be read as a colour or a link. It
-  needs no database. `--edit` additionally requires every empty block to be
-  visible, which is what the editor canvas depends on.
+- `check-blocks.php` renders all 27 block types three times — empty, full, and
+  "gappy", which is full but with the first row of every repeater left blank —
+  through the sanitiser first, and reports anything that throws, shows nothing,
+  or puts an empty value into an attribute that will be read as a colour or a
+  link. It needs no database. `--edit` additionally requires every empty block
+  to be visible, which is what the editor canvas depends on, and checks that
+  every `editable()` path resolves *and* that the text on the page matches the
+  value it points at. The gappy pass exists for that last check: it is the only
+  one that produces a list with a hole in it.
 - `check-css.js` checks braces balance and finds any property set twice on the
   same selector in the same at-rule context. Read its output rather than
   trusting it: the appearance tokens re-declare base rules with `var(--s-*)` on

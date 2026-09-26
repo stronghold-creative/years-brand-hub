@@ -90,7 +90,10 @@
     /* Text that can be edited where it sits. Deliberately quiet: an outline
        around every paragraph would turn the page into a form, and the point of
        editing on the canvas is that it still looks like the page. */
-    [data-field] { cursor: text; border-radius: 3px; }
+    /* Some blocks put a control under their text and turn pointer events off
+       on the text so clicks reach it — the colour panels do. Editable text has
+       to take the click back, or it cannot be put a cursor in. */
+    [data-field] { cursor: text; border-radius: 3px; pointer-events: auto; }
     [data-field]:hover {
       box-shadow: 0 0 0 1px rgba(114, 87, 183, .25);
     }

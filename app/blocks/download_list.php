@@ -8,7 +8,7 @@ $layout = block_option($options, 'layout', 'list');
     <h3<?= editable('heading') ?>><?= e($data['heading']) ?></h3>
   <?php endif; ?>
   <?php if (!empty($data['intro'])): ?>
-    <div class="prose"><?= paragraphs($data['intro']) ?></div>
+    <div class="prose"<?= editable('intro', true) ?>><?= paragraphs($data['intro']) ?></div>
   <?php endif; ?>
 
   <?php if (!$assets): ?>

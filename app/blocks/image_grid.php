@@ -1,10 +1,13 @@
 <?php
 /** @var array $data */
+// The original key is carried through, because items without a usable image
+// are dropped here and an editable() path is a route into the stored data, not
+// a position in this list.
 $items = [];
-foreach (($data['items'] ?? []) as $item) {
+foreach (($data['items'] ?? []) as $at => $item) {
     $asset = ((int) ($item['asset'] ?? 0)) > 0 ? asset_find((int) $item['asset']) : null;
     if ($asset && asset_is_inline_image($asset)) {
-        $items[] = ['asset' => $asset, 'meta' => $item];
+        $items[] = ['asset' => $asset, 'meta' => $item, 'at' => $at];
     }
 }
 $gap = block_option($options, 'gap', 'normal');
@@ -30,7 +33,7 @@ if ($items):
             <?php if ($stance !== 'none'): ?>
               <span class="figure__stance"><?= $stance === 'do' ? 'Do' : 'Do not' ?></span>
             <?php endif; ?>
-            <?= e($entry['meta']['caption'] ?? '') ?>
+            <span<?= editable('items.' . $entry['at'] . '.caption') ?>><?= e($entry['meta']['caption'] ?? '') ?></span>
           </figcaption>
         <?php endif; ?>
       </figure>

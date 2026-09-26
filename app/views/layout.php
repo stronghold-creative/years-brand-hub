@@ -30,7 +30,9 @@ $canonical  = rtrim((string) (($config['site']['base_url'] ?? '')), '/')
 <?php endif; ?>
 <meta name="twitter:card" content="summary_large_image">
 
-<link rel="icon" href="/assets/favicon.svg" type="image/svg+xml">
+<?php // Through asset_url() like every other asset, so replacing the mark is not
+      // invisible to anyone who has already loaded the old one. ?>
+<link rel="icon" href="<?= e(asset_url('/assets/favicon.svg')) ?>" type="image/svg+xml">
 
 <?php if (fonts_are_local()): ?>
   <link rel="preload" href="<?= e(asset_url('/assets/fonts/plus-jakarta-sans-400.woff2')) ?>" as="font" type="font/woff2" crossorigin>

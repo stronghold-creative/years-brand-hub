@@ -18,7 +18,7 @@ $columnStyle = ctype_digit($columns) ? ' style="--cols: ' . (int) $columns . '"'
     <h3<?= editable('heading') ?>><?= e($data['heading']) ?></h3>
   <?php endif; ?>
   <ul class="swatches swatches--<?= e($layout) ?> swatches--<?= e($size) ?> swatches--shape-<?= e($shape) ?> swatches--ratio-<?= e($ratio) ?> swatches--labels-<?= e($labels) ?><?= $columns !== 'auto' ? ' swatches--fixed' : '' ?>"<?= $columnStyle ?>>
-    <?php foreach (($data['colours'] ?? []) as $colour): ?>
+    <?php foreach (($data['colours'] ?? []) as $i => $colour): ?>
       <?php
         // A colour with no hex has nothing to show and nothing to copy. Rows
         // like that exist, because the editor once saved a blank hex while
@@ -38,7 +38,7 @@ $columnStyle = ctype_digit($columns) ? ' style="--cols: ' . (int) $columns . '"'
           <span class="swatch__chip swatch__chip--unset" aria-hidden="true"></span>
         <?php endif; ?>
         <div class="swatch__meta">
-          <h4><?= e($colour['name']) ?></h4>
+          <h4<?= editable("colours.$i.name") ?>><?= e($colour['name']) ?></h4>
           <?php if ($values !== 'none' && $hex !== ''): ?>
             <dl>
               <dt>Hex</dt><dd><?= e($hex) ?></dd>
@@ -49,7 +49,7 @@ $columnStyle = ctype_digit($columns) ? ' style="--cols: ' . (int) $columns . '"'
             </dl>
           <?php endif; ?>
           <?php if (!empty($colour['usage'])): ?>
-            <p class="swatch__usage"><?= e($colour['usage']) ?></p>
+            <p class="swatch__usage"<?= editable("colours.$i.usage") ?>><?= e($colour['usage']) ?></p>
           <?php endif; ?>
         </div>
       </li>

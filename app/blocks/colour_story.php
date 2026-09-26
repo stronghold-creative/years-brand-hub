@@ -14,13 +14,17 @@ $height   = block_option($options, 'height', 'medium');
 $values   = block_option($options, 'values', 'all');
 $gap      = block_option($options, 'gap', 'thin');
 
+// The original key travels with each colour, because editable() paths are
+// routes into the stored data and this list is filtered and split in two. A
+// colour's position here says nothing about where it lives in $data.
 $all = [];
-foreach ((array) ($data['colours'] ?? []) as $colour) {
+foreach ((array) ($data['colours'] ?? []) as $at => $colour) {
     $hex = sanitise_colour((string) ($colour['hex'] ?? ''));
     if ($hex === '') {
         continue;   // Nothing to paint, so nothing to place.
     }
     $colour['hex'] = $hex;
+    $colour['__at'] = $at;
     $all[] = $colour;
 }
 
@@ -30,6 +34,7 @@ $secondary = array_values(array_filter($all, fn($c) => ($c['role'] ?? 'primary')
 /** One panel. The text colour is measured against the panel, never guessed. */
 $panel = function (array $colour, string $size) use ($values): void {
     $hex = $colour['hex'];
+    $at  = $colour['__at'];
     $onDark = contrast_ratio($hex, '#FFFFFF') >= contrast_ratio($hex, '#1F1F1F');
     ?>
     <div class="story__panel story__panel--<?= e($size) ?><?= $onDark ? ' is-dark' : '' ?>"
@@ -39,15 +44,15 @@ $panel = function (array $colour, string $size) use ($values): void {
         <span class="swatch__copy">Copy</span>
       </button>
       <div class="story__meta">
-        <span class="story__name"><?= e($colour['name'] ?? '') ?></span>
+        <span class="story__name"<?= editable("colours.$at.name") ?>><?= e($colour['name'] ?? '') ?></span>
         <?php if ($values !== 'name'): ?>
           <span class="story__hex"><?= e($hex) ?></span>
           <?php if (!empty($colour['pantone'])): ?>
-            <span class="story__pantone"><?= e($colour['pantone']) ?></span>
+            <span class="story__pantone"<?= editable("colours.$at.pantone") ?>><?= e($colour['pantone']) ?></span>
           <?php endif; ?>
         <?php endif; ?>
         <?php if ($values === 'all' && !empty($colour['usage'])): ?>
-          <span class="story__usage"><?= e($colour['usage']) ?></span>
+          <span class="story__usage"<?= editable("colours.$at.usage") ?>><?= e($colour['usage']) ?></span>
         <?php endif; ?>
       </div>
     </div>
@@ -59,7 +64,7 @@ $panel = function (array $colour, string $size) use ($values): void {
     <h3<?= editable('heading') ?>><?= e($data['heading']) ?></h3>
   <?php endif; ?>
   <?php if (!empty($data['intro'])): ?>
-    <div class="prose"><?= paragraphs($data['intro']) ?></div>
+    <div class="prose"<?= editable('intro', true) ?>><?= paragraphs($data['intro']) ?></div>
   <?php endif; ?>
 
   <?php if ($primary || $secondary): ?>

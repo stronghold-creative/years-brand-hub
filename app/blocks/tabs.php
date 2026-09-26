@@ -15,7 +15,10 @@ $id = 'tabs-' . substr(md5(json_encode($panels) . microtime()), 0, 8);
                   id="<?= e($id) ?>-t<?= $i ?>"
                   aria-controls="<?= e($id) ?>-p<?= $i ?>"
                   aria-selected="<?= $i === 0 ? 'true' : 'false' ?>"
-                  tabindex="<?= $i === 0 ? '0' : '-1' ?>"><?= e($panel['label']) ?></button>
+                  <?php // The label sits in a span: the button itself switches
+                        // tabs, so making it editable means every click to
+                        // place the cursor also changes the panel. ?>
+                  tabindex="<?= $i === 0 ? '0' : '-1' ?>"><span<?= editable("panels.$i.label") ?>><?= e($panel['label']) ?></span></button>
         <?php endforeach; ?>
       </div>
       <?php foreach ($panels as $i => $panel): ?>
@@ -28,7 +31,7 @@ $id = 'tabs-' . substr(md5(json_encode($panels) . microtime()), 0, 8);
             <img class="tabs__image" src="<?= e(asset_image_url($asset, 1600)) ?>" alt="<?= e($panel['label']) ?>" loading="lazy">
           <?php endif; ?>
           <?php if (!empty($panel['body'])): ?>
-            <div class="prose"><?= paragraphs($panel['body']) ?></div>
+            <div class="prose"<?= editable("panels.$i.body", true) ?>><?= paragraphs($panel['body']) ?></div>
           <?php endif; ?>
         </div>
       <?php endforeach; ?>
