@@ -505,6 +505,166 @@
   });
   });
 
+  // ------------------------------------------------------- appearance screen
+
+  /**
+   * The live preview, the per-field resets and the contrast readout.
+   *
+   * Appearance has twenty-six numbers across seven groups and used to give no
+   * sign of what any of them did: you saved, opened the public site in another
+   * tab, came back and guessed again. The preview is a real page rendered by
+   * the real block renderers in an iframe, and the values are posted into it as
+   * they change, so nothing here is a second implementation of the stylesheet.
+   */
+  feature('appearance screen', function () {
+    const screen = document.getElementById('styles');
+    if (!screen) return;
+
+    const wiring = JSON.parse(screen.dataset.wiring || '{}');
+    const frame = document.getElementById('style-preview');
+    const state = document.getElementById('preview-state');
+    let ready = false;
+
+    const valueOf = (key) => {
+      const input = document.getElementById('s-' + key);
+      return input ? input.value.trim() : '';
+    };
+
+    /**
+     * Rebuilds the custom properties exactly as style_css() does on the server,
+     * including the heading ladder derived from the body size and the scale.
+     * The derivation is duplicated here on purpose: the alternative is a round
+     * trip for every keystroke on a slider.
+     */
+    function currentCss() {
+      const css = {};
+      Object.keys(wiring).forEach((key) => {
+        const field = wiring[key];
+        if (!field.css) return;
+        const value = valueOf(key);
+        if (value === '') return;
+        css[field.css] = value + (field.unit || '');
+      });
+
+      const base = parseFloat(valueOf('text_size'));
+      const scale = parseFloat(valueOf('type_scale'));
+      if (base > 0 && scale > 1) {
+        [[1, 3], [2, 2], [3, 1]].forEach(([level, steps]) => {
+          css['--s-h' + level] = +(base * Math.pow(scale, steps)).toFixed(3) + 'rem';
+        });
+      }
+      return css;
+    }
+
+    function currentBody() {
+      const body = {};
+      Object.keys(wiring).forEach((key) => {
+        if (wiring[key].body) body[wiring[key].body] = valueOf(key);
+      });
+      return body;
+    }
+
+    function push() {
+      if (!ready || !frame || !frame.contentWindow) return;
+      frame.contentWindow.postMessage(
+        { from: 'styles', css: currentCss(), body: currentBody() },
+        window.location.origin
+      );
+    }
+
+    window.addEventListener('message', (event) => {
+      if (event.origin !== window.location.origin) return;
+      if (!event.data || event.data.from !== 'style-preview') return;
+      ready = true;
+      push();
+    });
+
+    /* ------------------------------------------------------------ contrast */
+
+    // Mirrors colour_luminance() and contrast_ratio() in app/lib/blocks.php, so
+    // the number here is the number the guidelines will publish.
+    function luminance(hex) {
+      const clean = String(hex).replace('#', '');
+      if (!/^[0-9a-f]{6}$/i.test(clean)) return 0;
+      const channel = (pair) => {
+        const value = parseInt(pair, 16) / 255;
+        return value <= 0.03928 ? value / 12.92 : Math.pow((value + 0.055) / 1.055, 2.4);
+      };
+      return 0.2126 * channel(clean.slice(0, 2))
+           + 0.7152 * channel(clean.slice(2, 4))
+           + 0.0722 * channel(clean.slice(4, 6));
+    }
+
+    function ratio(foreground, background) {
+      const a = luminance(foreground);
+      const b = luminance(background);
+      return (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
+    }
+
+    function verdict(value) {
+      if (value >= 7) return { level: 'AAA', pass: true };
+      if (value >= 4.5) return { level: 'AA', pass: true };
+      if (value >= 3) return { level: 'AA large', pass: true };
+      return { level: 'Fails', pass: false };
+    }
+
+    function checkContrast() {
+      document.querySelectorAll('.m3-contrast__row').forEach((row) => {
+        const read = (name) => name.charAt(0) === '#' ? name : valueOf(name);
+        const value = ratio(read(row.dataset.fg), read(row.dataset.bg));
+        const result = verdict(value);
+        row.querySelector('.m3-contrast__ratio').textContent = value.toFixed(2) + ':1';
+        row.querySelector('.m3-contrast__verdict').textContent = result.level;
+        row.classList.toggle('is-failing', !result.pass);
+      });
+    }
+
+    /* --------------------------------------------------------------- reset */
+
+    function refreshResets() {
+      document.querySelectorAll('[data-reset]').forEach((button) => {
+        const holder = button.closest('[data-default]');
+        if (!holder) return;
+        const now = valueOf(button.dataset.reset);
+        // Colours compare without case, numbers as numbers, so 6 matches 6.00.
+        const target = holder.dataset.default;
+        const same = now.toUpperCase() === String(target).toUpperCase()
+          || (now !== '' && parseFloat(now) === parseFloat(target));
+        button.hidden = same;
+      });
+    }
+
+    document.querySelectorAll('[data-reset]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const key = button.dataset.reset;
+        const holder = button.closest('[data-default]');
+        const input = document.getElementById('s-' + key);
+        if (!input || !holder) return;
+        input.value = holder.dataset.default;
+        // Tells the slider, the swatch and everything below that it changed.
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+    });
+
+    /* ------------------------------------------------------------ wiring up */
+
+    const onChange = () => { push(); checkContrast(); refreshResets(); };
+    screen.addEventListener('input', onChange);
+    screen.addEventListener('change', onChange);
+
+    checkContrast();
+    refreshResets();
+  });
+
+  // A destructive submit button, rather than a whole destructive form.
+  feature('confirm on click', function () {
+    document.querySelectorAll('[data-confirm-click]').forEach((button) => {
+      button.addEventListener('click', (event) => {
+        if (!window.confirm(button.dataset.confirmClick)) event.preventDefault();
+      });
+    });
+  });
+
   // ------------------------------------------------------------ logo picker
 
   // Reuses the same asset library dialog as the block editor.

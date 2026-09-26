@@ -1,4 +1,17 @@
-<div class="m3-page">
+<?php
+// Everything the live preview needs to rebuild the custom properties without a
+// round trip: which property each field writes, its unit, and which ones set a
+// data attribute on the body instead.
+$wiring = [];
+foreach (style_flat() as $key => $field) {
+    $wiring[$key] = [
+        'css'  => $field['css'] ?? null,
+        'unit' => $field['type'] === 'number' ? ($field['unit'] ?? '') : '',
+        'body' => $field['body'] ?? null,
+    ];
+}
+?>
+<div class="m3-page m3-page--styles" id="styles" data-wiring='<?= e(json_encode($wiring, JSON_UNESCAPED_SLASHES)) ?>'>
   <div class="m3-page__bar">
     <div class="m3-page__titles">
       <h1>Appearance</h1>
@@ -11,6 +24,7 @@
 
   <?php if ($notice): ?><p class="m3-banner"><?= e($notice) ?></p><?php endif; ?>
 
+  <div class="m3-styles">
   <form method="post" id="style-form">
     <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
 
@@ -22,8 +36,15 @@
             <?php $value = style_value($key); ?>
 
             <?php if ($field['type'] === 'number'): ?>
-              <div class="numfield" data-key="<?= e($key) ?>">
-                <label class="numfield__label" for="s-<?= e($key) ?>"><?= e($field['label']) ?></label>
+              <div class="numfield" data-key="<?= e($key) ?>" data-default="<?= e((string) $field['default']) ?>">
+                <label class="numfield__label" for="s-<?= e($key) ?>">
+                  <?= e($field['label']) ?>
+                  <?php // Only offered when the value is not already the default;
+                        // shown or hidden again by admin.js as it is changed. ?>
+                  <button class="numfield__reset" type="button" data-reset="<?= e($key) ?>"
+                          title="Put this back to <?= e((string) $field['default']) ?>"
+                          aria-label="Reset <?= e($field['label']) ?>"<?= $value === (string) $field['default'] ? ' hidden' : '' ?>>Reset</button>
+                </label>
                 <div class="numfield__controls">
                   <input class="numfield__input" type="number" inputmode="decimal"
                          name="<?= e($key) ?>" id="s-<?= e($key) ?>"
@@ -52,8 +73,13 @@
               </div>
 
             <?php elseif ($field['type'] === 'colour'): ?>
-              <div class="numfield colourfield">
-                <label class="numfield__label" for="s-<?= e($key) ?>"><?= e($field['label']) ?></label>
+              <div class="numfield colourfield" data-key="<?= e($key) ?>" data-default="<?= e((string) $field['default']) ?>">
+                <label class="numfield__label" for="s-<?= e($key) ?>">
+                  <?= e($field['label']) ?>
+                  <button class="numfield__reset" type="button" data-reset="<?= e($key) ?>"
+                          title="Put this back to <?= e((string) $field['default']) ?>"
+                          aria-label="Reset <?= e($field['label']) ?>"<?= strtoupper($value) === strtoupper((string) $field['default']) ? ' hidden' : '' ?>>Reset</button>
+                </label>
                 <div class="numfield__controls">
                   <input class="colourfield__swatch" type="color" value="<?= e($value) ?>"
                          aria-label="<?= e($field['label']) ?> picker">
@@ -76,9 +102,62 @@
 
           <?php endforeach; ?>
         </div>
+
+        <?php if ($group === 'Colour'): ?>
+          <?php
+            // The pairs a reader actually has to read, measured with the same
+            // functions the contrast block uses, so the admin and the
+            // guidelines agree about what passes. Recomputed live in
+            // admin.js as the colours change.
+            $pairs = [
+              ['Text on the page',    'ink',    'page'],
+              ['Text on a panel',     'ink',    'raised'],
+              ['Accent on the page',  'accent', 'page'],
+              ['White on the accent', '#FFFFFF', 'accent'],
+            ];
+          ?>
+          <div class="m3-contrast" id="contrast-check">
+            <h3 class="m3-contrast__title">Contrast</h3>
+            <ul class="m3-contrast__list">
+              <?php foreach ($pairs as [$label, $fg, $bg]): ?>
+                <?php
+                  $fgValue = str_starts_with($fg, '#') ? $fg : style_value($fg);
+                  $bgValue = str_starts_with($bg, '#') ? $bg : style_value($bg);
+                  $ratio = contrast_ratio($fgValue, $bgValue);
+                  $verdict = contrast_verdict($ratio);
+                ?>
+                <li class="m3-contrast__row<?= $verdict['pass'] ? '' : ' is-failing' ?>"
+                    data-fg="<?= e($fg) ?>" data-bg="<?= e($bg) ?>">
+                  <span class="m3-contrast__what"><?= e($label) ?></span>
+                  <span class="m3-contrast__ratio"><?= e(number_format($ratio, 2)) ?>:1</span>
+                  <span class="m3-contrast__verdict"><?= e($verdict['level']) ?></span>
+                </li>
+              <?php endforeach; ?>
+            </ul>
+            <p class="m3-contrast__note">Measured the same way the contrast block measures. Body text wants 4.5:1.</p>
+          </div>
+        <?php endif; ?>
       </section>
     <?php endforeach; ?>
 
-    <button class="m3-button m3-button--filled m3-state" type="submit">Save appearance</button>
+    <div class="m3-styles__actions">
+      <button class="m3-button m3-button--filled m3-state" type="submit">Save appearance</button>
+      <button class="m3-button m3-button--text m3-button--danger m3-state" type="submit"
+              name="reset_all" value="1"
+              data-confirm-click="Put every appearance setting back to its default? Anything you have changed here will be lost.">
+        Reset everything
+      </button>
+    </div>
   </form>
+
+  <?php // The real renderers and the real stylesheet, as the editor's canvas is,
+        // so what is previewed cannot drift from what publishes. ?>
+  <aside class="m3-styles__preview">
+    <div class="m3-styles__previewhead">
+      <span>Preview</span>
+      <span class="m3-styles__previewnote" id="preview-state">Live</span>
+    </div>
+    <iframe id="style-preview" src="/admin/styles/preview" title="A sample of the site with these settings"></iframe>
+  </aside>
+  </div>
 </div>

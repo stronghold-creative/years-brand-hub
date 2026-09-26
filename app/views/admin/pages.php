@@ -144,6 +144,10 @@ $stale  = count(array_filter($pages, fn($p) => strtotime($p['updated_at']) < str
                   <button class="m3-icon-button m3-state" type="button" data-more
                           aria-label="More actions for <?= e($page['title']) ?>" aria-expanded="false">&#8942;</button>
                   <span class="m3-more__menu" hidden>
+                    <form method="post" action="/admin/pages/<?= (int) $page['id'] ?>/duplicate">
+                      <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
+                      <button class="m3-more__item" type="submit">Duplicate page</button>
+                    </form>
                     <form method="post" action="/admin/pages/<?= (int) $page['id'] ?>/delete"
                           data-confirm="Delete &quot;<?= e($page['title']) ?>&quot; and everything on it? This cannot be undone.">
                       <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">

@@ -250,6 +250,43 @@ if (preg_match('#^/admin/pages/(\d+)/cover$#', $path, $m) && $method === 'POST')
     json_out(['ok' => true, 'asset' => $asset]);
 }
 
+// Duplicating a page. With thirty pages to write, starting each one from the
+// same skeleton is a common move, and rebuilding it block by block is not.
+if (preg_match('#^/admin/pages/(\d+)/duplicate$#', $path, $m) && $method === 'POST') {
+    require_editor();
+    csrf_check();
+    $page = db_one('SELECT * FROM pages WHERE id = ?', [(int) $m[1]]);
+    if (!$page) {
+        not_found();
+    }
+
+    $title = str_trim_to($page['title'] . ' copy', 200);
+    $slug  = slugify($title);
+    $n = 1;
+    while (db_one('SELECT id FROM pages WHERE slug = ?', [$slug])) {
+        $slug = slugify($title) . '-' . (++$n);
+    }
+
+    // Always a draft, whatever the original was. A copy is not ready to read.
+    db_run(
+        'INSERT INTO pages (slug, title, section, summary, status, blocks, cover_asset_id, show_on_home, sort_order, updated_by)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [
+            $slug,
+            $title,
+            $page['section'],
+            $page['summary'],
+            'draft',
+            $page['blocks'],
+            $page['cover_asset_id'],
+            0,
+            $page['sort_order'],
+            current_user()['id'],
+        ]
+    );
+    redirect('/admin/pages/' . db()->lastInsertId());
+}
+
 if (preg_match('#^/admin/pages/(\d+)/delete$#', $path, $m) && $method === 'POST') {
     require_admin();
     csrf_check();
@@ -265,13 +302,33 @@ if (preg_match('#^/admin/pages/(\d+)/versions$#', $path, $m)) {
     if (!$page) {
         not_found();
     }
+    // The blocks come back too, so the list can say what actually changed
+    // rather than only when it was saved.
     $versions = db_all(
-        'SELECT v.id, v.title, v.created_at, u.name AS author
+        'SELECT v.id, v.title, v.blocks, v.created_at, u.name AS author
            FROM page_versions v LEFT JOIN users u ON u.id = v.created_by
           WHERE v.page_id = ? ORDER BY v.created_at DESC LIMIT 50',
         [$page['id']]
     );
     view('admin/versions', ['title' => 'History', 'page' => $page, 'versions' => $versions], 'admin/layout');
+    exit;
+}
+
+// One version, rendered as the page would read. Restoring used to be blind:
+// a date, a title, and a button.
+if (preg_match('#^/admin/pages/(\d+)/versions/(\d+)/preview$#', $path, $m)) {
+    require_editor();
+    $version = db_one('SELECT * FROM page_versions WHERE id = ? AND page_id = ?', [(int) $m[2], (int) $m[1]]);
+    if (!$version) {
+        not_found();
+    }
+    view('preview', [
+        'title'   => $version['title'],
+        'page'    => ['title' => $version['title'], 'summary' => ''],
+        'blocks'  => json_decode($version['blocks'], true) ?: [],
+        'config'  => $config,
+        'editing' => false,
+    ], null);
     exit;
 }
 
@@ -702,10 +759,30 @@ if ($path === '/admin/export') {
     exit;
 }
 
+// The sample page inside the Appearance preview. Rendered by the real block
+// renderers with the real stylesheet, so what is previewed cannot drift.
+if ($path === '/admin/styles/preview') {
+    require_admin();
+    view('admin/style-preview', ['title' => 'Appearance preview'], null);
+    exit;
+}
+
 if ($path === '/admin/styles') {
     require_admin();
     if ($method === 'POST') {
         csrf_check();
+
+        // Putting everything back is a separate intent from saving, and it has
+        // to clear the stored values rather than write the defaults over them,
+        // so a default that changes later still reaches a site that never
+        // overrode it.
+        if (isset($_POST['reset_all'])) {
+            foreach (array_keys(style_flat()) as $key) {
+                setting_save('style.' . $key, '');
+            }
+            redirect('/admin/styles?notice=' . urlencode('Appearance put back to its defaults.'));
+        }
+
         foreach (array_keys(style_flat()) as $key) {
             style_save($key, (string) ($_POST[$key] ?? ''));
         }

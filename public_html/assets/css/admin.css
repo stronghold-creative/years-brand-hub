@@ -895,6 +895,72 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 }
 #outline-paste[hidden] { display: none; }
 
+/* Appearance ---------------------------------------------------------------
+   The controls on the left, a live sample on the right. Twenty-six numbers
+   with no sign of what they do is a guessing loop; the preview closes it. */
+
+.m3-styles { display: grid; grid-template-columns: minmax(0, 1fr) 26rem; gap: 1.5rem; align-items: start; }
+.m3-styles__preview { position: sticky; top: 1rem; }
+.m3-styles__previewhead {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: .75rem; font-weight: 500;
+  color: var(--md-sys-color-on-surface-variant);
+  padding: 0 .25rem .5rem;
+}
+.m3-styles__preview iframe {
+  width: 100%;
+  height: min(70vh, 40rem);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-m);
+  background: #fff;
+  display: block;
+}
+.m3-styles__actions { display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+
+/* Put one value back. Hidden while it already is its default, so the column
+   is not a wall of buttons that mostly do nothing. */
+.numfield__label { display: flex; align-items: center; gap: .5rem; }
+.numfield__reset {
+  border: 0; background: none; cursor: pointer;
+  font: inherit; font-size: .6875rem; font-weight: 500;
+  color: var(--md-sys-color-primary);
+  padding: .125rem .375rem;
+  border-radius: var(--md-sys-shape-full);
+}
+.numfield__reset:hover { background: var(--md-sys-color-surface-container-highest); }
+.numfield__reset[hidden] { display: none; }
+
+.m3-contrast { margin-top: 1.25rem; border-top: 1px solid var(--md-sys-color-outline-variant); padding-top: 1rem; }
+.m3-contrast__title { margin: 0 0 .625rem; font-size: .75rem; font-weight: 500; color: var(--md-sys-color-on-surface-variant); }
+.m3-contrast__list { list-style: none; margin: 0; padding: 0; display: grid; gap: .25rem; }
+.m3-contrast__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 4.5rem 5rem;
+  gap: .75rem;
+  align-items: center;
+  font-size: .8125rem;
+  padding: .375rem .5rem;
+  border-radius: var(--md-sys-shape-s);
+  background: var(--md-sys-color-surface-container-low);
+}
+.m3-contrast__ratio { font-variant-numeric: tabular-nums; color: var(--md-sys-color-on-surface-variant); }
+.m3-contrast__verdict { font-weight: 500; }
+.m3-contrast__row.is-failing { background: var(--md-sys-color-error-container); color: var(--md-sys-color-on-error-container); }
+.m3-contrast__row.is-failing .m3-contrast__ratio { color: inherit; }
+.m3-contrast__note { margin: .625rem 0 0; font-size: .75rem; color: var(--md-sys-color-on-surface-variant); }
+
+@media (max-width: 78rem) {
+  .m3-styles { grid-template-columns: minmax(0, 1fr); }
+  /* Stacked, the preview is no longer beside anything to stick to. */
+  .m3-styles__preview { position: static; }
+  .m3-styles__preview iframe { height: 28rem; }
+}
+
+/* Version history: what changed, beside when. */
+.m3-table__what { font-size: .8125rem; color: var(--md-sys-color-on-surface-variant); }
+.m3-table__count { display: block; font-size: .75rem; color: var(--md-sys-color-outline); }
+.m3-table__actions { display: flex; align-items: center; gap: .25rem; justify-content: flex-end; }
+
 /* ------------------------------------------------------------- outline */
 
 .ed__outline {
