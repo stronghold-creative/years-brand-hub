@@ -56,7 +56,7 @@ $panel = function (array $colour, string $size) use ($values): void {
 ?>
 <section class="block block--story">
   <?php if (!empty($data['heading'])): ?>
-    <h3><?= e($data['heading']) ?></h3>
+    <h3<?= editable('heading') ?>><?= e($data['heading']) ?></h3>
   <?php endif; ?>
   <?php if (!empty($data['intro'])): ?>
     <div class="prose"><?= paragraphs($data['intro']) ?></div>

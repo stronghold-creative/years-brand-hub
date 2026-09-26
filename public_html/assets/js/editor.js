@@ -420,11 +420,15 @@
    * layout per keystroke, and the typing stuttered. The only thing that can
    * actually change while typing is the description of the selected block.
    */
-  function touchOutline() {
-    if (selected === null || !blocks[selected]) return;
-    const row = outline.querySelector('.outline__row[data-index="' + selected + '"]');
+  function touchOutline(index) {
+    // Defaults to the selection, because that is what the inspector is editing.
+    // The canvas passes its own index, since text can be edited there without
+    // the block ever being selected.
+    const at = index === undefined ? selected : index;
+    if (at === null || !blocks[at]) return;
+    const row = outline.querySelector('.outline__row[data-index="' + at + '"]');
     const desc = row && row.querySelector('.outline__desc');
-    if (desc) desc.textContent = describe(blocks[selected]);
+    if (desc) desc.textContent = describe(blocks[at]);
   }
 
   /* ------------------------------------------------- undo, copy, reordering */
@@ -819,7 +823,66 @@
     if (event.data.action === 'insert') {
       openBlockMenu(event.data.index);
     }
+    if (event.data.action === 'edit') {
+      applyCanvasEdit(event.data.index, event.data.field, event.data.value);
+    }
+    if (event.data.action === 'editing') {
+      canvasEditing = !!event.data.editing;
+      if (!canvasEditing) {
+        // The inspector's fields were left behind while the canvas was being
+        // typed into, so they are rebuilt once it is finished with rather than
+        // on every keystroke.
+        renderInspector();
+        if (reloadOwed) {
+          reloadOwed = false;
+          reloadPreview();
+        }
+      }
+    }
   });
+
+  /* ------------------------------------------------------ editing in place */
+
+  // True while the cursor is in text on the canvas. Saving must not reload the
+  // iframe during that: it would take the cursor, and the words being typed,
+  // out from under the person typing them.
+  let canvasEditing = false;
+  let reloadOwed = false;
+
+  /**
+   * Writes a value from the canvas into the block it belongs to.
+   *
+   * The path is the route to the value inside the block's data, as
+   * editable() wrote it: 'heading', or 'pairs.0.rule' for one inside a
+   * repeater. Anything that does not resolve is ignored rather than guessed at,
+   * because the alternative is writing a key the block definition does not have
+   * and having sanitise_blocks quietly drop it on the next save.
+   */
+  function applyCanvasEdit(index, path, value) {
+    const block = blocks[index];
+    if (!block || typeof path !== 'string' || !path) return;
+
+    const steps = path.split('.');
+    const last = steps.pop();
+    let target = block.data;
+
+    for (const step of steps) {
+      if (target === null || typeof target !== 'object' || !(step in target)) return;
+      target = target[step];
+    }
+    if (target === null || typeof target !== 'object' || !(last in target)) return;
+    if (target[last] === value) return;
+
+    target[last] = value;
+    touchOutline(index);
+    queueSave();
+  }
+
+  function reloadPreview() {
+    if (!preview || !preview.contentWindow) return;
+    previewReady = false;
+    preview.contentWindow.location.reload();
+  }
 
   // ========================================================== adding blocks
 
@@ -1008,9 +1071,15 @@
       if (!response.ok || !result.ok) throw new Error(result.error || 'Save failed');
       saveState.textContent = 'Saved ' + result.saved_at;
       saveState.dataset.state = 'saved';
-      if (preview) {
-        previewReady = false;
-        preview.contentWindow.location.reload();
+
+      // Not while the canvas is being typed into. Reloading there would take
+      // the cursor and the half-finished sentence with it. The canvas already
+      // shows what was typed, so it is only owed a reload to pick up whatever
+      // the server made of it, and that can wait until the typing stops.
+      if (canvasEditing) {
+        reloadOwed = true;
+      } else {
+        reloadPreview();
       }
     } catch (error) {
       saveState.textContent = 'Not saved';

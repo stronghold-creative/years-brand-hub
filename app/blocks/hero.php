@@ -42,8 +42,15 @@ if (!empty($data['ink']))        { $style[] = '--hero-ink: ' . $data['ink']; }
 
   <div class="hero__inner">
     <?php if (!empty($data['label'])): ?>
-      <p class="hero__label"><?= e($data['label']) ?></p>
+      <p class="hero__label"<?= editable('label') ?>><?= e($data['label']) ?></p>
     <?php endif; ?>
+    <?php
+      // The headline itself is deliberately not editable in place. Each line is
+      // sized from its own measured width, worked out here before the page is
+      // sent, so typing into it would leave every line at the size of the words
+      // that used to be there. It is edited in the inspector, where a save
+      // re-measures it.
+    ?>
 
     <?php
       // When the hero opens a section it is the only heading above the
@@ -67,7 +74,7 @@ if (!empty($data['ink']))        { $style[] = '--hero-ink: ' . $data['ink']; }
     <?php endif; ?>
 
     <?php if (!empty($data['standfirst'])): ?>
-      <div class="hero__standfirst"><?= paragraphs($data['standfirst']) ?></div>
+      <div class="hero__standfirst"<?= editable('standfirst', true) ?>><?= paragraphs($data['standfirst']) ?></div>
     <?php endif; ?>
   </div>
 </section>

@@ -2,7 +2,7 @@
 <?php $spec = block_option($options, 'spec', 'beside'); ?>
 <section class="block block--type block--spec-<?= e($spec) ?>">
   <?php if (!empty($data['heading'])): ?>
-    <h3><?= e($data['heading']) ?></h3>
+    <h3<?= editable('heading') ?>><?= e($data['heading']) ?></h3>
   <?php endif; ?>
   <?php foreach (($data['styles'] ?? []) as $style): ?>
     <article class="specimen">

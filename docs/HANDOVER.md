@@ -91,6 +91,26 @@ field makes the picker offer MP4s instead of images. Only the video block uses
 it; everything else gets images. `/admin/assets.json` carries both, tagged with
 a `kind`, so anything reading that feed has to filter.
 
+**Text is edited on the canvas, in place.** A renderer marks a piece of text
+with `editable('heading')`, or `editable("pairs.$i.rule")` for one inside a
+repeater, and `editable('body', true)` where the value holds paragraphs.
+`preview-bridge.js` makes those regions contenteditable and reports changes
+back; `applyCanvasEdit()` in `editor.js` resolves the path against the block's
+data and refuses anything that does not already exist, so a mistyped path
+cannot invent a key that `sanitise_blocks()` would then drop. `editable()`
+emits nothing on a published page. `check-blocks.php --edit` asserts every path
+resolves, because a wrong one loses the typing silently.
+
+Two deliberate exceptions: the hero's headline, whose lines are sized from
+widths measured on the server before the page is sent, and any field that is
+not visible on the page at all, such as alt text. Both are edited in the
+inspector.
+
+**The canvas is not reloaded while it is being typed into.** Saving normally
+reloads the iframe; during an inline edit that would take the cursor and the
+half-finished sentence with it, so the reload is deferred until the text is
+left.
+
 **Empty blocks show a placeholder, but only in the editor.** `render_blocks()`
 buffers each block in edit mode and, when the output would show nothing,
 substitutes the block's label and hint. Without it a newly added block was
@@ -230,7 +250,7 @@ sticky header, mobile slide-out rail, filtering on the admin pages list.
 **Content:** 30 pages scaffolded as drafts. One written: Tone of voice.
 
 **Not built:** search on the public site, the Components area beyond a
-placeholder, inline text editing on the canvas, motion page content, type
+placeholder, motion page content, type
 exports in `/tokens.css`, password reset, pagination (deliberately deferred).
 
 **Known duplication:** the asset picker exists twice, as `openPicker()` in

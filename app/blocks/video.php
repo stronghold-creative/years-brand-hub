@@ -21,7 +21,7 @@ $width = block_option($options, 'width', 'text');
 $frame = block_option($options, 'frame', 'none');
 ?>
 <section class="block block--video block--video-<?= e($width) ?>">
-  <?php if (!empty($data['heading'])): ?><h3><?= e($data['heading']) ?></h3><?php endif; ?>
+  <?php if (!empty($data['heading'])): ?><h3<?= editable('heading') ?>><?= e($data['heading']) ?></h3><?php endif; ?>
 
   <?php if ($embed): ?>
     <div class="video video--<?= e($frame) ?>">

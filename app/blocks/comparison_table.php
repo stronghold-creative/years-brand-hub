@@ -5,7 +5,7 @@ $strike  = block_option($options, 'strike', 'struck');
 ?>
 <section class="block block--comparison">
   <?php if (!empty($data['heading'])): ?>
-    <h3><?= e($data['heading']) ?></h3>
+    <h3<?= editable('heading') ?>><?= e($data['heading']) ?></h3>
   <?php endif; ?>
   <table class="comparison comparison--<?= e($density) ?> comparison--<?= e($strike) ?>">
     <thead>

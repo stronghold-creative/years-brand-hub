@@ -4,7 +4,7 @@ $wrap = block_option($options, 'wrap', 'scroll');
 $lang = (string) ($data['language'] ?? 'plain');
 ?>
 <section class="block block--code">
-  <?php if (!empty($data['heading'])): ?><h3><?= e($data['heading']) ?></h3><?php endif; ?>
+  <?php if (!empty($data['heading'])): ?><h3<?= editable('heading') ?>><?= e($data['heading']) ?></h3><?php endif; ?>
   <figure class="code code--<?= e($wrap) ?>">
     <figcaption class="code__bar">
       <span class="code__lang"><?= e($lang === 'plain' ? 'Snippet' : strtoupper($lang)) ?></span>

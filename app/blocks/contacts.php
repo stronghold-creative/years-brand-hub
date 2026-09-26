@@ -3,7 +3,7 @@
 $layout = block_option($options, 'layout', 'cards');
 ?>
 <section class="block block--contacts">
-  <?php if (!empty($data['heading'])): ?><h3><?= e($data['heading']) ?></h3><?php endif; ?>
+  <?php if (!empty($data['heading'])): ?><h3<?= editable('heading') ?>><?= e($data['heading']) ?></h3><?php endif; ?>
   <ul class="contacts contacts--<?= e($layout) ?>">
     <?php foreach (($data['people'] ?? []) as $person): ?>
       <li class="contacts__item">

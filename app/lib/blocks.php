@@ -884,6 +884,8 @@ function sanitise_blocks(array $blocks): array
  */
 function render_blocks(array $blocks, bool $editable = false, int $indexFrom = 0): void
 {
+    block_editing($editable);
+
     foreach ($blocks as $offset => $block) {
         $index = $indexFrom + (int) $offset;
         $file = APP_DIR . '/blocks/' . basename((string) $block['type']) . '.php';
@@ -929,6 +931,48 @@ function render_blocks(array $blocks, bool $editable = false, int $indexFrom = 0
         }
         echo '</div>';
     }
+
+    // Left off again, so a later render on the same request — the section view
+    // draws a page after the preview has drawn one — is not silently editable.
+    block_editing(false);
+}
+
+/**
+ * Whether blocks are being rendered for the editor's canvas.
+ *
+ * Held here rather than passed down, because editable() is called from inside a
+ * renderer that has no idea why it is being rendered, and threading a flag
+ * through twenty-seven of them to say so would be worse.
+ */
+function block_editing(?bool $set = null): bool
+{
+    static $on = false;
+    if ($set !== null) {
+        $on = $set;
+    }
+    return $on;
+}
+
+/**
+ * Marks a piece of text on the canvas as editable in place, and says which
+ * field it is.
+ *
+ * $path is the route to the value inside the block's data: 'heading' for a
+ * plain field, 'pairs.0.rule' for one inside a repeater. The editor resolves it
+ * against the block it belongs to.
+ *
+ * $multiline says the value holds paragraphs rather than a single line, so the
+ * canvas serialises it back with the blank lines between them intact.
+ *
+ * Emits nothing at all on a published page: there is no editing there, and no
+ * reason to ship the attributes.
+ */
+function editable(string $path, bool $multiline = false): string
+{
+    if (!block_editing()) {
+        return '';
+    }
+    return ' data-field="' . e($path) . '"' . ($multiline ? ' data-multiline="1"' : '');
 }
 
 /**
@@ -1053,9 +1097,11 @@ function render_bare_block(array $block, bool $editable = false): void
     if ($editable) {
         // An opener with no headline yet is as invisible as any other empty
         // block, and it is the one block a writer starts with.
+        block_editing(true);
         ob_start();
         require $file;
         echo block_or_placeholder(ob_get_clean(), $type);
+        block_editing(false);
         return;
     }
     require $file;

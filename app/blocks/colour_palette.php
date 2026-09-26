@@ -15,7 +15,7 @@ $columnStyle = ctype_digit($columns) ? ' style="--cols: ' . (int) $columns . '"'
 ?>
 <section class="block block--palette">
   <?php if (!empty($data['heading'])): ?>
-    <h3><?= e($data['heading']) ?></h3>
+    <h3<?= editable('heading') ?>><?= e($data['heading']) ?></h3>
   <?php endif; ?>
   <ul class="swatches swatches--<?= e($layout) ?> swatches--<?= e($size) ?> swatches--shape-<?= e($shape) ?> swatches--ratio-<?= e($ratio) ?> swatches--labels-<?= e($labels) ?><?= $columns !== 'auto' ? ' swatches--fixed' : '' ?>"<?= $columnStyle ?>>
     <?php foreach (($data['colours'] ?? []) as $colour): ?>

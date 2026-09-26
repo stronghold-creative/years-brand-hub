@@ -91,7 +91,6 @@ deploy can never overwrite your credentials or uploaded files.
 - Search across pages
 - The Components area, beyond a placeholder
 - `/tokens.css` exports colours only, not type
-- Inline text editing on the canvas; text is edited in the inspector
 
 ## Checks
 

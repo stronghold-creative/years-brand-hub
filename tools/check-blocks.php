@@ -159,6 +159,29 @@ foreach (['empty', 'filled'] as $mode) {
         if (preg_match('/--[a-z-]+:\s*(;|")/', $html)) {
             $problems[] = "$mode/$type: a custom property was set to nothing";
         }
+
+        // Every data-field written by editable() has to name a value that
+        // actually exists in this block's data, or an edit made on the canvas
+        // is silently dropped: the editor refuses to write a key the block
+        // does not have, and nothing says why the typing did not stick.
+        if ($editing && preg_match_all('/data-field="([^"]+)"/', $html, $found)) {
+            foreach (array_unique($found[1]) as $path) {
+                $target = $block['data'];
+                $ok = true;
+                foreach (explode('.', $path) as $step) {
+                    if (!is_array($target) || !array_key_exists($step, $target)) {
+                        $ok = false;
+                        break;
+                    }
+                    $target = $target[$step];
+                }
+                if (!$ok) {
+                    $problems[] = "$mode/$type: data-field=\"$path\" does not resolve to a value";
+                } elseif (is_array($target)) {
+                    $problems[] = "$mode/$type: data-field=\"$path\" points at a list, not text";
+                }
+            }
+        }
     }
 }
 

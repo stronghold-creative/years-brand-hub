@@ -3,7 +3,7 @@
 $layout = block_option($options, 'layout', 'rows');
 ?>
 <section class="block block--links">
-  <?php if (!empty($data['heading'])): ?><h3><?= e($data['heading']) ?></h3><?php endif; ?>
+  <?php if (!empty($data['heading'])): ?><h3<?= editable('heading') ?>><?= e($data['heading']) ?></h3><?php endif; ?>
   <ul class="links links--<?= e($layout) ?>">
     <?php foreach (($data['links'] ?? []) as $link): ?>
       <?php

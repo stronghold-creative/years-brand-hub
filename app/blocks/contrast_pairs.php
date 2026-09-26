@@ -3,7 +3,7 @@
 $layout = block_option($options, 'layout', 'cards');
 ?>
 <section class="block block--contrast">
-  <?php if (!empty($data['heading'])): ?><h3><?= e($data['heading']) ?></h3><?php endif; ?>
+  <?php if (!empty($data['heading'])): ?><h3<?= editable('heading') ?>><?= e($data['heading']) ?></h3><?php endif; ?>
   <ul class="contrast contrast--<?= e($layout) ?>">
     <?php foreach (($data['pairs'] ?? []) as $pair): ?>
       <?php

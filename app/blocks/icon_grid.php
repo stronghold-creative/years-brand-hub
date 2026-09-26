@@ -5,7 +5,7 @@ $size  = block_option($options, 'size', 'medium');
 $names = block_option($options, 'names', 'show');
 ?>
 <section class="block block--icons">
-  <?php if (!empty($data['heading'])): ?><h3><?= e($data['heading']) ?></h3><?php endif; ?>
+  <?php if (!empty($data['heading'])): ?><h3<?= editable('heading') ?>><?= e($data['heading']) ?></h3><?php endif; ?>
   <?php if (!$icons): ?>
     <p class="block__empty">No assets are tagged <strong><?= e($data['tag'] ?? '') ?></strong> yet.</p>
   <?php else: ?>

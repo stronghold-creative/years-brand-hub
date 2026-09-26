@@ -5,7 +5,7 @@ $layout = block_option($options, 'layout', 'list');
 ?>
 <section class="block block--downloads">
   <?php if (!empty($data['heading'])): ?>
-    <h3><?= e($data['heading']) ?></h3>
+    <h3<?= editable('heading') ?>><?= e($data['heading']) ?></h3>
   <?php endif; ?>
   <?php if (!empty($data['intro'])): ?>
     <div class="prose"><?= paragraphs($data['intro']) ?></div>

@@ -3,7 +3,7 @@
 $show = block_option($options, 'bar', 'bars');
 ?>
 <section class="block block--spacing">
-  <?php if (!empty($data['heading'])): ?><h3><?= e($data['heading']) ?></h3><?php endif; ?>
+  <?php if (!empty($data['heading'])): ?><h3<?= editable('heading') ?>><?= e($data['heading']) ?></h3><?php endif; ?>
   <ul class="scale scale--<?= e($show) ?>">
     <?php foreach (($data['steps'] ?? []) as $step): ?>
       <li class="scale__row">

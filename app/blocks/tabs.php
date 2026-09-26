@@ -6,7 +6,7 @@ $panels = $data['panels'] ?? [];
 $id = 'tabs-' . substr(md5(json_encode($panels) . microtime()), 0, 8);
 ?>
 <section class="block block--tabs">
-  <?php if (!empty($data['heading'])): ?><h3><?= e($data['heading']) ?></h3><?php endif; ?>
+  <?php if (!empty($data['heading'])): ?><h3<?= editable('heading') ?>><?= e($data['heading']) ?></h3><?php endif; ?>
   <?php if ($panels): ?>
     <div class="tabs tabs--<?= e($style) ?>" data-tabs>
       <div class="tabs__list" role="tablist">

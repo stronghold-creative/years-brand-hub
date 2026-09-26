@@ -23,7 +23,7 @@ $families = array_values(array_filter(
 ?>
 <section class="block block--ramp ramps--<?= e($layout) ?> ramps--h-<?= e($height) ?> ramps--name-<?= e($naming) ?>">
   <?php if (!empty($data['heading'])): ?>
-    <h3><?= e($data['heading']) ?></h3>
+    <h3<?= editable('heading') ?>><?= e($data['heading']) ?></h3>
   <?php endif; ?>
 
   <?php foreach ($families as $family): ?>

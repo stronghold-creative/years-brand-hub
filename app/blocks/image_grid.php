@@ -13,7 +13,7 @@ if ($items):
 ?>
 <section class="block block--imagegrid">
   <?php if (!empty($data['heading'])): ?>
-    <h3><?= e($data['heading']) ?></h3>
+    <h3<?= editable('heading') ?>><?= e($data['heading']) ?></h3>
   <?php endif; ?>
   <div class="imagegrid imagegrid--gap-<?= e($gap) ?> imagegrid--fit-<?= e($fit) ?>" style="--cols: <?= (int) ($data['columns'] ?? 2) ?>">
     <?php foreach ($items as $entry): ?>

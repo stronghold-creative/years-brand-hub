@@ -86,6 +86,24 @@
     .ed-insert:hover span { opacity: 1; transform: none; }
 
     body.is-editing { cursor: default; }
+
+    /* Text that can be edited where it sits. Deliberately quiet: an outline
+       around every paragraph would turn the page into a form, and the point of
+       editing on the canvas is that it still looks like the page. */
+    [data-field] { cursor: text; border-radius: 3px; }
+    [data-field]:hover {
+      box-shadow: 0 0 0 1px rgba(114, 87, 183, .25);
+    }
+    [data-field]:focus {
+      outline: 0;
+      box-shadow: 0 0 0 2px rgba(114, 87, 183, .55);
+    }
+    /* An empty field has nothing to click, so it is given something. */
+    [data-field]:empty::before {
+      content: 'Write here';
+      color: rgba(31, 31, 31, .35);
+    }
+
     @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
   `;
   document.head.append(style);
@@ -186,7 +204,94 @@
     }
   }
 
+  /* ----------------------------------------------------- editing in place */
+
+  /**
+   * Text marked with data-field is edited where it sits.
+   *
+   * The value is read back out of the DOM rather than tracked as it is typed,
+   * so what the editor stores is always exactly what is on screen. A multiline
+   * field is rebuilt from its paragraphs: innerText is not dependable across
+   * browsers for the blank lines between block elements, and those blank lines
+   * are what paragraphs() splits on, so they have to survive the round trip
+   * exactly or a body would slowly collapse into one paragraph.
+   */
+  function readField(node) {
+    if (node.dataset.multiline === undefined) {
+      // A single line. Any newline pasted in is flattened, because the field
+      // it maps to cannot hold one.
+      return node.innerText.replace(/\s*\n+\s*/g, ' ').trim();
+    }
+
+    const paragraphs = node.querySelectorAll(':scope > p');
+    if (!paragraphs.length) {
+      return node.innerText.replace(/\n{3,}/g, '\n\n').trim();
+    }
+    return Array.from(paragraphs)
+      .map((p) => {
+        // A <br> inside a paragraph is a line break, not a new paragraph.
+        const html = p.innerHTML.replace(/<br\s*\/?>/gi, '\n');
+        const holder = document.createElement('div');
+        holder.innerHTML = html;
+        return holder.innerText.replace(/ /g, ' ').trim();
+      })
+      .filter((text) => text !== '')
+      .join('\n\n');
+  }
+
+  function editableFields() {
+    return Array.from(document.querySelectorAll('[data-field]'));
+  }
+
+  function startEditing() {
+    editableFields().forEach((node) => {
+      node.contentEditable = 'true';
+      node.spellcheck = true;
+
+      node.addEventListener('focus', () => {
+        const block = node.closest('[data-block]');
+        send({ action: 'editing', editing: true, index: block ? Number(block.dataset.block) : null });
+      });
+
+      node.addEventListener('blur', () => {
+        send({ action: 'editing', editing: false });
+      });
+
+      node.addEventListener('input', () => {
+        const block = node.closest('[data-block]');
+        if (!block) return;
+        send({
+          action: 'edit',
+          index: Number(block.dataset.block),
+          field: node.dataset.field,
+          value: readField(node),
+        });
+      });
+
+      // Enter in a single-line field would insert a break the field cannot
+      // hold, so it ends the edit instead.
+      node.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' && node.dataset.multiline === undefined) {
+          event.preventDefault();
+          node.blur();
+        }
+        if (event.key === 'Escape') {
+          node.blur();
+        }
+      });
+
+      // Paste as text. Pasting from a document otherwise brings its markup
+      // with it, none of which a block field can store.
+      node.addEventListener('paste', (event) => {
+        event.preventDefault();
+        const text = (event.clipboardData || window.clipboardData).getData('text/plain');
+        document.execCommand('insertText', false, text);
+      });
+    });
+  }
+
   addInsertPoints();
+  startEditing();
 
   /**
    * Keeps the scroll position across reloads.

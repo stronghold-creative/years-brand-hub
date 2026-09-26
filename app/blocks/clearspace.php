@@ -6,7 +6,7 @@ $tone  = block_option($options, 'tone', 'accent');
 $back  = block_option($options, 'background', 'panel');
 ?>
 <section class="block block--clearspace">
-  <?php if (!empty($data['heading'])): ?><h3><?= e($data['heading']) ?></h3><?php endif; ?>
+  <?php if (!empty($data['heading'])): ?><h3<?= editable('heading') ?>><?= e($data['heading']) ?></h3><?php endif; ?>
   <?php if ($asset): ?>
     <figure class="clearspace clearspace--<?= e($tone) ?> clearspace--bg-<?= e($back) ?>" style="--pad: <?= $ratio ?>%">
       <div class="clearspace__frame">
