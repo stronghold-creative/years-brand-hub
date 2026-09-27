@@ -165,6 +165,25 @@ the screen. In the column the headline gets a budget for the whole block
 (`20rem`, shared between `--lines`), so a long headline sets smaller rather
 than taller.
 
+**A rounded thing inside a rounded thing uses a smaller radius.** For the two
+curves to stay parallel the inner one has to be `outer − padding`, clamped at
+zero; given the same radius the inner corner is too round for the space and the
+curves pull apart. Each padded container publishes
+`--s-radius-inner: max(0px, calc(var(--s-radius) - <its own padding>))`, and
+anything rounded inside reads `var(--s-radius-inner, var(--s-radius, 6px))` —
+falling back to the full radius when it is not inside one, which is correct
+because then there is no outer curve to sit within.
+
+An element must not both publish and read that token: it would read its own
+value rather than its parent's. Cards that contain nothing rounded, like
+`.links--cards .links__item`, only read.
+
+At the shipped 6px radius and 1.75rem padding every inner corner is square. It
+matters at the Rounded and Pill presets. **The admin does not do this**: it is
+Material 3, whose shape scale steps nested components down by name — a card at
+`medium` holds fields at `extra-small` — rather than computing it, and mixing
+the two systems would be worse than either.
+
 **Rail sizes sit on an 8px scale**, with 4px as the half step: 16px text, 8px
 of padding, a 16px indent, and 12px of padding in the drawer for a 50px tap
 target. It was 11px and 14px text with 5px and 10px padding, none of which

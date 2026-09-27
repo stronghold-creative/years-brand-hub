@@ -850,6 +850,32 @@ body[data-card='outlined'] .swatches--cards .swatch { border: var(--s-border, 1p
 .zone--sp-normal { margin-bottom: var(--s-gap, 4rem); }
 .zone--bg-tint, .zone--bg-purple, .zone--bg-dark { padding: var(--s-pad, 1.75rem); border-radius: var(--s-radius, 6px); }
 
+/* ===========================================================================
+   Nested corners
+
+   A rounded thing inside another rounded thing cannot use the same radius. For
+   the two curves to stay parallel the inner one has to be the outer radius
+   less the gap between them, which is the padding. Given the same radius, the
+   inner corner is too round for the space it sits in and the curves visibly
+   pull apart at the corner.
+
+       inner = max(0, outer - padding)
+
+   Each padded container works this out from its own padding and publishes it
+   as --s-radius-inner. Custom properties inherit, so anything inside picks it
+   up; anything not inside one falls back to the full radius, which is correct
+   because there is no outer curve to sit within.
+
+   At the shipped defaults — 6px radius, 1.75rem padding — this is 0: a small
+   radius with generous padding means the inner corner should be square. It
+   matters most at the Rounded and Pill presets, where the difference is
+   obvious.
+   =========================================================================== */
+
+.zone--bg-tint, .zone--bg-purple, .zone--bg-dark {
+  --s-radius-inner: max(0px, calc(var(--s-radius, 6px) - var(--s-pad, 1.75rem)));
+}
+
 /* Panels follow the chosen treatment. */
 body[data-card='outlined'] .zone--bg-tint,
 body[data-card='outlined'] .zone--bg-purple { border: 1px solid var(--rule); }
@@ -899,6 +925,8 @@ body[data-cta='text'] .cta { padding: 0; color: var(--accent); text-decoration: 
   background: var(--raised);
   border-radius: var(--s-radius, 6px);
   padding: var(--s-pad, 1.75rem);
+  /* The chip inside sits within this corner; see Nested corners above. */
+  --s-radius-inner: max(0px, calc(var(--s-radius, 6px) - var(--s-pad, 1.75rem)));
 }
 body[data-card='outlined'] .swatches--cards .swatch { background: none; border: 1px solid var(--rule); }
 body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(31,31,31,.06), 0 8px 24px rgba(31,31,31,.05); }
@@ -919,7 +947,7 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 .swatches--large  { --sw: calc(var(--s-swatch, 6rem) * 1.45); }
 .swatches--list .swatch { grid-template-columns: var(--sw, var(--s-swatch, 6rem)) 1fr; }
 
-.swatches--shape-rounded .swatch__chip { border-radius: var(--s-radius, 6px); }
+.swatches--shape-rounded .swatch__chip { border-radius: var(--s-radius-inner, var(--s-radius, 6px)); }
 .swatches--shape-inherit .swatch__chip { border-radius: 0; }
 .swatches--shape-circle .swatch__chip { border-radius: 50%; }
 .swatches--shape-circle .swatch__copy { display: none; }
@@ -1018,7 +1046,7 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 /* Images */
 .figure--fit-square img { aspect-ratio: 1; object-fit: cover; }
 .figure--fit-wide img   { aspect-ratio: 16 / 9; object-fit: cover; }
-.figure--r-round img, .figure--r-inherit img { border-radius: var(--s-radius, 6px); }
+.figure--r-round img, .figure--r-inherit img { border-radius: var(--s-radius-inner, var(--s-radius, 6px)); }
 .figure--r-none img { border-radius: 0; }
 .imagegrid--gap-tight { gap: .5rem; }
 .imagegrid--gap-loose { gap: 2.5rem; }
@@ -1178,7 +1206,7 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
    =========================================================================== */
 
 .block__note { margin: 1rem 0 0; font-size: .875rem; color: var(--ink-faint); max-width: var(--s-measure, 70ch); }
-.block__empty { margin: 0; padding: 1rem; background: var(--raised); border-radius: var(--s-radius, 6px); font-size: .875rem; color: var(--ink-soft); }
+.block__empty { margin: 0; padding: 1rem; background: var(--raised); border-radius: var(--s-radius-inner, var(--s-radius, 6px)); font-size: .875rem; color: var(--ink-soft); }
 
 /* The stand-in for a block with nothing in it yet. Only ever rendered in the
    editor canvas, so it needs no scoping: render_blocks() emits it in edit mode
@@ -1192,7 +1220,7 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
   min-height: 4.5rem;
   align-content: center;
   border: 1px dashed var(--rule-firm);
-  border-radius: var(--s-radius, 6px);
+  border-radius: var(--s-radius-inner, var(--s-radius, 6px));
   background: var(--raised);
   max-width: var(--s-measure, 70ch);
 }
@@ -1207,7 +1235,7 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
   background:
     repeating-linear-gradient(45deg, var(--raised) 0 6px, transparent 6px 12px);
   border: 1px dashed var(--rule-firm);
-  border-radius: var(--s-radius, 6px);
+  border-radius: var(--s-radius-inner, var(--s-radius, 6px));
 }
 .clearspace__mark { background: var(--page); padding: 1.5rem; display: grid; place-items: center; }
 .clearspace__mark img { display: block; max-width: 100%; height: auto; }
@@ -1276,7 +1304,7 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 
 /* A continuous strip reads as one object; separate swatches read as a set. */
 .ramps--separate .ramp__steps { gap: .375rem; }
-.ramps--separate .ramp__chip { border-radius: var(--s-radius, 6px); }
+.ramps--separate .ramp__chip { border-radius: var(--s-radius-inner, var(--s-radius, 6px)); }
 
 .ramp__label { font-size: .75rem; font-weight: 600; font-variant-numeric: tabular-nums; }
 .ramp__hex {
@@ -1328,7 +1356,7 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   align-items: stretch;
-  border-radius: var(--s-radius, 6px);
+  border-radius: var(--s-radius-inner, var(--s-radius, 6px));
   overflow: hidden;
 }
 .story--two-thirds { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
@@ -1353,7 +1381,7 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 .story--gap-wide { gap: .5rem; background: none; }
 .story--gap-wide .story__lead,
 .story--gap-wide .story__rest { gap: .5rem; }
-.story--gap-wide .story__panel { border-radius: var(--s-radius, 6px); }
+.story--gap-wide .story__panel { border-radius: var(--s-radius-inner, var(--s-radius, 6px)); }
 
 .story__panel {
   position: relative;
@@ -1415,7 +1443,7 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
   display: grid; place-items: center;
   width: 100%; aspect-ratio: 1;
   background: var(--raised);
-  border-radius: var(--s-radius, 6px);
+  border-radius: var(--s-radius-inner, var(--s-radius, 6px));
   padding: 22%;
 }
 .icons__tile img { width: 100%; height: 100%; object-fit: contain; }
@@ -1449,7 +1477,7 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 .misuse--two   { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .misuse--three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 @media (max-width: 48rem) { .misuse--two, .misuse--three { grid-template-columns: minmax(0, 1fr); } }
-.misuse__frame { display: block; background: var(--raised); border-radius: var(--s-radius, 6px); overflow: hidden; }
+.misuse__frame { display: block; background: var(--raised); border-radius: var(--s-radius-inner, var(--s-radius, 6px)); overflow: hidden; }
 .misuse__frame img { display: block; width: 100%; height: auto; }
 .misuse__verdict { margin: .625rem 0 .25rem; font-size: .75rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
 .misuse__item--do .misuse__verdict { color: var(--positive, #1F7A4D); }
@@ -1471,7 +1499,16 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 .links { list-style: none; margin: 0; padding: 0; }
 .links--rows .links__item { border-bottom: 1px solid var(--rule); }
 .links--cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: .75rem; }
-.links--cards .links__item { border: 1px solid var(--rule); border-radius: var(--s-radius, 6px); padding: 1rem; }
+/* A card is itself something that can sit inside a panel, so it takes the
+   inner radius when there is one and the full radius when there is not.
+   It publishes nothing: nothing inside it is rounded, and an element that both
+   publishes and reads --s-radius-inner reads its own value rather than its
+   parent's. */
+.links--cards .links__item {
+  border: 1px solid var(--rule);
+  border-radius: var(--s-radius-inner, var(--s-radius, 6px));
+  padding: 1rem;
+}
 .links__link { display: flex; align-items: baseline; gap: .625rem; padding: .875rem 0; text-decoration: none; color: inherit; }
 .links--cards .links__link { padding: 0; flex-direction: column; gap: .25rem; }
 .links__label { font-weight: 500; }
@@ -1483,7 +1520,7 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 /* Contacts ----------------------------------------------------------------- */
 .contacts { list-style: none; margin: 0; padding: 0; }
 .contacts--cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: 1rem; }
-.contacts--cards .contacts__item { background: var(--raised); border-radius: var(--s-radius, 6px); padding: var(--s-pad, 1.25rem); }
+.contacts--cards .contacts__item { background: var(--raised); border-radius: var(--s-radius-inner, var(--s-radius, 6px)); padding: var(--s-pad, 1.25rem); }
 .contacts--rows .contacts__item { padding: .875rem 0; border-bottom: 1px solid var(--rule); }
 .contacts__item h4 { margin: 0 0 .1875rem; font-size: .9375rem; font-weight: 600; }
 .contacts__role { margin: 0 0 .5rem; font-size: .8125rem; color: var(--ink-soft); }
@@ -1507,7 +1544,7 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 .checks__note { display: block; margin-top: .125rem; font-size: .8125rem; color: var(--ink-faint); }
 
 /* Video -------------------------------------------------------------------- */
-.video { position: relative; aspect-ratio: 16 / 9; background: #000; border-radius: var(--s-radius, 6px); overflow: hidden; }
+.video { position: relative; aspect-ratio: 16 / 9; background: #000; border-radius: var(--s-radius-inner, var(--s-radius, 6px)); overflow: hidden; }
 .video iframe, .video video { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
 /* A video wider than the measure, and the surface it sits on. */
 .block--video-wide .video { width: var(--breakout, 100%); max-width: none; }
@@ -1530,7 +1567,7 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 .tabs--pill .tabs__tab[aria-selected='true'] { background: var(--accent); color: #fff; }
 .tabs__tab:hover { color: var(--ink); }
 .tabs__panel[hidden] { display: none; }
-.tabs__image { display: block; max-width: 100%; height: auto; border-radius: var(--s-radius, 6px); margin-bottom: 1rem; }
+.tabs__image { display: block; max-width: 100%; height: auto; border-radius: var(--s-radius-inner, var(--s-radius, 6px)); margin-bottom: 1rem; }
 
 /* Accordion ---------------------------------------------------------------- */
 .accordion__item { border-bottom: 1px solid var(--rule); }
@@ -1557,7 +1594,7 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 .accordion--tight .accordion__body { padding-bottom: .75rem; }
 
 /* Code --------------------------------------------------------------------- */
-.code { margin: 0; border: 1px solid var(--rule); border-radius: var(--s-radius, 6px); overflow: hidden; }
+.code { margin: 0; border: 1px solid var(--rule); border-radius: var(--s-radius-inner, var(--s-radius, 6px)); overflow: hidden; }
 .code__bar { display: flex; align-items: center; justify-content: space-between; padding: .5rem .875rem; background: var(--raised); border-bottom: 1px solid var(--rule); }
 .code__lang { font-size: .6875rem; font-weight: 700; letter-spacing: .06em; color: var(--ink-faint); }
 .code__copy { border: 0; background: none; cursor: pointer; font: inherit; font-size: .75rem; color: var(--accent); padding: .25rem .5rem; border-radius: 999px; }
@@ -1654,7 +1691,7 @@ html, body { overflow-x: clip; }
  */
 .opener--column {
   margin-bottom: 4rem;
-  border-radius: var(--s-radius, 6px);
+  border-radius: var(--s-radius-inner, var(--s-radius, 6px));
   overflow: hidden;
 }
 .opener--column .hero {
