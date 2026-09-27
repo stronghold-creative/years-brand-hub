@@ -591,6 +591,12 @@ body.nav-open {
   border: 1px solid rgba(31, 31, 31, .08);
   cursor: pointer;
   padding: 0;
+  /* The Copy bar spans the foot of the swatch, so it has to be cut to the
+     swatch's own corners. Without this it is a square bar sitting over a
+     rounded chip, poking out at both bottom corners — and it would have to be
+     told the radius separately, which then has to be kept in step with the
+     shape option and the nested-corner rule. Clipping asks no questions. */
+  overflow: hidden;
 }
 .swatch__copy {
   position: absolute;
@@ -1124,7 +1130,19 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 /* Labels inside the swatch rather than under it. The text colour cannot be
    measured here as it is in the ramp, so it is placed on a plate that works on
    any colour instead of guessing. */
-.swatches--labels-inside .swatch { position: relative; }
+/* Clipped to the same corners as the chip it covers, for the same reason the
+   Copy bar is: a full-width plate across the foot of a rounded swatch has to
+   be cut to that shape or it overhangs both bottom corners. The radius is
+   taken from the chip's own rule so the two cannot drift apart. */
+.swatches--labels-inside .swatch {
+  position: relative;
+  overflow: hidden;
+  border-radius: inherit;
+}
+.swatches--labels-inside.swatches--shape-rounded .swatch { border-radius: var(--s-radius-inner, var(--s-radius, 6px)); }
+.swatches--labels-inside.swatches--shape-circle .swatch { border-radius: 50%; }
+.swatches--labels-inside.swatches--shape-square .swatch,
+.swatches--labels-inside.swatches--shape-inherit .swatch { border-radius: 0; }
 .swatches--labels-inside .swatch__meta {
   position: absolute;
   inset: auto 0 0 0;
@@ -1544,11 +1562,13 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
   padding: 0;
   color: inherit;
 }
+/* Here it is a pill floating clear of the panel's edges rather than a bar
+   along the foot, so it carries its own corners and needs no clipping. */
 .story__copy .swatch__copy {
   inset: auto .5rem .5rem auto;
   left: auto;
   right: .5rem;
-  border-radius: var(--s-radius, 6px);
+  border-radius: var(--s-radius-inner, var(--s-radius, 6px));
 }
 .story__copy:hover .swatch__copy,
 .story__copy:focus-visible .swatch__copy { opacity: 1; }
