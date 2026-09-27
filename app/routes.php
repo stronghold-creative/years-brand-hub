@@ -420,6 +420,51 @@ if ($path === '/admin/sections/rename' && $method === 'POST') {
     redirect('/admin');
 }
 
+// ---------------------------------------------------------------- components
+
+// The public /components area stays behind components_enabled, but the admin
+// does not: the switch exists so readers cannot see an empty area, and it would
+// be perverse if it also stopped the person filling it.
+
+if ($path === '/admin/components') {
+    require_editor();
+    view('admin/components', [
+        'title'      => 'Components',
+        'components' => components_all(),
+        'groups'     => component_groups(),
+        'installed'  => components_installed(),
+    ], 'admin/layout');
+    exit;
+}
+
+if ($path === '/admin/components/new' && $method === 'POST') {
+    require_editor();
+    csrf_check();
+    if (!components_installed()) {
+        redirect('/admin/components');
+    }
+    component_create(
+        $_POST['name'] ?? '',
+        $_POST['group'] ?? '',
+        current_user()['id']
+    );
+    redirect('/admin/components');
+}
+
+if (preg_match('#^/admin/components/(\d+)/move/(up|down)$#', $path, $m) && $method === 'POST') {
+    require_editor();
+    csrf_check();
+    component_move((int) $m[1], $m[2]);
+    redirect('/admin/components');
+}
+
+if (preg_match('#^/admin/components/(\d+)/delete$#', $path, $m) && $method === 'POST') {
+    require_admin();
+    csrf_check();
+    component_delete((int) $m[1]);
+    redirect('/admin/components');
+}
+
 // -------------------------------------------------------------------- people
 
 if ($path === '/admin/users') {

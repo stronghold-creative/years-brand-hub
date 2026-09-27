@@ -86,10 +86,18 @@ deploy can never overwrite your credentials or uploaded files.
 - Pages: sections, ordering, drafts, version history with restore, filtering
 - Search across every page, opened with ⌘K or a bare `/`
 - People and roles, settings, site logo, area toggle
+- Components: the list at `/admin/components`, grouped, filterable, reorderable
 
 ## Not built yet
 
-- The Components area, beyond a placeholder
+- The component library, past its first phase. A Storybook for Years:
+  each component rendered live in a sandboxed iframe with its variants and code,
+  and a spec table of radius, colour tokens, spacing and type derived from the
+  component's own CSS. Eight phases, scoped in
+  [docs/COMPONENTS.md](docs/COMPONENTS.md), usable from phase 4. **Phase 1 is
+  in** — the tables and the admin list at `/admin/components`; migration 009 has
+  to be applied from Settings. The preview, editor, public pages, derived spec
+  and Figma import are still to come
 - `/tokens.css` exports colours only, not type
 
 ## Checks

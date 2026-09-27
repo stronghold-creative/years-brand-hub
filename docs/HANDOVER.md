@@ -1,7 +1,7 @@
 # Years brand hub: handover
 
 Everything needed to pick this up cold, including in a new conversation with no
-memory of the previous one. Last updated 26 September 2026.
+memory of the previous one. Last updated 27 September 2026.
 
 ---
 
@@ -24,10 +24,11 @@ app/
   bootstrap.php                loads every file in app/lib, then config
   config.php                   SERVER ONLY, gitignored, database credentials
   routes.php                   the whole router, top to bottom, first match wins
-  lib/                         13 files, all auto-loaded
+  lib/                         14 files, all auto-loaded
     assets.php                 uploads, image variants, bundles, serving
     auth.php                   sessions, roles, sign-in throttling
     blocks.php                 block definitions, sanitising, rendering, contrast
+    components.php             the component library: rows, slugs, ordering
     db.php                     PDO helpers
     fontmetrics.php            character widths, so a hero line can be fitted
     http.php                   escaping, CSRF, redirects, asset_url()
@@ -40,11 +41,12 @@ app/
     view.php                   template rendering
   blocks/                      25 renderers, one per block type
   views/                       15 templates, public and admin
-db/                            8 migrations, applied in filename order
+db/                            9 migrations, applied in filename order
 public_html/                   the only web-accessible directory
 storage/                       uploads and caches, never deployed
 tools/                         setup, migrate, create-user, export, checks
 docs/HANDOVER.md               this file
+docs/COMPONENTS.md             the component library: agreed scope, not built
 ```
 
 The document root is the **parent** of `public_html`, so `app/` and `storage/`
@@ -247,6 +249,59 @@ Search filters on label and hint.
 
 ---
 
+## 4b. The component library
+
+**Phase 1 of 8 is built. The spec is `docs/COMPONENTS.md`; read it before
+continuing, and start at phase 2.**
+
+A Storybook for Years, living in the Components area that `components_enabled`
+already gates. One page per component: the real thing rendered live in a
+sandboxed iframe, its variants switchable, its code copyable, and a spec table
+of radius, colour tokens, spacing and type **derived from the component's own
+CSS** rather than retyped — with anything that is not one of the site's tokens
+flagged, so the library audits as well as documents.
+
+Four decisions worth knowing without opening the file:
+
+- **Its own table and its own editor**, not blocks on a page row. This goes
+  against the rule in section 3, knowingly: variants, a lifecycle and a
+  generated spec table do not model as a stack of blocks, and the cost — search,
+  versions and autosave built a second time — was accepted rather than
+  overlooked. The reasoning is recorded in the spec so it can be argued with.
+- **Imported from Figma Dev Mode by paste.** Figma's clipboard is an encoded
+  binary of its internal document format; decoding it would mean a kiwi decoder
+  in PHP against a schema Figma changes without notice. Dev Mode's generated
+  code is text. A pasted binary clipboard is detected and refused with an
+  explanation, because it will get pasted.
+- **A Figma link is stored, never fetched.** The file key and node id are parsed
+  out and kept, so the REST API can be added later without a migration. No
+  token, no dependency on a file staying shared.
+- **`allow-scripts` without `allow-same-origin`.** The two together are not a
+  sandbox — the frame can remove its own attribute. This is also the one place
+  in the codebase that renders raw HTML, confined to an opaque-origin frame and
+  writable only by an editor.
+
+Eight phases, each a commit and a working state; a usable library exists at the
+end of phase 4.
+
+**Phase 1 shipped** `db/009_components.sql` (three tables — `components`,
+`component_variants`, `component_versions`), `lib/components.php`,
+`/admin/components` with its list, Add, Delete and reorder, and a drawer item
+between Assets and People. **The migration needs applying**: push, wait for the
+green run, then Settings, Apply updates.
+
+The admin side deliberately ignores `components_enabled` — that switch stops
+readers finding an empty area, and having it also lock out the person filling the
+area would be perverse. `components_installed()` covers the window between a
+deploy and Apply updates with a message rather than the 500 that
+`bootstrap.php` would otherwise show, so the drawer stays usable.
+
+**Nothing renders raw HTML yet.** The variant markup column exists and is unused;
+phase 2 is where that starts, and section 4 of the spec is what to build it
+against.
+
+---
+
 ## 5. Decisions, and why
 
 | Decision | Reason |
@@ -262,6 +317,8 @@ Search filters on label and hint.
 | No top bar while reading | The rail is the navigation there; a second bar carried a label and a sign-in link and took 4.25rem to do it |
 | Section openers sit in the reading column | A full-bleed hero is a landing-page device, and above a rail it puts every piece of navigation below the fold |
 | Shopify storefront | Components, when built, are Liquid sections, not React |
+| Components get their own table, against the rule above | Variants, a lifecycle and a generated spec table do not model as blocks. See `docs/COMPONENTS.md` |
+| Figma Dev Mode paste, not the clipboard or the API | The clipboard is an encoded internal format; the API needs a token and a permanently shared file |
 
 ---
 
@@ -393,7 +450,9 @@ the canvas.
 
 **Content:** 30 pages scaffolded as drafts. One written: Tone of voice.
 
-**Not built:** the Components area beyond a placeholder, motion page content,
+**Not built:** the component library past phase 1 — the admin list is in, the
+preview, editor, public pages, derived spec and Figma import are not; see
+`docs/COMPONENTS.md` — motion page content,
 type exports in `/tokens.css`, password reset, pagination (deliberately
 deferred).
 
@@ -423,6 +482,10 @@ belongs there, not in a caller.
    and neither does `colour_story`. It exports no type either. Search indexes
    all three; the token export has not caught up.
 8. Deferred from the audit: section page caching, password reset.
+9. **Continue the component library at phase 2**, the sandboxed preview frame.
+   Phase 1 is in. `docs/COMPONENTS.md` section 9 is the phase table and section 4
+   is the frame's specification. Apply migration 009 before expecting the area to
+   work.
 
 `MoreYears-Regular.woff2` is in `public_html/assets/fonts/`, so the hero and the
 Typography page can show real specimens.

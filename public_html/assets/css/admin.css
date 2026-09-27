@@ -385,6 +385,27 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 .m3-list-head span:last-child { text-align: left; }
 .m3-list-item__headline { font-size: 1rem; line-height: 1.5rem; text-decoration: none; color: var(--md-sys-color-on-surface); }
 .m3-list-item__support { font-size: .875rem; line-height: 1.25rem; color: var(--md-sys-color-on-surface-variant); }
+
+/* The component list is the same row without a cover thumbnail, so five columns
+   rather than six. Declared once and shared by the head and the rows, because
+   the page list's two copies of its template are exactly the kind of pair that
+   drifts. */
+.m3-list--components,
+.m3-list-head--components { --component-cols: minmax(10rem, 18fr) minmax(0, 30fr) 6rem 7rem 18rem; }
+.m3-list--components .m3-list-item,
+.m3-list-head--components { grid-template-columns: var(--component-cols); }
+
+/* A group name that cannot be renamed in place, unlike a page section. The
+   grouping follows the component rows, so renaming it here would have to move
+   every component in it, which is a phase-3 job. */
+.m3-section__name--static {
+  font-size: .875rem;
+  font-weight: 500;
+  letter-spacing: .00714em;
+  color: var(--md-sys-color-on-surface-variant);
+  padding: .25rem .5rem;
+}
+
 .m3-divider { height: 1px; background: var(--md-sys-color-outline-variant); border: 0; margin: 0; }
 
 /* ===========================================================================
@@ -1389,11 +1410,16 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 @media (max-width: 68rem) {
   .m3-list-head { display: none; }
   .m3-list-item { grid-template-columns: minmax(0, 1fr) 6rem auto; gap: .75rem; }
+  /* The component row's template is set by a more specific selector, so it has
+     to be overridden by one at least as specific. Collapsing to the same three
+     columns, since the same two are hidden. */
+  .m3-list--components .m3-list-item { grid-template-columns: minmax(0, 1fr) 6rem auto; }
   .m3-list-item__summary, .m3-list-item__date { display: none; }
 }
 
 @media (max-width: 40rem) {
   .m3-list-item { grid-template-columns: 1fr; gap: .25rem; }
+  .m3-list--components .m3-list-item { grid-template-columns: 1fr; }
   .m3-addrow { flex-direction: column; }
   .m3-addrow .m3-button { width: 100%; margin-top: 0; }
 }

@@ -46,6 +46,10 @@ $expected = [
     'POST /admin/assets/add'       => '/admin/assets/add',
     'GET  /admin/export'           => '/admin/export',
     'POST /admin/sections/move/up' => '/admin/sections/move/up',
+    'GET  /admin/components'       => '/admin/components',
+    'POST /admin/components/new'   => '/admin/components/new',
+    'POST /admin/components/7/move/up' => '/admin/components/7/move/up',
+    'POST /admin/components/7/delete'  => '/admin/components/7/delete',
 ];
 
 $failed = 0;

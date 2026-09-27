@@ -141,6 +141,8 @@ function ui_icon_set(): array
         'back'     => '<path d="M19 12H5"/><path d="m11 18-6-6 6-6"/>',
         'history'  => '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 4v4h4"/><path d="M12 8v4l3 2"/>',
         'add'      => '<path d="M12 5v14"/><path d="M5 12h14"/>',
+        // Three assembled pieces. It has to read as different from Pages at 24px.
+        'components' =>'<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="5" rx="1.5"/><rect x="3" y="13" width="18" height="8" rx="1.5"/>',
     ];
 }
 

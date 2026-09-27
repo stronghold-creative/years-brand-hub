@@ -5,6 +5,7 @@ $path = rtrim(parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH) ?: '/', '/
 $destinations = [
     ['href' => '/admin',          'label' => 'Pages',    'icon' => 'pages',    'match' => ['/admin', '/admin/pages']],
     ['href' => '/admin/assets',   'label' => 'Assets',   'icon' => 'assets',   'match' => ['/admin/assets']],
+    ['href' => '/admin/components', 'label' => 'Components', 'icon' => 'components', 'match' => ['/admin/components']],
     ['href' => '/admin/users',    'label' => 'People',   'icon' => 'people',   'match' => ['/admin/users'], 'admin' => true],
     ['href' => '/admin/styles',   'label' => 'Appearance', 'icon' => 'palette-ui', 'match' => ['/admin/styles'], 'admin' => true],
     ['href' => '/admin/settings', 'label' => 'Settings', 'icon' => 'settings', 'match' => ['/admin/settings'], 'admin' => true],
