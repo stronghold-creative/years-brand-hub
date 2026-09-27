@@ -238,6 +238,13 @@ in edit mode, never on the public site. Both sides validate origin.
 
 Saving reloads the iframe. Autosave fires 700ms after typing stops.
 
+**Adding a block** opens a centred dialog (`.blockmenu`, built in `editor.js`,
+styled in `admin.css`), always centred rather than anchored, because it is opened
+from the outline, the canvas and the keyboard. The choices are a **grid of
+cards**, `auto-fill minmax(14rem, 1fr)` in a 52rem dialog, so most of the two
+dozen block types are visible at once; below 30rem it falls back to one column.
+Search filters on label and hint.
+
 ---
 
 ## 5. Decisions, and why
