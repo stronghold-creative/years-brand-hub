@@ -8,13 +8,14 @@ $currentSlug = slugify($section);
 ?>
 <div class="nav-scrim" id="nav-scrim" hidden></div>
 
-<?php if (!empty($hero)): ?>
-  <?php // Outside the reading grid: nothing beside it, nothing above it. ?>
-  <div class="opener"><?php render_bare_block($hero); ?></div>
-<?php endif; ?>
-
-<div class="reader<?= !empty($hero) ? ' reader--opened' : '' ?>">
+<div class="reader">
   <nav class="reader__nav" id="reader-nav" aria-label="Guidelines">
+    <?php // The head of the rail, and the only place the mark appears on a wide
+          // screen. The bar above is not drawn at all here; see layout.php. ?>
+    <div class="reader__head">
+      <?= site_mark('mark') ?>
+    </div>
+
     <?php foreach ($nav as $name => $items): ?>
       <?php $isCurrent = $name === $section; ?>
       <?php // Always a link, so the current section is styled rather than
@@ -34,10 +35,29 @@ $currentSlug = slugify($section);
         <?php endforeach; ?>
       <?php endif; ?>
     <?php endforeach; ?>
+
+    <?php // At the foot of the rail rather than in a bar, because the bar is
+          // gone on a wide screen and these are the least of what is here. ?>
+    <nav class="reader__tools" aria-label="Account">
+      <?php if (can_edit()): ?>
+        <a href="/admin">Edit</a>
+        <a href="/admin/sign-out">Sign out</a>
+      <?php else: ?>
+        <a href="/admin/sign-in">Sign in</a>
+      <?php endif; ?>
+    </nav>
   </nav>
 
   <main class="reader__body" id="content">
-    <?php if (empty($hero)): ?>
+    <?php if (!empty($hero)): ?>
+      <?php // Inside the column, not across the page. A hero that spans the
+            // viewport is a landing-page device: it can own the first screen
+            // because nothing competes with it. Here the rail has to stay
+            // reachable, so the opener is bounded by the column it opens. Its
+            // type is fitted with container units, so it sizes itself to
+            // whatever width it is given. ?>
+      <div class="opener opener--column"><?php render_bare_block($hero); ?></div>
+    <?php else: ?>
       <header class="reader__sectionhead">
         <h1><?= e($section) ?></h1>
         <p class="reader__count"><?= count($pages) ?> <?= count($pages) === 1 ? 'page' : 'pages' ?></p>

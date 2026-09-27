@@ -59,8 +59,11 @@ if (!empty($data['ink']))        { $style[] = '--hero-ink: ' . $data['ink']; }
       // this a section that opened with a hero had no h1 at all.
       $tag = !empty($isOpener) ? 'h1' : 'h2';
     ?>
+    <?php // How many lines there are, so a headline can be capped as a block
+          // rather than per line. The cap on one line is the same whether there
+          // is one of them or four, so four of them are four times as tall. ?>
     <?php if ($lines): ?>
-      <<?= $tag ?> class="hero__headline">
+      <<?= $tag ?> class="hero__headline" style="--lines: <?= count($lines) ?>">
         <?php foreach ($lines as $i => $line): ?>
           <?php
             // Width of this line at font-size 1em, so the size that fills the

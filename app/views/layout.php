@@ -52,28 +52,39 @@ $canonical  = rtrim((string) (($config['site']['base_url'] ?? '')), '/')
 ?>
 <script>document.documentElement.classList.add('js-hero');</script>
 </head>
-<body<?= style_body_attributes() ?>>
+<?php
+/**
+ * Two kinds of chrome, decided by whether the page has a rail.
+ *
+ *   index    the grid, components, 404. The bar is the only navigation there,
+ *            so it carries everything and earns its place.
+ *   reading  a section. The rail is the navigation, and it holds the mark and
+ *            the tools at its head, so the bar has nothing left to do and is
+ *            not drawn at all. On a narrow screen the rail is a drawer, which
+ *            cannot hold a mark that has to stay visible, so a slim bar comes
+ *            back with the mark, the menu and where you are.
+ */
+$chrome  = ($chrome ?? 'index') === 'reading' ? 'reading' : 'index';
+$reading = $chrome === 'reading';
+?>
+<body class="chrome-<?= e($chrome) ?>"<?= style_body_attributes() ?>>
 <?php // Every section page lists each section, then every chapter in the current
       // one, before the content. Without this a keyboard reader tabs through the
       // whole rail on every page before reaching a word of it. ?>
 <a class="skip" href="#content">Skip to the content</a>
 <span id="top"></span>
-<header class="masthead" id="masthead">
-  <?php $logo = site_logo(); ?>
+<header class="masthead<?= $reading ? ' masthead--slim' : '' ?>" id="masthead">
   <button class="masthead__menu" type="button" id="nav-toggle"
           aria-expanded="false" aria-controls="reader-nav" hidden>
     <span class="masthead__bars" aria-hidden="true"></span>
     <span class="visually-hidden">Menu</span>
   </button>
-  <a class="masthead__mark" href="/">
-    <?php if ($logo): ?>
-      <img src="<?= e(asset_image_url($logo)) ?>" alt="Years" class="masthead__logo">
-    <?php else: ?>
-      <span class="masthead__wordmark">Years</span>
-    <?php endif; ?>
-  </a>
+  <?= site_mark('mark') ?>
 
-  <?php if (components_enabled()): ?>
+  <?php if ($reading): ?>
+    <?php // Where you are, so the drawer does not have to be opened to find out. ?>
+    <p class="masthead__where"><?= e($section ?? '') ?></p>
+  <?php elseif (components_enabled()): ?>
     <nav class="areas" aria-label="Areas">
       <?php foreach (site_areas() as $area): ?>
         <a class="area<?= ($currentArea ?? 'brand') === $area['key'] ? ' is-on' : '' ?>"

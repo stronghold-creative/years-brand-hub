@@ -117,6 +117,24 @@ function site_logo(): ?array
 }
 
 /**
+ * The site's mark, as a link home.
+ *
+ * Reading pages put it at the head of the rail and narrow ones put it in the
+ * bar, because a rail that slides away cannot hold a mark that has to stay
+ * visible. That is two places in the document, which is normally how markup
+ * drifts, so the markup itself lives here and both places call this.
+ */
+function site_mark(string $class = 'mark'): string
+{
+    $logo = site_logo();
+    $inside = $logo
+        ? '<img src="' . e(asset_image_url($logo)) . '" alt="Years" class="mark__logo">'
+        : '<span class="mark__wordmark">Years</span>';
+
+    return '<a class="' . e($class) . '" href="/">' . $inside . '</a>';
+}
+
+/**
  * The areas in the masthead toggle. Brand is the guidelines; Components is for
  * documenting web components for design and development, and is switched off
  * until there is something in it.

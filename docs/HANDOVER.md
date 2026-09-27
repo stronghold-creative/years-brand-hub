@@ -131,6 +131,48 @@ rather than in 25 renderers so it cannot drift, and never runs on a public page.
 
 ---
 
+## 3a. The navigation
+
+**Two kinds of chrome, decided by whether the page has a rail.** `layout.php`
+takes a `chrome` value: `index` (the default — the grid, components, 404) or
+`reading`, which `/s/*` passes. It sets a class on `<body>`.
+
+- **index**: the bar is the only navigation, so it carries the mark, the areas
+  and the tools, as it always did.
+- **reading**: the rail *is* the navigation, so on a wide screen the bar is not
+  drawn at all. The rail holds the mark at its head and the account links at
+  its foot. Below 56rem the rail becomes a drawer, which cannot hold a mark
+  that has to stay visible, so a slim bar returns with the mark, the menu
+  button and the name of the section being read.
+
+**The mark is written by `site_mark()`,** because reading pages put it in the
+rail and narrow ones put it in the bar. That is the same markup in two places,
+which is normally how markup drifts, so it has one source.
+
+**A hero on a section page is bounded by the reading column, not the viewport.**
+A full-bleed hero is a landing-page device: it can own the first screen because
+nothing on that kind of page competes with it. The heroes here came from a
+landing page that had no rail, and putting one above the reading grid pushed
+every piece of navigation below the fold. `.opener--column` keeps the opener
+inside the column it opens. Full-bleed heroes remain for the grid and anything
+else without a rail.
+
+The headline needs no separate measurement for this: `hero_line_width()` gives
+each line its width and the CSS divides `100cqw` by it, so the type fits
+whatever container it is put in. What did need changing is the cap — the
+full-bleed one is `34svh` *per line*, so two lines are 68svh and four run off
+the screen. In the column the headline gets a budget for the whole block
+(`20rem`, shared between `--lines`), so a long headline sets smaller rather
+than taller.
+
+**Rail sizes sit on an 8px scale**, with 4px as the half step: 16px text, 8px
+of padding, a 16px indent, and 12px of padding in the drawer for a 50px tap
+target. It was 11px and 14px text with 5px and 10px padding, none of which
+landed on anything. Written in rem so the type-size setting in Appearance still
+moves them together.
+
+---
+
 ## 4. The editor
 
 Three columns: an **outline** (navigation only, drag to reorder), a **canvas**
@@ -159,6 +201,8 @@ Saving reloads the iframe. Autosave fires 700ms after typing stops.
 | Server-rendered editor canvas | One implementation, so the preview cannot drift |
 | Two width settings | 72rem container for grids and tables, 70ch measure for prose |
 | Sections render as one scrolling page | Guidelines are read in sequence more than looked up |
+| No top bar while reading | The rail is the navigation there; a second bar carried a label and a sign-in link and took 4.25rem to do it |
+| Section openers sit in the reading column | A full-bleed hero is a landing-page device, and above a rail it puts every piece of navigation below the fold |
 | Shopify storefront | Components, when built, are Liquid sections, not React |
 
 ---
@@ -170,6 +214,15 @@ needs `'` doubled *and* `\` doubled, or `\n` becomes a real newline and the JSON
 is invalid. This silently broke a whole page. Test by simulating MySQL's
 unescaping, not by running the SQL in SQLite, which does not escape backslashes
 and hides the bug entirely.
+
+**A media query placed before the rule it overrides does nothing.** The worst
+version of the duplicate-property trap, because it reads as correct: the query
+states what should happen at that width, and at equal specificity the later
+rule wins anyway. It cost a drawer's tap targets, an opener's corners, and the
+reduced-motion rule that was supposed to stop the hero headline being held
+invisible — all in one sitting. Put narrow-screen rules **after** the rules they
+override, next to them, not in a shared block further up the file.
+`check-css.js` reports these as `OVERRIDES A MEDIA QUERY`.
 
 **A later CSS rule with the same specificity silently wins.** A stray
 `.masthead { position: relative }` cancelled a `position: sticky` declared
@@ -256,8 +309,10 @@ green run, then Settings, Apply updates.
 appearance settings, asset library with generated image variants and gated
 downloads, upload from inside the editor's picker, sections as scrolling pages
 with a hero opener, version history with collapsing and pruning, people and
-roles, settings, logo, area toggle, backup export, sign-in throttling, compact
-sticky header, mobile slide-out rail, filtering on the admin pages list.
+roles, settings, logo, area toggle, backup export, sign-in throttling, two
+kinds of chrome with the mark at the head of the rail while reading, mobile
+slide-out drawer, filtering on the admin pages list, text edited in place on
+the canvas.
 
 **Content:** 30 pages scaffolded as drafts. One written: Tone of voice.
 
@@ -320,8 +375,9 @@ has caught something real:
   every `editable()` path resolves *and* that the text on the page matches the
   value it points at. The gappy pass exists for that last check: it is the only
   one that produces a list with a hole in it.
-- `check-css.js` checks braces balance and finds any property set twice on the
-  same selector in the same at-rule context. Read its output rather than
+- `check-css.js` checks braces balance, finds any property set twice on the
+  same selector in the same at-rule context, and flags a rule inside a media
+  query that a later rule outside it overrides. Read its output rather than
   trusting it: the appearance tokens re-declare base rules with `var(--s-*)` on
   purpose, and those hits are correct.
 

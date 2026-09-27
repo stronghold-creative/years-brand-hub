@@ -93,6 +93,8 @@ if (preg_match('#^/s/([a-z0-9\-]+)$#', $path, $m)) {
         'hero'    => $hero,
         'nav'     => $bySection,
         'config'  => $config,
+        // The rail is the navigation here, so the bar steps aside; see layout.php.
+        'chrome'  => 'reading',
     ]);
     exit;
 }

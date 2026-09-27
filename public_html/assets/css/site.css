@@ -162,9 +162,9 @@ a:hover { color: var(--accent-deep); }
   transform: translateY(-4px);
   pointer-events: none;
 }
-.masthead__logo, .masthead__wordmark { transition: transform var(--d-calm) var(--e-out); }
-.masthead.is-compact .masthead__logo { transform: scale(.88); transform-origin: left center; }
-.masthead.is-compact .masthead__wordmark { transform: scale(.9); transform-origin: left center; }
+.masthead .mark__logo, .masthead .mark__wordmark { transition: transform var(--d-calm) var(--e-out); }
+.masthead.is-compact .mark__logo { transform: scale(.88); transform-origin: left center; }
+.masthead.is-compact .mark__wordmark { transform: scale(.9); transform-origin: left center; }
 
 /* Hidden visually, still read aloud. */
 .visually-hidden {
@@ -236,14 +236,19 @@ body.nav-open {
   right: 0;
 }
 @keyframes navfade { from { opacity: 0; } to { opacity: 1; } }
-.masthead__mark {
-  font-family: var(--display);
-  font-size: 1.25rem;
-  line-height: 1;
-  color: var(--mark);
-  text-decoration: none;
-}
 .masthead__title { margin: 0; color: var(--ink-faint); font-size: .8125rem; }
+/* Where you are, in the slim bar, so the drawer does not have to be opened to
+   find out. Never shown on a wide screen: the rail says it plainly there. */
+.masthead__where {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: none;
+}
 .masthead__tools { margin-left: auto; display: flex; gap: 1.5rem; font-size: .8125rem; }
 .masthead__tools a { color: var(--ink-soft); text-decoration: none; }
 .masthead__tools a:hover { color: var(--accent); }
@@ -349,27 +354,45 @@ body.nav-open {
   display: grid;
   grid-template-columns: minmax(11rem, 16rem) minmax(0, 1fr);
   gap: clamp(2rem, 5vw, 5rem);
-  padding: 3.5rem var(--gutter) 0;
+  padding: 2rem var(--gutter) 0;
   align-items: start;
 }
 /* The content column is centred in the space left by the rail, so a wide
    display is used rather than leaving everything hard against the nav. */
-.reader__body { margin-inline: auto; }
-.reader--solo { grid-template-columns: minmax(0, 1fr); max-width: 52rem; }
-.reader--solo .reader__nav { display: none; }
+.reader__body { margin-inline: auto; min-width: 0; }
+
+/* Reading chrome: the rail is the navigation, so the bar is not drawn at all.
+   It comes back below the rail's breakpoint, where the rail is a drawer. */
+.chrome-reading .masthead { display: none; }
 
 /* z-index is explicit so a full-bleed block sits over the rail by rule
-   rather than by document order. */
-.reader__nav { position: sticky; top: 5.5rem; z-index: 1; font-size: .875rem; }
-.reader__nav h2 { font-size: .6875rem; font-weight: 600; color: var(--ink-faint); margin: 2rem 0 .625rem; }
+   rather than by document order.
+
+   Sticks to the top of the viewport, not to 5.5rem below it: there is no bar
+   above it any more to leave room for. */
+.reader__nav { position: sticky; top: 2rem; z-index: 1; font-size: 1rem; }
+
+/* The head of the rail, which is where the mark lives on a wide screen. */
+.reader__head { margin-bottom: 2rem; }
+
+.reader__nav h2 { font-size: 1rem; font-weight: 600; color: var(--ink); margin: 2rem 0 .5rem; }
 .reader__nav h2:first-child { margin-top: 0; }
-.reader__nav .reader__link {
-  display: block;
-  padding: .3125rem 0 .3125rem .875rem;
-  border-left: 1px solid var(--rule);
-  text-decoration: none;
-  color: var(--ink-soft);
+
+/* The account links, at the foot of the rail rather than in a bar. */
+.reader__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 2rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+  font-size: .875rem;
 }
+.reader__tools a { color: var(--ink-faint); text-decoration: none; }
+.reader__tools a:hover { color: var(--accent); }
+/* .reader__link is defined once, further down with the rest of the reading
+   view. A second copy lived here and, being the more specific of the two, won
+   everything but the font size, so the one that looked authoritative was not. */
 .reader__nav a:hover { color: var(--accent); border-left-color: var(--rule-firm); }
 /* The current section's own link. It sits in an h2, which is already 600, so
    this only settles the colour. It carries no border, so no rule is set here:
@@ -525,7 +548,15 @@ body.nav-open {
      minimum width, so a wide block — a colour ramp of eleven steps — stretched
      the whole column past the screen instead of scrolling inside it. The
      desktop rule above has always had the minmax; this one had lost it. */
-  .reader { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .reader { grid-template-columns: minmax(0, 1fr); gap: 0; padding-top: 1.5rem; }
+
+  /* The rail is a drawer here, and a drawer cannot hold a mark that has to
+     stay visible, so the bar comes back on a reading page. It carries the
+     mark, the menu and the name of the section being read. */
+  .chrome-reading .masthead { display: flex; }
+  .masthead--slim .masthead__where { display: block; }
+  /* The rail's own head is the mark, which the bar is now showing instead. */
+  .reader__head { display: none; }
 
   /* The rail becomes a panel that slides in from the left, rather than a long
      list of every page pushing the content down the screen. */
@@ -536,9 +567,9 @@ body.nav-open {
     z-index: 60;
     width: min(20rem, 84vw);
     max-height: none;
-    /* Clears the bar, which stays above the panel so the menu button is always
-       reachable to close it. */
-    padding: 4.5rem 1.25rem 2rem;
+    /* Clears the bar, which is fixed above the panel while it is open so the
+       button that closes it stays reachable. */
+    padding: 4.5rem 1.5rem 2rem;
     overflow-y: auto;
     overscroll-behavior: contain;
     background: var(--page);
@@ -556,9 +587,15 @@ body.nav-open {
     transition: transform var(--d-slow) var(--e-inout), visibility 0s linear var(--d-slow);
   }
   .nav-open .reader__nav { transform: none; visibility: visible; transition-delay: 0s; }
-  .reader__nav h2:first-child { margin-top: .5rem; }
-  /* Bigger targets, since this is now a touch surface. */
-  .reader__link, .reader__nav h2 a { padding-top: .625rem; padding-bottom: .625rem; }
+  .reader__nav h2:first-child { margin-top: 0; }
+  .reader__nav h2 { margin: 1.5rem 0 .5rem; }
+  /* The drawer's bigger tap targets are set below, beside .reader__link. Here
+     they lost: .reader__link is defined later in the file with a padding
+     shorthand, which beats these longhands whatever the media query says. */
+  /* The narrow-screen opener is set below, next to the rest of .opener--column.
+     Put here it was overridden: .opener--column is defined further down the
+     file, and at equal specificity the later rule wins whatever the media
+     query says. */
   .specimen { grid-template-columns: 1fr; gap: 1rem; }
   .index__section a { grid-template-columns: 1fr; gap: .25rem; }
   .swatch { grid-template-columns: 4.5rem 1fr; gap: 1.25rem; }
@@ -721,13 +758,17 @@ html { scroll-behavior: smooth; }
 .reader__section a:hover { color: var(--accent); }
 .reader__section.is-current a { color: var(--ink); }
 .reader__section.is-current .icon { color: var(--accent); }
+/* Sizes and spacing here sit on an 8px scale, with 4px as the half step:
+   16px text, 8px above and below, a 16px indent. It was 14px text with 5px and
+   14px of padding, none of which landed on anything. Written in rem so the
+   type-size setting in Appearance still moves them together. */
 .reader__link {
   display: block;
-  padding: .3125rem 0 .3125rem .875rem;
+  padding: .5rem 0 .5rem 1rem;
   border-left: 1px solid var(--rule);
   text-decoration: none;
   color: var(--ink-soft);
-  font-size: .875rem;
+  font-size: 1rem;
 }
 .reader__link:hover { color: var(--accent); border-left-color: var(--rule-firm); }
 /* This changes weight as well as colour, where the section headings above
@@ -1004,11 +1045,15 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 .imagegrid--fit-natural img { aspect-ratio: auto; object-fit: cover; }
 .block--spec-beside .specimen { grid-template-columns: minmax(0, 1fr) 13rem; }
 
-/* ------------------------------------------------- masthead logo and areas */
+/* --------------------------------------------------------- the mark, areas
 
-.masthead__mark { display: inline-flex; align-items: center; }
-.masthead__logo { display: block; height: 1.75rem; width: auto; }
-.masthead__wordmark { font-family: var(--display); font-size: 1.25rem; font-weight: 700; color: var(--mark); }
+   The mark appears in the bar on an index page and at the head of the rail on
+   a reading one, so its own styling belongs to .mark and not to either place.
+   Both are written by site_mark(). */
+
+.mark { display: inline-flex; align-items: center; text-decoration: none; line-height: 1; }
+.mark__logo { display: block; height: 1.75rem; width: auto; }
+.mark__wordmark { font-family: var(--display); font-size: 1.25rem; font-weight: 700; color: var(--mark); }
 
 /* The area toggle sits centred, like a segmented control. */
 .areas {
@@ -1037,6 +1082,9 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 @media (max-width: 56rem) {
   .areas { position: static; transform: none; margin-left: auto; }
   .masthead__title { display: none; }
+  /* The tools go, so the bar is the mark, the menu and where you are. Signing
+     in is still reachable from the foot of the drawer. */
+  .masthead--slim .masthead__tools { display: none; }
 }
 
 /* No cross-document view transitions. This is a reference tool: people arrive
@@ -1081,7 +1129,15 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
     border-left-color var(--d-base) var(--e-out),
     padding-left var(--d-base) var(--e-out);
 }
-.reader__link:hover { padding-left: 1.125rem; }
+.reader__link:hover { padding-left: 1.25rem; }   /* 16px indent, 20px on hover */
+
+/* A drawer is a primary surface, not a sidebar, so its targets are bigger:
+   12px above and below a 16px line is a little over 48px to hit. Placed after
+   the rule it overrides rather than with the other narrow-screen rules, which
+   come earlier in the file and lost to the shorthand above. */
+@media (max-width: 56rem) {
+  .reader__link, .reader__nav h2 a { padding-top: .75rem; padding-bottom: .75rem; }
+}
 
 /* Swatches: the copy affordance, and a small lift so the chip feels pressable. */
 .swatch__chip { transition: transform var(--d-base) var(--e-out), box-shadow var(--d-base) var(--e-out); }
@@ -1113,13 +1169,8 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
     animation-delay: 0ms !important;
     transition-duration: 1ms !important;
   }
-  /* Nothing is revealed, so nothing is hidden waiting to be. Both selectors are
-     spelled out to match the specificity of the rules that hide them. */
-  .js-hero:not(.no-motion) .hero--reveal-rise .hero__line > span,
-  .js-hero:not(.no-motion) .hero--reveal-clip .hero__line > span {
-    opacity: 1;
-    transform: none;
-  }
+  /* The hero's own reduced-motion rule is not here. It has to come after the
+     rules that hide the headline, and those are further down the file. */
 }
 
 /* ===========================================================================
@@ -1588,7 +1639,87 @@ html, body { overflow-x: clip; }
    simply a full-width element in the document. No negative margins, no
    viewport arithmetic, nothing to fight the rail. */
 .opener { margin-top: -1px; }   /* meets the masthead with no seam */
-.reader--opened { padding-top: 4rem; }
+
+/**
+ * An opener inside the reading column.
+ *
+ * A hero that spans the viewport is a landing-page device: it can take the
+ * whole first screen because nothing on that kind of page competes with it.
+ * A section has a rail that has to stay reachable, and a 100svh opener above
+ * it put every piece of navigation below the fold. So here the opener is
+ * bounded by the column it opens, and is shorter.
+ *
+ * The headline needs no other change: it is fitted with container units, so it
+ * sizes itself to whatever width it is given.
+ */
+.opener--column {
+  margin-bottom: 4rem;
+  border-radius: var(--s-radius, 6px);
+  overflow: hidden;
+}
+.opener--column .hero {
+  /* No bar above it to clear, so no compensation for one. Capped against the
+     viewport as well as the column, so a short laptop screen does not get an
+     opener that fills it. */
+  padding: var(--hero-pad);
+  min-height: min(24rem, 60svh);
+}
+/**
+ * The headline is capped as a block here, not per line.
+ *
+ * The full-bleed cap is 34svh on each line, which is right when the hero owns
+ * the screen but means two lines are 68svh and four are off the bottom. In a
+ * column the whole headline gets 20rem to divide between its lines, so a long
+ * one sets smaller rather than taller. The width constraint still applies, so
+ * whichever is smaller wins.
+ */
+.opener--column .hero__line {
+  font-size: min(
+    calc(100cqw / var(--fit, 6)),          /* fills the column, as always */
+    calc(20rem / var(--lines, 2))          /* the headline gets 20rem to share */
+  );
+}
+/* Height in the column comes from the content and this floor, not from the
+   viewport: a column-bound opener that is 100svh tall is the same problem in a
+   narrower shape. */
+.opener--column .hero--full,
+.opener--column .hero--tall { min-height: min(24rem, 60svh); }
+.opener--column .hero--natural { min-height: 0; }
+
+/* Every rule below overrides one above, so all of them come after all of those.
+   Put before them, a media query loses at equal specificity however narrow the
+   screen, and does nothing at all. */
+
+/**
+ * A short screen — a laptop, or a window that is not full height.
+ *
+ * The opener's fixed parts, its padding and standfirst, are most of a 560px
+ * screen before the headline gets any of it, so the headline alone cannot be
+ * clamped into shape. Stated as its own rule rather than folded into the min()
+ * above: a third term in there binds on ordinary screens too, and a cap that
+ * only applies below a height is easier to read as one.
+ */
+@media (max-height: 44rem) {
+  .opener--column .hero,
+  .opener--column .hero--full,
+  .opener--column .hero--tall { padding: 1.5rem; min-height: 0; }
+  .opener--column .hero__line {
+    font-size: min(calc(100cqw / var(--fit, 6)), calc(14rem / var(--lines, 2)));
+  }
+}
+
+/* Narrow: the opener is the width of the screen, so it needs no corners of its
+   own and reaches past the reader's gutter. */
+@media (max-width: 56rem) {
+  .opener--column {
+    border-radius: 0;
+    margin-inline: calc(var(--gutter) * -1);
+    margin-bottom: 3rem;
+  }
+  .opener--column .hero,
+  .opener--column .hero--full,
+  .opener--column .hero--tall { min-height: 18rem; }
+}
 
 /* A chapter that opens with a full-bleed block gives up its own frame around
    it: no dividing rule, no bottom padding, and no gap above. */
@@ -1597,6 +1728,8 @@ html, body { overflow-x: clip; }
 .chapter__title + .zone--w-screen,
 .chapter__summary + .zone--w-screen { margin-top: 2.5rem; }
 
+/* A full-bleed opener sits under the bar, so it leaves room for it. The
+   column-bound one above has no bar over it and overrides this. */
 .opener .hero { padding-top: calc(var(--hero-pad) + 4.25rem); }
 
 .hero {
@@ -1694,6 +1827,22 @@ html, body { overflow-x: clip; }
    which beat this, so it only takes effect if those are ever cleared: a safety
    net so a headline can never be left invisible. */
 .hero.is-revealed .hero__line > span { opacity: 1; transform: none; }
+
+/**
+ * Nothing is revealed, so nothing is hidden waiting to be.
+ *
+ * This has to sit after the rules above, not in the reduced-motion block
+ * further up the file: at equal specificity the later rule wins whatever the
+ * query says, so up there it did nothing and someone asking for less motion
+ * still got a headline held invisible until JavaScript released it.
+ */
+@media (prefers-reduced-motion: reduce) {
+  .js-hero:not(.no-motion) .hero--reveal-rise .hero__line > span,
+  .js-hero:not(.no-motion) .hero--reveal-clip .hero__line > span {
+    opacity: 1;
+    transform: none;
+  }
+}
 
 @media (max-width: 48rem) {
   .hero { padding-top: calc(var(--hero-pad) + 3.5rem); }

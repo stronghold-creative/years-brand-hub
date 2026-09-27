@@ -46,6 +46,7 @@ for (const file of files) {
   // Walk the file tracking the stack of at-rules we are inside.
   const stack = [];
   const seen = new Map();        // "context||selector" -> Map(prop -> value)
+  const media = new Map();       // selector -> Map(prop -> {value, context})
   let buffer = '';
   const problems = [];
 
@@ -92,6 +93,45 @@ for (const file of files) {
             problems.push(`SELECTOR REPEATED  ${context ? '[' + context + '] ' : ''}${one} { ${prop}: "${before.get(prop)}" then "${value}" }`);
           }
           before.set(prop, value);
+        }
+
+        /**
+         * A rule inside a media query, overridden by a later one outside it.
+         *
+         * This is the version of the duplicate-property trap that hurts most,
+         * because it looks right: the media query says what should happen at
+         * that width, and at equal specificity the later rule wins anyway, so
+         * the responsive rule silently does nothing. It bit twice in one
+         * sitting here — a drawer's tap targets and an opener's corners — and
+         * the context-aware check above cannot see it, because the two rules
+         * are deliberately in different contexts.
+         */
+        if (context) {
+          media.set(one, media.get(one) || new Map());
+          for (const [prop, value] of props) {
+            media.get(one).set(prop, { value, context });
+          }
+        } else {
+          const earlier = media.get(one);
+          if (earlier) {
+            for (const [prop, value] of props) {
+              for (const [seenProp, seen] of earlier) {
+                // The same property, or either one being the other's shorthand:
+                // a later "padding" beats an earlier "padding-top" just as a
+                // later "padding-top" beats an earlier "padding".
+                const collides = seenProp === prop
+                  || prop.startsWith(seenProp + '-')
+                  || seenProp.startsWith(prop + '-');
+                if (!collides || seen.value === value) continue;
+
+                const what = seenProp === prop ? prop : `${seenProp} / ${prop}`;
+                problems.push(
+                  `OVERRIDES A MEDIA QUERY  ${one} { ${what} } set in [${seen.context}], `
+                  + `then set again here with no query, which wins`
+                );
+              }
+            }
+          }
         }
       }
       continue;
