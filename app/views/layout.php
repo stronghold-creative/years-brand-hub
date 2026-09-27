@@ -96,6 +96,13 @@ $reading = $chrome === 'reading';
   <?php endif; ?>
 
   <nav class="masthead__tools">
+    <?php // A real link, so it still goes somewhere useful without JavaScript.
+          // search.js turns it into the dialog. ?>
+    <a class="search-open" href="/" data-search>
+      <?= ui_icon('search', 'icon icon--small') ?>
+      <span>Search</span>
+      <kbd>/</kbd>
+    </a>
     <?php if (can_edit()): ?>
       <a href="/admin">Edit</a>
       <a href="/admin/sign-out">Sign out</a>
@@ -131,5 +138,6 @@ $reading = $chrome === 'reading';
 <script src="<?= e(asset_url('/assets/js/vendor/motion.js')) ?>"></script>
 <script src="<?= e(asset_url('/assets/js/motion-ui.js')) ?>"></script>
 <script src="<?= e(asset_url('/assets/js/site.js')) ?>"></script>
+<script src="<?= e(asset_url('/assets/js/search.js')) ?>"></script>
 </body>
 </html>

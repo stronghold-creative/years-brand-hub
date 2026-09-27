@@ -84,11 +84,11 @@ deploy can never overwrite your credentials or uploaded files.
 - Assets: upload, versioning, replace in place, ZIP bundles, gated downloads,
   and upload from inside the editor's picker
 - Pages: sections, ordering, drafts, version history with restore, filtering
+- Search across every page, opened with ⌘K or a bare `/`
 - People and roles, settings, site logo, area toggle
 
 ## Not built yet
 
-- Search across pages
 - The Components area, beyond a placeholder
 - `/tokens.css` exports colours only, not type
 

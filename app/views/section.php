@@ -14,6 +14,13 @@ $currentSlug = slugify($section);
           // screen. The bar above is not drawn at all here; see layout.php. ?>
     <div class="reader__head">
       <?= site_mark('mark') ?>
+      <?php // The bar is not drawn on a wide screen, so the rail carries the
+            // search trigger too. A real link, enhanced by search.js. ?>
+      <a class="search-open search-open--rail" href="/" data-search>
+        <?= ui_icon('search', 'icon icon--small') ?>
+        <span>Search</span>
+        <kbd>/</kbd>
+      </a>
     </div>
 
     <?php foreach ($nav as $name => $items): ?>

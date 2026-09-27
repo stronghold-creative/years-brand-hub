@@ -24,6 +24,19 @@ if ($path === '/') {
     exit;
 }
 
+// The search index, built once and filtered in the browser. Gated exactly as
+// the pages are: nothing here that the reader could not already open.
+if ($path === '/search.json') {
+    if (site_is_private($config) && !current_user()) {
+        not_found();
+    }
+    header('Content-Type: application/json');
+    // Private to the reader, because an editor's copy carries drafts.
+    header('Cache-Control: private, max-age=300');
+    echo search_index_json(can_edit());
+    exit;
+}
+
 // Design tokens generated from the guidelines themselves.
 if ($path === '/tokens.css') {
     header('Content-Type: text/css');

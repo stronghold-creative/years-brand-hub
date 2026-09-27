@@ -118,6 +118,134 @@ a:hover { color: var(--accent-deep); }
 }
 .skip:focus-visible { transform: none; color: #fff; }
 
+/* ===========================================================================
+   Search
+
+   Opened with the shortcut, a bare slash, or the trigger — which is a real
+   link, so without JavaScript it still goes somewhere rather than doing
+   nothing. The panel sits high rather than centred: the eye is already at the
+   top of the screen, and a list that grows downwards from a fixed point does
+   not move the first result as you type.
+   =========================================================================== */
+
+.search-open {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+.search-open:hover { color: var(--accent); }
+.search-open kbd {
+  font: inherit;
+  font-size: .6875rem;
+  line-height: 1;
+  color: var(--ink-faint);
+  border: 1px solid var(--rule-firm);
+  border-radius: 4px;
+  padding: .1875rem .3125rem;
+}
+/* In the rail it is a row of its own under the mark, not an item in a bar. */
+.search-open--rail {
+  width: 100%;
+  margin-top: 1rem;
+  padding: .5rem .75rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--s-radius, 6px);
+  font-size: .875rem;
+}
+.search-open--rail:hover { border-color: var(--rule-firm); background: var(--raised); }
+.search-open--rail kbd { margin-left: auto; }
+
+.search {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  align-content: start;
+  justify-items: center;
+  padding: clamp(3rem, 12vh, 8rem) 1rem 1rem;
+  background: rgba(31, 31, 31, .4);
+  backdrop-filter: blur(2px);
+}
+.search__panel {
+  width: min(40rem, 100%);
+  background: var(--page);
+  border-radius: 12px;
+  box-shadow: 0 10px 40px -12px rgba(31, 31, 31, .45);
+  overflow: hidden;
+  /* The panel is the outer corner; what sits inside it steps down. */
+  --s-radius-inner: max(0px, calc(12px - .5rem));
+}
+.search__field { display: flex; align-items: center; gap: .75rem; padding: 1rem 1.25rem; border-bottom: 1px solid var(--rule); }
+.search__input {
+  flex: 1;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 1.125rem;
+  color: var(--ink);
+  min-width: 0;
+}
+.search__input:focus { outline: 0; }
+.search__input::-webkit-search-cancel-button { display: none; }
+.search__esc, .search__hint kbd {
+  font: inherit;
+  font-size: .6875rem;
+  color: var(--ink-faint);
+  border: 1px solid var(--rule-firm);
+  border-radius: 4px;
+  padding: .1875rem .375rem;
+}
+
+.search__results { max-height: min(24rem, 50vh); overflow-y: auto; padding: .5rem; }
+.search__hit {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0 .75rem;
+  align-items: baseline;
+  padding: .625rem .75rem;
+  border-radius: var(--s-radius-inner, 6px);
+  text-decoration: none;
+  color: var(--ink);
+}
+/* One highlight, moved by the arrows and by the pointer, so there is never a
+   question of which result Enter will open. */
+.search__hit.is-on { background: var(--accent-tint); }
+.search__what { font-size: .9375rem; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search__where { grid-column: 1; font-size: .8125rem; color: var(--ink-faint); }
+.search__draft {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  align-self: center;
+  font-size: .6875rem;
+  color: var(--ink-faint);
+  border: 1px solid var(--rule-firm);
+  border-radius: 999px;
+  padding: .125rem .5rem;
+}
+.search__empty { margin: 0; padding: 1.5rem .75rem; font-size: .875rem; color: var(--ink-faint); text-align: center; }
+.search__hint {
+  margin: 0;
+  display: flex;
+  gap: .375rem;
+  align-items: center;
+  padding: .625rem 1.25rem;
+  border-top: 1px solid var(--rule);
+  font-size: .75rem;
+  color: var(--ink-faint);
+}
+
+/* The page behind must not scroll while the box is open. */
+body.search-open { overflow: hidden; }
+
+@media (max-width: 40rem) {
+  .search { padding-top: 1rem; }
+  .search-open span { display: none; }
+  .search-open--rail span { display: inline; }
+  .search-open kbd { display: none; }
+}
+
 /* ------------------------------------------------------------------ chrome */
 
 .masthead {

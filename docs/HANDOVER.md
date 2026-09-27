@@ -24,14 +24,16 @@ app/
   bootstrap.php                loads every file in app/lib, then config
   config.php                   SERVER ONLY, gitignored, database credentials
   routes.php                   the whole router, top to bottom, first match wins
-  lib/                         11 files, all auto-loaded
+  lib/                         13 files, all auto-loaded
     assets.php                 uploads, image variants, bundles, serving
     auth.php                   sessions, roles, sign-in throttling
     blocks.php                 block definitions, sanitising, rendering, contrast
     db.php                     PDO helpers
+    fontmetrics.php            character widths, so a hero line can be fitted
     http.php                   escaping, CSRF, redirects, asset_url()
     icons.php                  inline SVG icon sets
     migrate.php                pending and applied migrations
+    search.php                 the search index, built and cached
     settings.php               settings, sections, logo, areas, export
     styles.php                 global appearance tokens
     versions.php               version recording, collapsing and pruning
@@ -128,6 +130,36 @@ buffers each block in edit mode and, when the output would show nothing,
 substitutes the block's label and hint. Without it a newly added block was
 invisible on the canvas and had no height to click. It lives in `render_blocks()`
 rather than in 25 renderers so it cannot drift, and never runs on a public page.
+
+---
+
+## 3b. Search
+
+`⌘K`, `Ctrl-K` or a bare `/` opens it; so does the trigger, which is a real
+link so it still goes somewhere without JavaScript.
+
+**The index is built on the server and filtered in the browser.** Thirty pages
+of guidelines is a few hundred kilobytes of text, and a round trip per
+keystroke on shared hosting is a tenth of a second each time — the difference
+between search that feels instant and search that feels like a form.
+`/search.json` serves it, gated exactly as the pages are, and an editor's copy
+carries drafts where a reader's does not.
+
+**It is cached to `storage/cache`, keyed on the number of pages and the latest
+`updated_at`.** Any edit changes the key, so the old file is simply never read
+again; `search_forget_old_indexes()` deletes the ones left behind. Same
+approach as the asset bundles.
+
+**Which fields are searchable comes from the block definitions,** so a new
+block type is searchable the moment it exists. Only `text`, `textarea` and
+`longtext` are indexed — a select holds a keyword the reader never sees and an
+asset holds an id — and repeaters are walked, so a colour ramp's family names
+and step notes are all in there.
+
+**A heading is its own result.** "Clear space" is a heading halfway down the
+logo page, and landing on the page is not the same as landing on the rule, so
+headings are indexed separately and link to the block's anchor where it has
+one. Ranking puts a title above a heading above body text.
 
 ---
 
@@ -335,9 +367,9 @@ the canvas.
 
 **Content:** 30 pages scaffolded as drafts. One written: Tone of voice.
 
-**Not built:** search on the public site, the Components area beyond a
-placeholder, motion page content, type
-exports in `/tokens.css`, password reset, pagination (deliberately deferred).
+**Not built:** the Components area beyond a placeholder, motion page content,
+type exports in `/tokens.css`, password reset, pagination (deliberately
+deferred).
 
 **The asset picker is one file, `picker.js`,** loaded before both `admin.js` and
 `editor.js` and used by block fields, page covers and the site logo. It was
@@ -360,8 +392,10 @@ belongs there, not in a caller.
 5. Decide the real domain.
 6. Instrument the remaining block text for editing in place, if any turns out to
    be missing. Everything visible is covered bar the deliberate exceptions.
-7. Deferred from the audit: section page caching, password reset, `/tokens.css`
-   type exports, search.
+7. `/tokens.css` reads only `colour_palette`, so a `colour_ramp` exports nothing
+   and neither does `colour_story`. It exports no type either. Search indexes
+   all three; the token export has not caught up.
+8. Deferred from the audit: section page caching, password reset.
 
 `MoreYears-Regular.woff2` is in `public_html/assets/fonts/`, so the hero and the
 Typography page can show real specimens.
