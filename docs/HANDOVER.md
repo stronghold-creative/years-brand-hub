@@ -40,7 +40,7 @@ app/
     versions.php               version recording, collapsing and pruning
     view.php                   template rendering
   blocks/                      25 renderers, one per block type
-  views/                       15 templates, public and admin
+  views/                       19 templates, public and admin
 db/                            9 migrations, applied in filename order
 public_html/                   the only web-accessible directory
 storage/                       uploads and caches, never deployed
@@ -251,8 +251,8 @@ Search filters on label and hint.
 
 ## 4b. The component library
 
-**Phase 1 of 8 is built. The spec is `docs/COMPONENTS.md`; read it before
-continuing, and start at phase 2.**
+**Phases 1 and 2 of 8 are built. The spec is `docs/COMPONENTS.md`; read it before
+continuing, and start at phase 3.**
 
 A Storybook for Years, living in the Components area that `components_enabled`
 already gates. One page per component: the real thing rendered live in a
@@ -296,9 +296,36 @@ area would be perverse. `components_installed()` covers the window between a
 deploy and Apply updates with a message rather than the 500 that
 `bootstrap.php` would otherwise show, so the drawer stays usable.
 
-**Nothing renders raw HTML yet.** The variant markup column exists and is unused;
-phase 2 is where that starts, and section 4 of the spec is what to build it
-against.
+**Phase 2 shipped the sandbox**: `app/views/component-frame.php`, the route
+`/components/{slug}/frame/{variant}`, `component_frame_csp()`, the component
+screen at `/admin/components/{id}` with variants and base CSS on the left and the
+live preview on the right, and `assets/js/components.js` for the height bridge and
+the switchers. The phase boundary moved deliberately — a sandbox with nothing in
+it cannot be judged, so the variants came forward from phase 3.
+
+**The frame is the one place in this project that renders author-supplied HTML,
+CSS and JavaScript.** Four things hold it, and all four are load-bearing:
+
+- `sandbox="allow-scripts"` and **not** `allow-same-origin`. Together they are
+  equivalent to no sandbox: a frame with both can reach its own element and remove
+  the attribute. Without same-origin it is an opaque origin with no access to the
+  parent, the session or storage.
+- A policy from `default-src 'none'`, adding back only what a component needs.
+  Inline script has to be allowed — the height bridge needs it — so the directive
+  doing the work is `connect-src 'none'`: whatever runs in there cannot send
+  anything anywhere. `form-action 'none'` and `frame-ancestors 'self'` close the
+  other two doors.
+- The markup never leaves the frame. On the admin screen it goes into a textarea,
+  escaped like any other value.
+- **`php tools/check-components.php`** asserts all of the above and fails the
+  build if any of it slips. Run it after touching anything in this area. It was
+  verified by sabotage rather than assumed to work.
+
+**The preview's `postMessage` does not validate origin, and that is correct** —
+the frame's origin is `"null"` because it is sandboxed, so there is nothing to
+compare. `event.source === frame.contentWindow` is the check that works, and it
+cannot be forged. This is a deliberate exception to the rule in section 4; do not
+"fix" it.
 
 ---
 
@@ -450,9 +477,10 @@ the canvas.
 
 **Content:** 30 pages scaffolded as drafts. One written: Tone of voice.
 
-**Not built:** the component library past phase 1 — the admin list is in, the
-preview, editor, public pages, derived spec and Figma import are not; see
-`docs/COMPONENTS.md` — motion page content,
+**Not built:** the component library past phase 2 — the list, the sandboxed
+preview, variants and base CSS are in; the metadata editor, autosave, versions,
+public pages, derived spec and Figma import are not; see `docs/COMPONENTS.md` —
+motion page content,
 type exports in `/tokens.css`, password reset, pagination (deliberately
 deferred).
 
@@ -482,10 +510,9 @@ belongs there, not in a caller.
    and neither does `colour_story`. It exports no type either. Search indexes
    all three; the token export has not caught up.
 8. Deferred from the audit: section page caching, password reset.
-9. **Continue the component library at phase 2**, the sandboxed preview frame.
-   Phase 1 is in. `docs/COMPONENTS.md` section 9 is the phase table and section 4
-   is the frame's specification. Apply migration 009 before expecting the area to
-   work.
+9. **Continue the component library at phase 3**: the metadata editor (status,
+   summary, group, Figma link), autosave, versions. Phases 1 and 2 are in and
+   migration 009 is applied. `docs/COMPONENTS.md` section 9 is the phase table.
 
 `MoreYears-Regular.woff2` is in `public_html/assets/fonts/`, so the hero and the
 Typography page can show real specimens.
@@ -500,10 +527,11 @@ for f in public_html/assets/js/*.js; do node --check "$f"; done
 php tools/check-routes.php
 php tools/check-blocks.php
 php tools/check-blocks.php --edit
+php tools/check-components.php
 node tools/check-css.js public_html/assets/css/site.css public_html/assets/css/admin.css
 ```
 
-The last four were ad-hoc scripts and are now committed, because each of them
+The last five were ad-hoc scripts and are now committed, because each of them
 has caught something real:
 
 - `check-routes.php` renders no pages; it asserts every URL the interface calls
@@ -518,6 +546,13 @@ has caught something real:
   every `editable()` path resolves *and* that the text on the page matches the
   value it points at. The gappy pass exists for that last check: it is the only
   one that produces a list with a hole in it.
+- `check-components.php` asserts the things the preview frame's safety rests on:
+  the sandbox attribute read off the rendered page and compared exactly, the
+  content security policy's `'none'` directives, that a hostile variant's markup
+  is escaped on the admin screen and live only inside the frame, and that a
+  `javascript:` URL never becomes an `href`. Every one of those fails silently in
+  the browser — the page renders and looks correct — which is why they are
+  asserted rather than reviewed. It needs no database.
 - `check-css.js` checks braces balance, finds any property set twice on the
   same selector in the same at-rule context, and flags a rule inside a media
   query that a later rule outside it overrides. Read its output rather than

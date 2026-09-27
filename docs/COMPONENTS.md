@@ -1,7 +1,8 @@
 # The component library: scope
 
-A Storybook for Years, inside the brand hub. **Phase 1 of 8 is built** — the
-tables, the library, the admin list. This is the agreed shape, written down
+A Storybook for Years, inside the brand hub. **Phases 1 and 2 of 8 are built** —
+the tables, the library, the admin list, and the live sandboxed preview with the
+variants and base CSS that feed it. This is the agreed shape, written down
 before any code, so the build can be picked up one phase at a time. Decisions
 here were taken 27 September 2026; where one went against the cheaper option,
 the reason is recorded.
@@ -241,8 +242,8 @@ than the build.
 | Phase | What lands | Depends on |
 |---|---|---|
 | **1. Spine** ✔ **built** | `009_components.sql`, `lib/components.php`, the admin list, Add, Delete, reorder, the drawer item and its icon. No preview, no import | — |
-| **2. Sandbox** | The frame route, its CSP, the height bridge, the preview with variant switcher and viewport toggle, in the admin editor | 1 |
-| **3. Editor** | The two-column editor proper: variants as reorderable cards, autosave, versions | 1, 2 |
+| **2. Sandbox** ✔ **built** | The frame route, its CSP, the height bridge, the preview with variant and viewport switchers, and — moved forward from phase 3 — the variants and base CSS that feed it | 1 |
+| **3. Editor** | Metadata (status, summary, group, Figma link), autosave, versions, `notes_override`. The variant cards themselves landed in phase 2 | 1, 2 |
 | **4. Public** | `/components` index with live thumbnails, `/components/{slug}`, the code panel and copy button | 2, 3 |
 | **5. Derived spec** | The CSS pass, token matching, the flag, `notes_override` | 3 |
 | **6. Import** | The Import panel, detection, the Dev Mode split, the `figmeta` refusal | 3 |
@@ -283,9 +284,76 @@ Three things decided while building, each worth knowing before phase 2:
   in it would run on whoever clicked. There is no field to type it into until
   phase 3; the guard is in from the start so that field cannot arrive without it.
 
-Still true after phase 1: **nothing renders raw HTML yet.** The variant markup
-column exists and is unused. Phase 2 is where the risk arrives, and section 4 is
-the specification to build it against.
+### What phase 2 actually shipped
+
+**The phase boundary moved, on purpose.** A sandbox with nothing in it cannot be
+judged, so the render inputs — `base_css` and the variants — came forward from
+phase 3 rather than building a throwaway stub now and the real thing later.
+Phase 3 is now metadata, autosave, versions and the docs blocks.
+
+- `app/views/component-frame.php`, the frame document, and the route
+  `/components/{slug}/frame/{variant}`.
+- `component_frame_csp()` and `component_frame_headers()` in `lib/components.php`.
+- `app/views/admin/component.php`, the component screen: variants on the left as
+  `<details>` cards with label, markup, variant CSS and a note; base CSS below
+  them; the live preview on the right, sticky.
+- `public_html/assets/js/components.js`: the height bridge, variant switching
+  without a reload, the viewport toggle, the dark toggle. Loaded on every admin
+  page and returns immediately when there is no frame.
+- `.cmp` in `admin.css`, including the chequerboard stage so a transparent
+  component reads as transparent rather than as white.
+- **`tools/check-components.php`**, new and committed. See below.
+
+Six decisions worth knowing before phase 3:
+
+- **The variant selection is server-rendered from `?v=`, and the chips are real
+  links.** The screen works with no JavaScript. The JS then swaps the frame's
+  `src` instead of following the link, because a reload would take whatever is
+  half-typed in the textareas with it.
+- **The parent does not check the message origin, and that is correct here.** The
+  frame is sandboxed without `allow-same-origin`, so it has an opaque origin and
+  its messages arrive with an origin of `"null"` — there is nothing to compare.
+  The check that does the work is `event.source === frame.contentWindow`, which
+  another frame cannot forge. This contradicts the rule in section 4 of the
+  handover ("both sides validate origin"), which is right for the page preview and
+  impossible for this one. Nothing sensitive is in the message, and
+  `frame-ancestors 'self'` means no other site can be showing the frame anyway.
+- **The reported height is capped at 4000px.** A component with a runaway height
+  would otherwise push the rest of the editor off the screen.
+- **The frame does not load `site.css`.** A component should look like itself,
+  styled by its own CSS over the brand tokens — not like a block on a guidelines
+  page, which would flatter it with styling the real component will not have.
+- **The viewport toggle narrows the stage, not the frame.** A media query inside
+  the component reads the frame's own width, which is the entire reason for
+  having the toggle.
+- **`component_touch()` exists** because `updated_at` is
+  `ON UPDATE CURRENT_TIMESTAMP` on the `components` row only. A variant is a
+  different table, so without it the list would show a component as untouched for
+  weeks while its variants were being rewritten daily.
+
+### tools/check-components.php
+
+The safety of this whole area rests on a handful of exact strings — a sandbox
+attribute without one particular token, a policy that allows inline script but no
+network, and an admin screen that never prints a variant's markup as markup. Each
+is one word away from being wrong, and **none of them fails visibly when it is**:
+the page still renders and still looks right. So they are asserted, and the check
+exits non-zero so it can gate a deploy. It needs no database.
+
+It reads the sandbox attribute off the *rendered* page and compares it exactly,
+rather than searching the template for a known-bad value. Two reasons, and the
+first was found by the check failing on its own first run: the template's comment
+explains why `allow-same-origin` is forbidden, so a substring search over the
+source reports the explanation as the offence. An exact comparison also catches a
+token nobody has thought of yet, which a search for one bad value never would.
+
+It was verified by sabotage — `allow-same-origin` added to the iframe, the check
+run, both assertions failed and the exit code was 1 — because a check that has
+never failed has not been shown to work.
+
+Still true after phase 2: **nothing outside the frame renders raw HTML.** The
+frame is the documented exception; section 4 is its specification and the check
+above is what holds it to it.
 
 **Deferred, on purpose:** the Figma REST API sync; a props table; per-component
 theming beyond the site tokens; versioning of variants independently of their

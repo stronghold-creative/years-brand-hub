@@ -98,5 +98,7 @@ $isCurrent = function (array $item) use ($path): bool {
 <script src="<?= e(asset_url('/assets/js/picker.js')) ?>"></script>
 <script src="<?= e(asset_url('/assets/js/admin.js')) ?>"></script>
 <script src="<?= e(asset_url('/assets/js/editor.js')) ?>"></script>
+<?php // The component preview. Returns immediately when there is no frame. ?>
+<script src="<?= e(asset_url('/assets/js/components.js')) ?>"></script>
 </body>
 </html>

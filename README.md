@@ -86,25 +86,28 @@ deploy can never overwrite your credentials or uploaded files.
 - Pages: sections, ordering, drafts, version history with restore, filtering
 - Search across every page, opened with ⌘K or a bare `/`
 - People and roles, settings, site logo, area toggle
-- Components: the list at `/admin/components`, grouped, filterable, reorderable
+- Components: the list at `/admin/components`, and one component's variants
+  rendered live in a sandboxed iframe with a viewport and dark-mode switch
 
 ## Not built yet
 
-- The component library, past its first phase. A Storybook for Years:
-  each component rendered live in a sandboxed iframe with its variants and code,
-  and a spec table of radius, colour tokens, spacing and type derived from the
-  component's own CSS. Eight phases, scoped in
-  [docs/COMPONENTS.md](docs/COMPONENTS.md), usable from phase 4. **Phase 1 is
-  in** — the tables and the admin list at `/admin/components`; migration 009 has
-  to be applied from Settings. The preview, editor, public pages, derived spec
-  and Figma import are still to come
+- The component library, past its first two phases. Eight phases, scoped in
+  [docs/COMPONENTS.md](docs/COMPONENTS.md), usable from phase 4. **Phases 1 and 2
+  are in** — the tables, the list, and each variant rendered live in a sandboxed
+  iframe with its own markup and CSS. The metadata editor, autosave, versions,
+  the public component pages, the derived spec table and the Figma Dev Mode
+  import are still to come
 - `/tokens.css` exports colours only, not type
 
 ## Checks
 
-`tools/` holds four checks worth running after any change. They need PHP on the
+`tools/` holds five checks worth running after any change. They need PHP on the
 path and, for the CSS one, Node. See section 10 of
 [docs/HANDOVER.md](docs/HANDOVER.md).
+
+`check-components.php` is the one to run without fail after touching the
+component preview: it renders author-supplied HTML, and that check is what holds
+the sandbox, the content security policy and the escaping in place.
 
 ```bash
 php tools/check-routes.php

@@ -50,6 +50,14 @@ $expected = [
     'POST /admin/components/new'   => '/admin/components/new',
     'POST /admin/components/7/move/up' => '/admin/components/7/move/up',
     'POST /admin/components/7/delete'  => '/admin/components/7/delete',
+    'GET  /admin/components/7'         => '/admin/components/7',
+    'POST /admin/components/7/css'     => '/admin/components/7/css',
+    'POST /admin/components/7/variants/new'        => '/admin/components/7/variants/new',
+    'POST /admin/components/7/variants/2/save'     => '/admin/components/7/variants/2/save',
+    'POST /admin/components/7/variants/2/default'  => '/admin/components/7/variants/2/default',
+    'POST /admin/components/7/variants/2/move/up'  => '/admin/components/7/variants/2/move/up',
+    'POST /admin/components/7/variants/2/delete'   => '/admin/components/7/variants/2/delete',
+    'GET  /components/button/frame/2'  => '/components/button/frame/2',
 ];
 
 $failed = 0;

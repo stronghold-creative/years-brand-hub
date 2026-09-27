@@ -1230,6 +1230,110 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
   .blockmenu__list { grid-template-columns: 1fr; }
 }
 
+/* ===========================================================================
+   The component screen
+   =========================================================================== */
+
+.m3-page__crumb { margin: 0 0 .25rem; font-size: .8125rem; }
+.m3-page__crumb a { color: var(--md-sys-color-primary); text-decoration: none; }
+.m3-page__crumb a:hover { text-decoration: underline; }
+
+/* The work on the left, the preview on the right and larger, because the
+   preview is the thing being judged and the fields only feed it. */
+.cmp {
+  display: grid;
+  grid-template-columns: minmax(0, 27rem) minmax(0, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+/* The preview follows down the page while a long CSS field is being worked on;
+   without this it scrolls away exactly when it is most wanted. */
+.cmp__preview { position: sticky; top: 1.5rem; }
+
+.cmp__variant {
+  border-top: 1px solid var(--md-sys-color-outline-variant);
+  padding: .25rem 0;
+}
+.cmp__variant:first-of-type { border-top: 0; }
+.cmp__variant-head {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .625rem .25rem;
+  cursor: pointer;
+  border-radius: var(--md-sys-shape-s);
+}
+.cmp__variant-head:hover { background: var(--md-sys-color-surface-container-highest); }
+.cmp__variant-label { font-size: .9375rem; font-weight: 500; }
+.cmp__variant-empty { font-size: .75rem; color: var(--md-sys-color-on-surface-variant); }
+.cmp__form { padding: .5rem .25rem 0; }
+.cmp__variant-actions {
+  display: flex;
+  align-items: center;
+  gap: .25rem;
+  flex-wrap: wrap;
+  padding: .75rem .25rem 1rem;
+}
+.cmp__variant-actions form { margin: 0; }
+.cmp__danger { color: var(--md-sys-color-error); }
+.cmp__add { display: flex; align-items: end; gap: .5rem; padding-top: 1rem; }
+.cmp__add .m3-field { flex: 1; margin-bottom: 0; }
+
+/* Code wants a mono face and no ligatures dressing up the punctuation. */
+.cmp__code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .8125rem;
+  line-height: 1.6;
+  font-variant-ligatures: none;
+  white-space: pre;
+  overflow-x: auto;
+  tab-size: 2;
+}
+
+.cmp__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: .75rem;
+}
+.cmp__chips, .cmp__toggles { display: flex; align-items: center; gap: .375rem; flex-wrap: wrap; }
+.cmp__chips .m3-chip { text-decoration: none; }
+.cmp__note { margin: 0 0 .75rem; font-size: .8125rem; color: var(--md-sys-color-on-surface-variant); }
+
+/* A chequer, so a component with a transparent background is visibly
+   transparent rather than looking as though it has a white one. */
+.cmp__stage {
+  background:
+    repeating-conic-gradient(var(--md-sys-color-surface-container) 0 25%, transparent 0 50%)
+    0 0 / 16px 16px;
+  background-color: var(--md-sys-color-surface);
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-m);
+  overflow: hidden;
+  transition: max-width var(--d-calm) var(--e-out);
+}
+.cmp__frame {
+  display: block;
+  width: 100%;
+  height: 20rem;          /* until the frame reports its own */
+  border: 0;
+  background: transparent;
+  transition: height var(--d-swift) var(--e-out);
+}
+.cmp__frame-note {
+  margin: .75rem 0 0;
+  font-size: .75rem;
+  color: var(--md-sys-color-on-surface-variant);
+}
+
+@media (max-width: 68rem) {
+  .cmp { grid-template-columns: minmax(0, 1fr); }
+  /* Sticky inside a single column would pin the preview over the fields. */
+  .cmp__preview { position: static; }
+}
+
 /* Repeaters sit inside the inspector, so they need a narrower treatment. */
 .repeater { margin: 0 0 1.25rem; }
 .repeater__head {

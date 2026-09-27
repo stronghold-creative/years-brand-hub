@@ -56,6 +56,45 @@ if ($path === '/tokens.css') {
     exit;
 }
 
+/**
+ * One variant of one component, rendered alone for an iframe.
+ *
+ * Gated exactly as the guidelines are, plus: a component that is not `ready` is
+ * visible only to an editor, and the area switch is ignored for an editor so the
+ * preview works while the area is still hidden from readers.
+ *
+ * It answers 404 rather than redirecting, because this is only ever loaded into
+ * a frame and a sign-in page inside one is no use to anybody.
+ */
+if (preg_match('#^/components/([a-z0-9\-]+)/frame/(\d+)$#', $path, $m)) {
+    if (site_is_private($config) && !current_user()) {
+        not_found();
+    }
+    if (!components_enabled() && !can_edit()) {
+        not_found();
+    }
+
+    $component = component_find_slug($m[1]);
+    if (!$component || ($component['status'] !== 'ready' && !can_edit())) {
+        not_found();
+    }
+
+    $variant = component_variant_find((int) $component['id'], (int) $m[2]);
+    if (!$variant) {
+        not_found();
+    }
+
+    component_frame_headers();
+    view('component-frame', [
+        'component' => $component,
+        'variant'   => $variant,
+        // Only the two values are honoured, so the attribute cannot be steered
+        // into anything else by the query string.
+        'scheme'    => ($_GET['scheme'] ?? '') === 'dark' ? 'dark' : 'light',
+    ], null);
+    exit;
+}
+
 if ($path === '/components') {
     if (site_is_private($config) && !current_user()) {
         redirect('/admin/sign-in');
@@ -449,6 +488,77 @@ if ($path === '/admin/components/new' && $method === 'POST') {
         current_user()['id']
     );
     redirect('/admin/components');
+}
+
+// The component screen. One component, its base CSS and its variants, with the
+// live frame beside them. Plain form posts for now; autosave is phase 3.
+if (preg_match('#^/admin/components/(\d+)$#', $path, $m)) {
+    require_editor();
+    $component = component_find((int) $m[1]);
+    if (!$component) {
+        not_found();
+    }
+    $variants = component_variants((int) $component['id']);
+    view('admin/component', [
+        'title'     => $component['name'],
+        'component' => $component,
+        'variants'  => $variants,
+        'open'      => component_default_variant($variants),
+    ], 'admin/layout');
+    exit;
+}
+
+if (preg_match('#^/admin/components/(\d+)/css$#', $path, $m) && $method === 'POST') {
+    require_editor();
+    csrf_check();
+    if (!component_find((int) $m[1])) {
+        not_found();
+    }
+    component_save_css((int) $m[1], (string) ($_POST['base_css'] ?? ''), current_user()['id']);
+    redirect('/admin/components/' . (int) $m[1]);
+}
+
+if (preg_match('#^/admin/components/(\d+)/variants/new$#', $path, $m) && $method === 'POST') {
+    require_editor();
+    csrf_check();
+    if (!component_find((int) $m[1])) {
+        not_found();
+    }
+    component_variant_create((int) $m[1], $_POST['label'] ?? '');
+    redirect('/admin/components/' . (int) $m[1]);
+}
+
+if (preg_match('#^/admin/components/(\d+)/variants/(\d+)/save$#', $path, $m) && $method === 'POST') {
+    require_editor();
+    csrf_check();
+    component_variant_save((int) $m[1], (int) $m[2], [
+        'label'       => $_POST['label'] ?? '',
+        'markup'      => $_POST['markup'] ?? '',
+        'variant_css' => $_POST['variant_css'] ?? '',
+        'notes'       => $_POST['notes'] ?? '',
+    ]);
+    redirect('/admin/components/' . (int) $m[1] . '?v=' . (int) $m[2]);
+}
+
+if (preg_match('#^/admin/components/(\d+)/variants/(\d+)/default$#', $path, $m) && $method === 'POST') {
+    require_editor();
+    csrf_check();
+    component_variant_make_default((int) $m[1], (int) $m[2]);
+    redirect('/admin/components/' . (int) $m[1] . '?v=' . (int) $m[2]);
+}
+
+if (preg_match('#^/admin/components/(\d+)/variants/(\d+)/move/(up|down)$#', $path, $m) && $method === 'POST') {
+    require_editor();
+    csrf_check();
+    component_variant_move((int) $m[1], (int) $m[2], $m[3]);
+    redirect('/admin/components/' . (int) $m[1] . '?v=' . (int) $m[2]);
+}
+
+if (preg_match('#^/admin/components/(\d+)/variants/(\d+)/delete$#', $path, $m) && $method === 'POST') {
+    require_editor();
+    csrf_check();
+    component_variant_delete((int) $m[1], (int) $m[2]);
+    redirect('/admin/components/' . (int) $m[1]);
 }
 
 if (preg_match('#^/admin/components/(\d+)/move/(up|down)$#', $path, $m) && $method === 'POST') {

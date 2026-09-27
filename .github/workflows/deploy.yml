@@ -27,6 +27,12 @@ jobs:
           php tools/check-blocks.php
           php tools/check-blocks.php --edit
 
+      # The component preview renders author-supplied HTML, CSS and JavaScript.
+      # This is what holds its sandbox, its policy and its escaping in place, and
+      # every one of those fails silently in a browser, so it gates the deploy.
+      - name: Check the component preview's safeguards
+        run: php tools/check-components.php
+
       - name: Check the stylesheets
         run: node tools/check-css.js public_html/assets/css/site.css public_html/assets/css/admin.css
 
