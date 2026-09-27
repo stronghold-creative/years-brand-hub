@@ -34,13 +34,7 @@ $canonical  = rtrim((string) (($config['site']['base_url'] ?? '')), '/')
       // invisible to anyone who has already loaded the old one. ?>
 <link rel="icon" href="<?= e(asset_url('/assets/favicon.svg')) ?>" type="image/svg+xml">
 
-<?php if (fonts_are_local()): ?>
-  <link rel="preload" href="<?= e(asset_url('/assets/fonts/plus-jakarta-sans-400.woff2')) ?>" as="font" type="font/woff2" crossorigin>
-<?php else: ?>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<?php endif; ?>
+<?= font_head() ?>
 <link rel="stylesheet" href="<?= e(asset_url('/assets/css/site.css')) ?>">
 <style><?= style_css() ?></style>
 <?php

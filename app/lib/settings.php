@@ -182,3 +182,46 @@ function fonts_are_local(): bool
     }
     return $known;
 }
+
+/** The interface weights actually used, so no file is asked for needlessly. */
+function interface_font_weights(): array
+{
+    return [400, 500, 600, 700];
+}
+
+/**
+ * Everything the head needs for the interface face.
+ *
+ * Self-hosted when the files are there, Google Fonts when they are not. The
+ * @font-face rules cannot live in the stylesheet, because a static rule cannot
+ * know whether the file behind it exists: they were there, the files were not,
+ * and every page load fetched four woff2 files and got four 404s.
+ *
+ * Only weights that are actually on disk are declared, so a half-finished
+ * upload degrades to the weights present rather than to a page of failures.
+ */
+function font_head(): string
+{
+    if (!fonts_are_local()) {
+        return '<link rel="preconnect" href="https://fonts.googleapis.com">' . "\n"
+             . '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>' . "\n"
+             . '<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">';
+    }
+
+    $faces = '';
+    $dir = ROOT_DIR . '/public_html/assets/fonts';
+
+    foreach (interface_font_weights() as $weight) {
+        $file = '/assets/fonts/plus-jakarta-sans-' . $weight . '.woff2';
+        if (!is_file($dir . '/plus-jakarta-sans-' . $weight . '.woff2')) {
+            continue;
+        }
+        $faces .= "@font-face{font-family:'Plus Jakarta Sans';"
+                . "src:url('" . e(asset_url($file)) . "') format('woff2');"
+                . 'font-weight:' . $weight . ';font-display:swap}';
+    }
+
+    return '<link rel="preload" href="' . e(asset_url('/assets/fonts/plus-jakarta-sans-400.woff2'))
+         . '" as="font" type="font/woff2" crossorigin>' . "\n"
+         . '<style>' . $faces . '</style>';
+}

@@ -266,6 +266,25 @@ is invalid. This silently broke a whole page. Test by simulating MySQL's
 unescaping, not by running the SQL in SQLite, which does not escape backslashes
 and hides the bug entirely.
 
+**More Years has one weight, and asking for another gets a faked one.** The
+browser smears the glyphs sideways: the headline looks doubled and the dot of
+an i becomes a ring. It happened because the site's heading weight is set by
+`.reader__body h1`, which is more specific than `.hero__headline`, and moving
+the opener into the reading column brought it under that rule for the first
+time. `.hero__line` now pins `font-weight: 400` and `font-synthesis: none`, so
+a request for a weight the face does not have renders the real face rather
+than a manufactured one. Worth remembering for any single-weight face: the
+headline is fitted using the real face's measured widths, so a synthesised one
+would not fit even if it looked acceptable.
+
+**A `@font-face` in a static stylesheet cannot know whether its file exists.**
+Four Plus Jakarta Sans faces were declared in `site.css` with a note saying
+they were harmless while the files were absent. They were not: every page load
+fetched four woff2 files and got four 404s. They are written by `font_head()`
+in `settings.php` now, which declares only the weights actually on disk and
+links Google Fonts when there are none — so a half-finished upload degrades to
+the weights present instead of a page of failures.
+
 **A media query placed before the rule it overrides does nothing.** The worst
 version of the duplicate-property trap, because it reads as correct: the query
 states what should happen at that width, and at equal specificity the later
@@ -386,8 +405,9 @@ belongs there, not in a caller.
    only made on upload.
 3. Self-host Plus Jakarta Sans: four woff2 files (400, 500, 600, 700) into
    `public_html/assets/fonts/`, named `plus-jakarta-sans-400.woff2` and so on.
-   The site then stops loading Google Fonts automatically. Deliberately not done
-   yet.
+   `font_head()` picks them up, declares only the weights it finds and stops
+   linking Google Fonts. Nothing needs editing, and a partial upload is safe.
+   Deliberately not done yet.
 4. Turn `debug` off in `app/config.php` on the server.
 5. Decide the real domain.
 6. Instrument the remaining block text for editing in place, if any turns out to

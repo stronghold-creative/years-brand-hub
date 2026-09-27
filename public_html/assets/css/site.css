@@ -1,30 +1,14 @@
-/* Plus Jakarta Sans, self-hosted. These rules are harmless when the files are
-   absent: the browser skips the face and the Google Fonts link in the head
-   supplies it instead. Drop the four woff2 files into assets/fonts to switch. */
-@font-face {
-  font-family: 'Plus Jakarta Sans';
-  src: url('/assets/fonts/plus-jakarta-sans-400.woff2') format('woff2');
-  font-weight: 400;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Plus Jakarta Sans';
-  src: url('/assets/fonts/plus-jakarta-sans-500.woff2') format('woff2');
-  font-weight: 500;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Plus Jakarta Sans';
-  src: url('/assets/fonts/plus-jakarta-sans-600.woff2') format('woff2');
-  font-weight: 600;
-  font-display: swap;
-}
-@font-face {
-  font-family: 'Plus Jakarta Sans';
-  src: url('/assets/fonts/plus-jakarta-sans-700.woff2') format('woff2');
-  font-weight: 700;
-  font-display: swap;
-}
+/* Plus Jakarta Sans is NOT declared here.
+
+   It used to be, with a note saying the rules were harmless while the files
+   were absent. They were not: the browser requested all four and got four 404s
+   on every page load. A @font-face in a static stylesheet cannot know whether
+   the file behind it exists.
+
+   The declarations are written by font_head() in app/lib/settings.php, which
+   emits them only when the files are actually there and links Google Fonts
+   when they are not. Dropping the four woff2 files into assets/fonts still
+   switches it over; nothing here needs editing. */
 
 /* Years' own faces are still available to type specimens on the Typography
    page; they are not the interface type. */
@@ -1961,6 +1945,23 @@ html, body { overflow-x: clip; }
 .hero__line {
   display: block;
   font-family: 'More Years', var(--display);
+  /**
+   * More Years has one weight, so asking for another can only get a faked one:
+   * the browser smears the glyphs sideways and the result is a headline that
+   * looks doubled, with the dot of an i turning into a ring.
+   *
+   * It is pinned here rather than only on .hero__headline because the site's
+   * heading weight is set by `.reader__body h1`, which is the more specific of
+   * the two. An opener used to sit outside the reading column and never met
+   * that rule; it sits inside it now.
+   *
+   * font-synthesis closes the door from any other direction: a request for a
+   * weight or an italic that the face does not have renders the real face
+   * rather than a manufactured one. The measured widths this headline is fitted
+   * with are the real face's, so a synthesised one would not fit either.
+   */
+  font-weight: 400;
+  font-synthesis: none;
   /* The measure divided by the line's own width. The cap keeps a very short
      line, or a very wide screen, from producing absurd type. */
   font-size: min(calc(100cqw / var(--fit, 6)), 34svh);

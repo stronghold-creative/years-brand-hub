@@ -28,8 +28,7 @@ $isCurrent = function (array $item) use ($path): bool {
 <title><?= e($title ?? 'Admin') ?> &middot; Years brand hub</title>
 <?php // The same mark as the front end. The admin is the same site. ?>
 <link rel="icon" href="<?= e(asset_url('/assets/favicon.svg')) ?>" type="image/svg+xml">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<?= font_head() ?>
 <link rel="stylesheet" href="<?= e(asset_url('/assets/css/admin.css')) ?>">
 </head>
 <body class="m3-shell<?= !empty($fullBleed) ? ' m3-shell--full' : '' ?>">
