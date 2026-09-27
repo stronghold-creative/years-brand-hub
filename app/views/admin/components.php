@@ -4,8 +4,9 @@
  * pages list, because it is the same job and a second layout for it would only
  * be something else to keep in step.
  *
- * Phase 1: no editor to link to yet, so a component's name is not a link. The
- * row is otherwise complete.
+ * The name links to the component screen. It did not in phase 1, because there
+ * was nothing to link to — which then stayed unlinked through phase 2 after the
+ * screen existed, and left the list looking broken.
  */
 $byGroup = [];
 foreach ($components as $component) {
@@ -96,7 +97,7 @@ $gone   = count(array_filter($components, fn($c) => $c['status'] === 'deprecated
                   data-page-name="<?= e(strtolower($component['name'] . ' ' . $component['group_name'] . ' ' . ($component['summary'] ?? ''))) ?>"
                   data-page-state="<?= e($component['status']) ?>">
 
-                <span class="m3-list-item__headline"><?= e($component['name']) ?></span>
+                <a class="m3-list-item__headline" href="/admin/components/<?= (int) $component['id'] ?>"><?= e($component['name']) ?></a>
 
                 <span class="m3-list-item__summary"><?= e($component['summary'] ?? '') ?></span>
 

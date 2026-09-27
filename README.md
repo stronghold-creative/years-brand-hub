@@ -86,17 +86,18 @@ deploy can never overwrite your credentials or uploaded files.
 - Pages: sections, ordering, drafts, version history with restore, filtering
 - Search across every page, opened with ⌘K or a bare `/`
 - People and roles, settings, site logo, area toggle
-- Components: the list at `/admin/components`, and one component's variants
-  rendered live in a sandboxed iframe with a viewport and dark-mode switch
+- Components: the list at `/admin/components`, each component's variants rendered
+  live in a sandboxed iframe with a viewport and dark-mode switch, and version
+  history with restore
 
 ## Not built yet
 
-- The component library, past its first two phases. Eight phases, scoped in
-  [docs/COMPONENTS.md](docs/COMPONENTS.md), usable from phase 4. **Phases 1 and 2
-  are in** — the tables, the list, and each variant rendered live in a sandboxed
-  iframe with its own markup and CSS. The metadata editor, autosave, versions,
-  the public component pages, the derived spec table and the Figma Dev Mode
-  import are still to come
+- The public side of the component library. Eight phases, scoped in
+  [docs/COMPONENTS.md](docs/COMPONENTS.md), usable from phase 4. **Phases 1 to 3
+  are in** — the tables, the list, each variant rendered live in a sandboxed
+  iframe with its own markup and CSS, and the details editor with version history.
+  The public component pages, the derived spec table and the Figma Dev Mode import
+  are still to come
 - `/tokens.css` exports colours only, not type
 
 ## Checks

@@ -31,8 +31,14 @@ $frameBase = '/components/' . rawurlencode($component['slug']) . '/frame/';
       <p class="m3-page__meta">
         <?= e($component['group_name']) ?> &middot;
         <?= e(component_status_label($component['status'])) ?> &middot;
-        <?= count($variants) ?> <?= count($variants) === 1 ? 'variant' : 'variants' ?>
+        <?= count($variants) ?> <?= count($variants) === 1 ? 'variant' : 'variants' ?> &middot;
+        <code>/components/<?= e($component['slug']) ?></code>
       </p>
+    </div>
+    <div class="m3-page__action">
+      <a class="m3-button m3-button--text m3-state" href="/admin/components/<?= (int) $component['id'] ?>/versions">
+        <?= ui_icon('history', 'icon') ?> History
+      </a>
     </div>
   </div>
 
@@ -40,6 +46,89 @@ $frameBase = '/components/' . rawurlencode($component['slug']) . '/frame/';
 
     <!-- ------------------------------------------------------------ the work -->
     <div class="cmp__work">
+
+      <section class="m3-card">
+        <h2 class="m3-card__title">Details</h2>
+        <form method="post" action="/admin/components/<?= (int) $component['id'] ?>/meta" data-guard>
+          <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
+
+          <div class="m3-field">
+            <input class="m3-field__input" type="text" name="name" id="name" placeholder=" "
+                   maxlength="190" value="<?= e($component['name']) ?>">
+            <label class="m3-field__label" for="name">Name</label>
+          </div>
+
+          <div class="m3-editor__metarow">
+            <div class="m3-field">
+              <input class="m3-field__input" type="text" name="group_name" id="group" list="componentgroups"
+                     placeholder=" " maxlength="120" value="<?= e($component['group_name']) ?>">
+              <label class="m3-field__label" for="group">Group</label>
+              <datalist id="componentgroups">
+                <?php foreach ($groups as $name): ?>
+                  <option value="<?= e($name) ?>"></option>
+                <?php endforeach; ?>
+              </datalist>
+            </div>
+            <div class="m3-field">
+              <select class="m3-field__input" name="status" id="status">
+                <?php foreach (component_statuses() as $value => $label): ?>
+                  <option value="<?= e($value) ?>"<?= $component['status'] === $value ? ' selected' : '' ?>><?= e($label) ?></option>
+                <?php endforeach; ?>
+              </select>
+              <label class="m3-field__label" for="status">Status</label>
+            </div>
+          </div>
+          <p class="m3-field__support">Only <strong>Ready</strong> is visible to
+             anyone who cannot edit. Deprecated stays readable, and says so.</p>
+
+          <div class="m3-field">
+            <input class="m3-field__input" type="text" name="summary" id="summary" placeholder=" "
+                   maxlength="400" value="<?= e($component['summary'] ?? '') ?>">
+            <label class="m3-field__label" for="summary">Summary</label>
+          </div>
+
+          <div class="m3-field">
+            <input class="m3-field__input" type="text" name="slug" id="slug" placeholder=" "
+                   maxlength="190" value="<?= e($component['slug']) ?>">
+            <label class="m3-field__label" for="slug">URL</label>
+          </div>
+          <p class="m3-field__support">Changing this breaks any link already shared.
+             It does not follow a rename, for that reason.</p>
+
+          <div class="m3-field">
+            <input class="m3-field__input" type="url" name="figma_url" id="figma" placeholder=" "
+                   maxlength="500" value="<?= e($component['figma_url'] ?? '') ?>">
+            <label class="m3-field__label" for="figma">Figma link</label>
+          </div>
+          <p class="m3-field__support">
+            Right-click the component in Figma and Copy link to selection. Nothing
+            is fetched — the link is kept, and the file and node read out of it.
+            <?php if (!empty($component['figma_file_key'])): ?>
+              <br>Read: file <code><?= e($component['figma_file_key']) ?></code><?php
+                if (!empty($component['figma_node_id'])): ?>, node
+                <code><?= e($component['figma_node_id']) ?></code><?php
+                else: ?>, no node — the link points at the whole file<?php endif; ?>.
+            <?php elseif (!empty($component['figma_url'])): ?>
+              <br>Kept as a link, but it is not a Figma URL this recognises.
+            <?php endif; ?>
+          </p>
+
+          <details class="cmp__advanced">
+            <summary>JavaScript</summary>
+            <p class="m3-field__support">Only for a component that genuinely needs
+               it — a disclosure, a carousel. It runs in the sandbox, which can
+               reach nothing outside itself and cannot make network requests.</p>
+            <div class="m3-field">
+              <textarea class="m3-field__input m3-field__textarea cmp__code" name="base_js" rows="6"
+                        id="basejs" placeholder=" "
+                        spellcheck="false" autocapitalize="off"><?= e($component['base_js']) ?></textarea>
+              <label class="m3-field__label" for="basejs">JS</label>
+            </div>
+          </details>
+
+          <button class="m3-button m3-button--filled m3-state" type="submit">Save details</button>
+        </form>
+      </section>
 
       <section class="m3-card">
         <h2 class="m3-card__title">Variants</h2>
@@ -63,7 +152,7 @@ $frameBase = '/components/' . rawurlencode($component['slug']) . '/frame/';
               <?php endif; ?>
             </summary>
 
-            <form class="cmp__form" method="post"
+            <form class="cmp__form" method="post" data-guard
                   action="/admin/components/<?= (int) $component['id'] ?>/variants/<?= (int) $variant['id'] ?>/save">
               <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
 
@@ -138,7 +227,7 @@ $frameBase = '/components/' . rawurlencode($component['slug']) . '/frame/';
         <p class="m3-field__support">Shared by every variant. The brand tokens are
            already there, so <code>var(--s-radius)</code> and the palette's custom
            properties work without declaring them.</p>
-        <form method="post" action="/admin/components/<?= (int) $component['id'] ?>/css">
+        <form method="post" action="/admin/components/<?= (int) $component['id'] ?>/css" data-guard>
           <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
           <div class="m3-field">
             <textarea class="m3-field__input m3-field__textarea cmp__code" name="base_css" rows="14"

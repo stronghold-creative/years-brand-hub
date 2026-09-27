@@ -58,6 +58,9 @@ $expected = [
     'POST /admin/components/7/variants/2/move/up'  => '/admin/components/7/variants/2/move/up',
     'POST /admin/components/7/variants/2/delete'   => '/admin/components/7/variants/2/delete',
     'GET  /components/button/frame/2'  => '/components/button/frame/2',
+    'POST /admin/components/7/meta'    => '/admin/components/7/meta',
+    'GET  /admin/components/7/versions'=> '/admin/components/7/versions',
+    'POST /admin/components/7/restore/4' => '/admin/components/7/restore/4',
 ];
 
 $failed = 0;

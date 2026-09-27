@@ -504,8 +504,48 @@ if (preg_match('#^/admin/components/(\d+)$#', $path, $m)) {
         'component' => $component,
         'variants'  => $variants,
         'open'      => component_default_variant($variants),
+        'groups'    => component_groups(),
     ], 'admin/layout');
     exit;
+}
+
+if (preg_match('#^/admin/components/(\d+)/meta$#', $path, $m) && $method === 'POST') {
+    require_editor();
+    csrf_check();
+    if (!component_find((int) $m[1])) {
+        not_found();
+    }
+    component_save_meta((int) $m[1], [
+        'name'       => $_POST['name'] ?? '',
+        'slug'       => $_POST['slug'] ?? '',
+        'group_name' => $_POST['group_name'] ?? '',
+        'status'     => $_POST['status'] ?? '',
+        'summary'    => $_POST['summary'] ?? '',
+        'figma_url'  => $_POST['figma_url'] ?? '',
+        'base_js'    => $_POST['base_js'] ?? '',
+    ], current_user()['id']);
+    redirect('/admin/components/' . (int) $m[1]);
+}
+
+if (preg_match('#^/admin/components/(\d+)/versions$#', $path, $m)) {
+    require_editor();
+    $component = component_find((int) $m[1]);
+    if (!$component) {
+        not_found();
+    }
+    view('admin/component-versions', [
+        'title'     => $component['name'] . ' history',
+        'component' => $component,
+        'versions'  => component_version_list((int) $component['id']),
+    ], 'admin/layout');
+    exit;
+}
+
+if (preg_match('#^/admin/components/(\d+)/restore/(\d+)$#', $path, $m) && $method === 'POST') {
+    require_editor();
+    csrf_check();
+    component_restore((int) $m[1], (int) $m[2], current_user()['id']);
+    redirect('/admin/components/' . (int) $m[1]);
 }
 
 if (preg_match('#^/admin/components/(\d+)/css$#', $path, $m) && $method === 'POST') {
@@ -524,7 +564,7 @@ if (preg_match('#^/admin/components/(\d+)/variants/new$#', $path, $m) && $method
     if (!component_find((int) $m[1])) {
         not_found();
     }
-    component_variant_create((int) $m[1], $_POST['label'] ?? '');
+    component_variant_create((int) $m[1], $_POST['label'] ?? '', current_user()['id']);
     redirect('/admin/components/' . (int) $m[1]);
 }
 
@@ -536,28 +576,28 @@ if (preg_match('#^/admin/components/(\d+)/variants/(\d+)/save$#', $path, $m) && 
         'markup'      => $_POST['markup'] ?? '',
         'variant_css' => $_POST['variant_css'] ?? '',
         'notes'       => $_POST['notes'] ?? '',
-    ]);
+    ], current_user()['id']);
     redirect('/admin/components/' . (int) $m[1] . '?v=' . (int) $m[2]);
 }
 
 if (preg_match('#^/admin/components/(\d+)/variants/(\d+)/default$#', $path, $m) && $method === 'POST') {
     require_editor();
     csrf_check();
-    component_variant_make_default((int) $m[1], (int) $m[2]);
+    component_variant_make_default((int) $m[1], (int) $m[2], current_user()['id']);
     redirect('/admin/components/' . (int) $m[1] . '?v=' . (int) $m[2]);
 }
 
 if (preg_match('#^/admin/components/(\d+)/variants/(\d+)/move/(up|down)$#', $path, $m) && $method === 'POST') {
     require_editor();
     csrf_check();
-    component_variant_move((int) $m[1], (int) $m[2], $m[3]);
+    component_variant_move((int) $m[1], (int) $m[2], $m[3], current_user()['id']);
     redirect('/admin/components/' . (int) $m[1] . '?v=' . (int) $m[2]);
 }
 
 if (preg_match('#^/admin/components/(\d+)/variants/(\d+)/delete$#', $path, $m) && $method === 'POST') {
     require_editor();
     csrf_check();
-    component_variant_delete((int) $m[1], (int) $m[2]);
+    component_variant_delete((int) $m[1], (int) $m[2], current_user()['id']);
     redirect('/admin/components/' . (int) $m[1]);
 }
 

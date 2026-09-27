@@ -35,6 +35,26 @@ require APP_DIR . '/lib/components.php';
 $_SESSION = ['csrf' => str_repeat('a', 64)];
 
 $failed = 0;
+
+/**
+ * Any warning or notice counts as a failure.
+ *
+ * Without this the checks below pass while the views quietly emit "undefined
+ * variable" — which is exactly what happened when the component screen gained a
+ * field that needed a new variable passed to it: the page rendered, the
+ * assertions held, and the datalist was silently empty. A template's warnings are
+ * its bugs.
+ */
+error_reporting(E_ALL);
+set_error_handler(function (int $level, string $message, string $file, int $line): bool {
+    global $failed;
+    $failed++;
+    // STDERR, not stdout: these fire while a view is being captured with
+    // ob_start(), so anything printed normally goes into the buffer and is
+    // thrown away with it — which is how two of these went unseen at first.
+    fprintf(STDERR, "  !! %s in %s:%d\n", $message, basename($file), $line);
+    return true;
+});
 function ok(string $what, bool $pass): void
 {
     global $failed;
@@ -78,6 +98,7 @@ $variants = [
 ];
 
 $open = component_default_variant($variants);
+$groups = ['Actions', 'Forms'];
 $_GET = ['v' => '3'];
 
 ob_start();
@@ -144,6 +165,106 @@ foreach ([
         (component_link($url) !== null) === $allowed
     );
 }
+
+echo "\nThe list screen\n";
+
+// Rendered in all three of its states, mostly so the warning handler above sees
+// them: an undefined variable in a template is invisible in a browser with
+// display_errors off, and the page still looks almost right.
+$components = [
+    ['id' => 7, 'slug' => 'button', 'name' => 'Button', 'group_name' => 'Actions',
+     'status' => 'ready', 'summary' => 'The one most often misused.',
+     'figma_url' => 'javascript:alert(1)', 'sort_order' => 0, 'updated_at' => '2026-09-27 10:00:00'],
+    ['id' => 8, 'slug' => 'card', 'name' => 'Card', 'group_name' => 'Commerce',
+     'status' => 'draft', 'summary' => null,
+     'figma_url' => null, 'sort_order' => 1, 'updated_at' => '2026-09-27 10:00:00'],
+];
+$installed = true;
+
+ob_start();
+require APP_DIR . '/views/admin/components.php';
+$list = ob_get_clean();
+
+ok('the list rendered',                      strlen($list) > 1000);
+ok('the name links to the component',        str_contains($list, 'href="/admin/components/7"'));
+// A stored javascript: URL must not become a link even in the list.
+ok('a javascript: link is not rendered',     !str_contains($list, 'href="javascript:'));
+
+foreach ([['empty', [], true], ['not installed', [], false]] as [$state, $rows, $isInstalled]) {
+    $components = $rows;
+    $installed  = $isInstalled;
+    ob_start();
+    require APP_DIR . '/views/admin/components.php';
+    $out = ob_get_clean();
+    ok('the list renders when ' . $state,    strlen($out) > 200);
+}
+
+echo "\nThe history screen\n";
+
+// A hostile variant reaching the history screen through a snapshot is the same
+// risk by a longer route, so it is checked on that page too.
+$versions = [
+    [
+        'id' => 9, 'name' => 'Button', 'created_at' => '2026-09-27 11:00:00', 'author' => 'Nathan',
+        'snapshot' => json_encode([
+            'component' => ['name' => 'Button', 'group_name' => 'Actions', 'status' => 'ready',
+                            'summary' => null, 'slug' => 'button', 'figma_url' => null,
+                            'base_css' => '.btn{}', 'base_js' => ''],
+            'variants'  => [['label' => 'Primary', 'markup' => $nasty, 'variant_css' => '']],
+        ]),
+    ],
+    [
+        'id' => 8, 'name' => 'Button', 'created_at' => '2026-09-27 10:00:00', 'author' => 'Nathan',
+        'snapshot' => json_encode([
+            'component' => ['name' => 'Button', 'group_name' => 'Actions', 'status' => 'draft',
+                            'summary' => null, 'slug' => 'button', 'figma_url' => null,
+                            'base_css' => '', 'base_js' => ''],
+            'variants'  => [],
+        ]),
+    ],
+];
+
+ob_start();
+require APP_DIR . '/views/admin/component-versions.php';
+$history = ob_get_clean();
+
+ok('the history screen rendered',            strlen($history) > 500);
+ok('no live script from a snapshot',         !str_contains($history, '<script>alert(2)'));
+ok('no live onerror from a snapshot',        !str_contains($history, 'onerror="alert'));
+ok('it names the first save as the first',   str_contains($history, 'First save'));
+ok('it describes the newer save',            str_contains($history, 'Added Primary'));
+// The oldest entry has nothing to go back to, so it must not offer a restore.
+ok('one restore button for two versions',    substr_count($history, '/restore/') === 1);
+
+// A snapshot that is not valid JSON, which a truncated write would produce.
+$versions = [['id' => 1, 'name' => 'X', 'created_at' => '2026-09-27 10:00:00',
+              'author' => null, 'snapshot' => '{ broken']];
+ob_start();
+require APP_DIR . '/views/admin/component-versions.php';
+$broken = ob_get_clean();
+ok('a corrupt snapshot does not break the page', strlen($broken) > 500);
+
+echo "\nReading a Figma link\n";
+
+foreach ([
+    // url, expected file key, expected node id
+    ['https://www.figma.com/design/AbCdEf123456/Years?node-id=1234-5678', 'AbCdEf123456', '1234-5678'],
+    ['https://figma.com/file/AbCdEf123456/Years?node-id=12%3A34',         'AbCdEf123456', '12-34'],
+    ['https://www.figma.com/design/AbCdEf123456/Years',                   'AbCdEf123456', null],
+    ['https://www.figma.com/design/AbCdEf123456/Years?node-id=oops',      'AbCdEf123456', null],
+    ['https://example.com/not-figma',                                     null,           null],
+] as [$url, $key, $node]) {
+    $got = component_figma_parse($url);
+    ok(
+        sprintf('%-62s', str_trim_to($url, 62)),
+        $got['file_key'] === $key && $got['node_id'] === $node && $got['url'] === $url
+    );
+}
+
+// A link that is not safe to follow must not be kept at all, or it would be
+// rendered as an href on the component page.
+$refused = component_figma_parse('javascript:alert(1)');
+ok('javascript: is not kept as a link',      $refused['url'] === null);
 
 echo $failed === 0
     ? "\nEvery component safeguard holds.\n"

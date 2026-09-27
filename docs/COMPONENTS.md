@@ -1,8 +1,9 @@
 # The component library: scope
 
-A Storybook for Years, inside the brand hub. **Phases 1 and 2 of 8 are built** —
-the tables, the library, the admin list, and the live sandboxed preview with the
-variants and base CSS that feed it. This is the agreed shape, written down
+A Storybook for Years, inside the brand hub. **Phases 1 to 3 of 8 are built** —
+the tables, the library, the admin list, the live sandboxed preview with the
+variants and base CSS that feed it, and the details editor with version history.
+This is the agreed shape, written down
 before any code, so the build can be picked up one phase at a time. Decisions
 here were taken 27 September 2026; where one went against the cheaper option,
 the reason is recorded.
@@ -243,7 +244,7 @@ than the build.
 |---|---|---|
 | **1. Spine** ✔ **built** | `009_components.sql`, `lib/components.php`, the admin list, Add, Delete, reorder, the drawer item and its icon. No preview, no import | — |
 | **2. Sandbox** ✔ **built** | The frame route, its CSP, the height bridge, the preview with variant and viewport switchers, and — moved forward from phase 3 — the variants and base CSS that feed it | 1 |
-| **3. Editor** | Metadata (status, summary, group, Figma link), autosave, versions, `notes_override`. The variant cards themselves landed in phase 2 | 1, 2 |
+| **3. Editor** ✔ **built** | Details (name, slug, group, status, summary, Figma link, JS), version history with restore, an unsaved-changes guard in place of autosave. `notes_override` moved to phase 5, where the spec it overrides exists | 1, 2 |
 | **4. Public** | `/components` index with live thumbnails, `/components/{slug}`, the code panel and copy button | 2, 3 |
 | **5. Derived spec** | The CSS pass, token matching, the flag, `notes_override` | 3 |
 | **6. Import** | The Import panel, detection, the Dev Mode split, the `figmeta` refusal | 3 |
@@ -354,6 +355,69 @@ never failed has not been shown to work.
 Still true after phase 2: **nothing outside the frame renders raw HTML.** The
 frame is the documented exception; section 4 is its specification and the check
 above is what holds it to it.
+
+### What phase 3 actually shipped
+
+- **A Details card** on the component screen: name, group, status, summary, slug,
+  Figma link, and the JavaScript field behind a `<details>`. Route
+  `/admin/components/{id}/meta`.
+- **`component_figma_parse()`**, which reads the file key and node id out of a
+  pasted link. Nothing is fetched.
+- **Version history**: `component_snapshot()`, `component_version_record()`,
+  `component_restore()`, the screen at `/admin/components/{id}/versions`, and
+  `component_after_write()` which every write now ends with.
+- **An unsaved-changes guard** rather than autosave, in `components.js`.
+- Two more sections in `check-components.php`, and a **warning handler** that
+  makes any PHP notice a failure.
+- **The list's name is a link.** It was not, from phase 1, and stayed unlinked
+  through phase 2 after the screen it should point at existed — so a component
+  could be added and not opened. Reported, and fixed here.
+
+Decisions worth knowing before phase 4:
+
+- **No autosave, deliberately.** The page editor autosaves because prose is typed
+  continuously and a lost paragraph is a real loss. A component's fields hold
+  code, which is edited in deliberate passes and is *broken for most of the time
+  it is being written*: autosaving it would fill the history with snapshots of
+  half-finished CSS and reload the preview into a broken state every second. What
+  autosave actually protects against here is closing the tab with work in it, so
+  that is what the guard does, directly. Revisit only if it proves annoying in
+  use.
+- **`component_after_write()` lives in the library, not the routes.** Six write
+  routes each remembering to touch the row and record a version is six chances to
+  miss one, and a missing version is invisible until someone needs it.
+- **The slug does not follow a rename.** A component's URL gets pasted into Slack,
+  so renaming Button to Primary button keeps `/components/button`. It is editable,
+  with a warning that says what changing it breaks.
+- **Restoring records the current state first**, so a restore chosen by mistake is
+  itself undoable.
+- **A restored variant is a new row.** Variant ids are deliberately not in the
+  snapshot: an id that no longer exists cannot be restored to, and matching on
+  label would silently merge two variants that had been renamed. So the variants
+  are replaced wholesale, and `component_settle_default()` then guarantees exactly
+  one default — a hand-edited or pre-rule snapshot could have none or several.
+- **`updated_at` and `updated_by` are not in the snapshot.** They change on every
+  save, so a snapshot carrying them would never equal the last one and the
+  no-change rule would never fire.
+- **`version_prune_history()` is now shared** by pages and components rather than
+  copied, so the thinning policy cannot drift between the two. The table and column
+  are interpolated, not bound, so they are whitelisted against a hardcoded map.
+
+### Three bugs the check found in phase 3
+
+Worth recording, because each was invisible and each was found by an assertion
+rather than by looking:
+
+1. **`'#[?&]node-id=([^&#]+)#i'`** — the `#` inside the character class ends the
+   `#` delimiter. PHP reports "Unknown modifier ']'", which points nowhere near
+   the cause. The pattern is delimited with `~` now.
+2. **The component screen emitted "Undefined variable $groups"** when the Details
+   card gained its datalist. The page rendered, the assertions passed, and the
+   datalist was silently empty. That is why warnings now fail the check.
+3. **Those warnings did not print.** They fire while a view is captured with
+   `ob_start()`, so the handler's output went into the buffer and was discarded
+   with it — `$failed` went up and nothing said why. The handler writes to STDERR
+   now.
 
 **Deferred, on purpose:** the Figma REST API sync; a props table; per-component
 theming beyond the site tokens; versioning of variants independently of their

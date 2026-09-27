@@ -203,7 +203,7 @@ function component_default_variant(array $variants): ?array
  * Adds a variant. The first one added is the default, because a component with
  * variants and no default is a state nothing benefits from.
  */
-function component_variant_create(int $componentId, string $label): int
+function component_variant_create(int $componentId, string $label, ?int $userId): int
 {
     $label = str_trim_to(trim($label), 190) ?: 'Default';
     $row = db_one(
@@ -217,7 +217,9 @@ function component_variant_create(int $componentId, string $label): int
          VALUES (?, ?, \'\', \'\', ?, ?)',
         [$componentId, $label, $first ? 1 : 0, (int) ($row['top'] ?? 0) + 1]
     );
-    return (int) db()->lastInsertId();
+    $id = (int) db()->lastInsertId();
+    component_after_write($componentId, $userId);
+    return $id;
 }
 
 /**
@@ -230,7 +232,7 @@ function component_variant_create(int $componentId, string $label): int
  * `docs/COMPONENTS.md` before doing anything else with this value — in
  * particular, never echo it into an admin or reader page.
  */
-function component_variant_save(int $componentId, int $variantId, array $fields): void
+function component_variant_save(int $componentId, int $variantId, array $fields, ?int $userId): void
 {
     if (!component_variant_find($componentId, $variantId)) {
         return;
@@ -247,18 +249,18 @@ function component_variant_save(int $componentId, int $variantId, array $fields)
             $componentId,
         ]
     );
-    component_touch($componentId);
+    component_after_write($componentId, $userId);
 }
 
 /** Exactly one default per component, so the switch cannot land nowhere. */
-function component_variant_make_default(int $componentId, int $variantId): void
+function component_variant_make_default(int $componentId, int $variantId, ?int $userId): void
 {
     if (!component_variant_find($componentId, $variantId)) {
         return;
     }
     db_run('UPDATE component_variants SET is_default = 0 WHERE component_id = ?', [$componentId]);
     db_run('UPDATE component_variants SET is_default = 1 WHERE id = ? AND component_id = ?', [$variantId, $componentId]);
-    component_touch($componentId);
+    component_after_write($componentId, $userId);
 }
 
 /**
@@ -267,7 +269,7 @@ function component_variant_make_default(int $componentId, int $variantId): void
  * would open on whichever happened to sort first — which is not wrong, but is
  * not a decision anyone made either.
  */
-function component_variant_delete(int $componentId, int $variantId): void
+function component_variant_delete(int $componentId, int $variantId, ?int $userId): void
 {
     $variant = component_variant_find($componentId, $variantId);
     if (!$variant) {
@@ -284,10 +286,10 @@ function component_variant_delete(int $componentId, int $variantId): void
             db_run('UPDATE component_variants SET is_default = 1 WHERE id = ?', [$next['id']]);
         }
     }
-    component_touch($componentId);
+    component_after_write($componentId, $userId);
 }
 
-function component_variant_move(int $componentId, int $variantId, string $direction): void
+function component_variant_move(int $componentId, int $variantId, string $direction, ?int $userId): void
 {
     $ids = array_map('intval', array_column(component_variants($componentId), 'id'));
     $index = array_search($variantId, $ids, true);
@@ -301,7 +303,296 @@ function component_variant_move(int $componentId, int $variantId, string $direct
     foreach ($ids as $position => $id) {
         db_run('UPDATE component_variants SET sort_order = ? WHERE id = ?', [$position, $id]);
     }
-    component_touch($componentId);
+    component_after_write($componentId, $userId);
+}
+
+/**
+ * Pulls the file key and node id out of a pasted Figma URL.
+ *
+ * Nothing is fetched. The point of keeping these apart from the URL is that the
+ * REST API can be added later without a migration and without asking anyone to
+ * re-paste thirty links. Figma's own URL shapes:
+ *
+ *   figma.com/design/{key}/{name}?node-id=123-456     current
+ *   figma.com/file/{key}/{name}?node-id=123%3A456     older, colon-escaped
+ *
+ * The node id is normalised to the dashed form, since that is what the API and
+ * every current URL use, and a stored value in two spellings would have to be
+ * normalised at every read instead.
+ *
+ * Returns null for both parts rather than refusing the URL: a link to a whole
+ * file with no selection is still worth keeping as a link.
+ */
+function component_figma_parse(?string $url): array
+{
+    $url = trim((string) $url);
+    if ($url === '' || component_link($url) === null) {
+        return ['url' => null, 'file_key' => null, 'node_id' => null];
+    }
+
+    $key = null;
+    if (preg_match('#^https?://(?:www\.)?figma\.com/(?:design|file|proto)/([A-Za-z0-9]{10,64})#i', $url, $m)) {
+        $key = $m[1];
+    }
+
+    $node = null;
+    // Delimited with ~ rather than #, because the pattern needs a literal # in a
+    // character class and the delimiter would end the pattern at it. The error is
+    // "Unknown modifier", which points nowhere near the cause.
+    if (preg_match('~[?&]node-id=([^&#]+)~i', $url, $m)) {
+        // %3A is a colon; both spellings mean the same node.
+        $raw = str_replace([':', '%3A', '%3a'], '-', urldecode($m[1]));
+        if (preg_match('#^[0-9]+-[0-9]+$#', $raw)) {
+            $node = $raw;
+        }
+    }
+
+    return [
+        'url'      => str_trim_to($url, 500),
+        'file_key' => $key,
+        'node_id'  => $node,
+    ];
+}
+
+/**
+ * Saves the component's own fields. Everything on the screen that is not CSS or
+ * a variant.
+ *
+ * The slug follows the name only while nobody has typed a slug of their own,
+ * because a component's URL gets pasted into Slack and a rename should not
+ * quietly break it. Renaming Button to Primary button keeps /components/button.
+ */
+function component_save_meta(int $id, array $fields, ?int $userId): void
+{
+    $component = component_find($id);
+    if (!$component) {
+        return;
+    }
+
+    $name   = str_trim_to(trim((string) ($fields['name'] ?? '')), 190) ?: $component['name'];
+    $status = array_key_exists((string) ($fields['status'] ?? ''), component_statuses())
+        ? (string) $fields['status']
+        : $component['status'];
+
+    $slugWanted = trim((string) ($fields['slug'] ?? ''));
+    $slug = $slugWanted !== ''
+        ? component_slug($slugWanted, $id)
+        : $component['slug'];
+
+    $figma = component_figma_parse($fields['figma_url'] ?? null);
+
+    db_run(
+        'UPDATE components SET name = ?, slug = ?, group_name = ?, status = ?, summary = ?,
+                figma_url = ?, figma_file_key = ?, figma_node_id = ?, base_js = ?, updated_by = ?
+          WHERE id = ?',
+        [
+            $name,
+            $slug,
+            str_trim_to(trim((string) ($fields['group_name'] ?? '')), 120) ?: $component['group_name'],
+            $status,
+            str_trim_to(trim((string) ($fields['summary'] ?? '')), 400) ?: null,
+            $figma['url'],
+            $figma['file_key'],
+            $figma['node_id'],
+            (string) ($fields['base_js'] ?? ''),
+            $userId,
+            $id,
+        ]
+    );
+    component_after_write($id, $userId);
+}
+
+// ------------------------------------------------------------------- history
+
+/**
+ * Everything about a component that is worth restoring, as JSON.
+ *
+ * The variants are in it, because a component and its variants are one thing to
+ * whoever is editing and restoring half of it would be worse than not offering
+ * a restore at all. `updated_at` and `updated_by` are deliberately left out: a
+ * snapshot that carried them would differ on every save and the no-change rule
+ * below would never fire.
+ */
+function component_snapshot(int $id): string
+{
+    $component = component_find($id);
+    if (!$component) {
+        return '';
+    }
+
+    $keep = ['name', 'slug', 'group_name', 'status', 'summary', 'figma_url',
+             'figma_file_key', 'figma_node_id', 'base_css', 'base_js', 'docs', 'notes_override'];
+
+    $out = ['component' => [], 'variants' => []];
+    foreach ($keep as $field) {
+        $out['component'][$field] = $component[$field];
+    }
+    foreach (component_variants($id) as $variant) {
+        $out['variants'][] = [
+            'label'       => $variant['label'],
+            'markup'      => $variant['markup'],
+            'variant_css' => $variant['variant_css'],
+            'notes'       => $variant['notes'],
+            'is_default'  => (int) $variant['is_default'],
+            'sort_order'  => (int) $variant['sort_order'],
+        ];
+    }
+    return json_encode($out, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?: '';
+}
+
+/**
+ * Records a version, following the same three rules as a page's history — a save
+ * that changes nothing records nothing, the same person within five minutes
+ * updates the last entry rather than adding one, and old entries are thinned.
+ * The window and the cap come from `versions.php`, so the two histories cannot
+ * drift apart on policy.
+ */
+function component_version_record(int $id, ?int $userId): string
+{
+    $snapshot = component_snapshot($id);
+    if ($snapshot === '') {
+        return 'nothing';
+    }
+    $name = (string) (component_find($id)['name'] ?? '');
+
+    $latest = db_one(
+        'SELECT id, snapshot, created_by, created_at FROM component_versions
+          WHERE component_id = ? ORDER BY created_at DESC, id DESC LIMIT 1',
+        [$id]
+    );
+
+    if ($latest && $latest['snapshot'] === $snapshot) {
+        return 'unchanged';
+    }
+
+    $latestAt = $latest ? (int) strtotime((string) ($latest['created_at'] ?? '')) : 0;
+    if (
+        $latest
+        && (int) $latest['created_by'] === (int) $userId
+        && $latestAt > 0
+        && (time() - $latestAt) < version_window_seconds()
+    ) {
+        db_run(
+            'UPDATE component_versions SET name = ?, snapshot = ?, created_at = NOW() WHERE id = ?',
+            [$name, $snapshot, $latest['id']]
+        );
+        return 'collapsed';
+    }
+
+    db_run(
+        'INSERT INTO component_versions (component_id, name, snapshot, created_by) VALUES (?, ?, ?, ?)',
+        [$id, $name, $snapshot, $userId]
+    );
+    version_prune_history('component_versions', 'component_id', $id);
+    return 'created';
+}
+
+function component_version_list(int $id): array
+{
+    if (!components_installed()) {
+        return [];
+    }
+    return db_all(
+        'SELECT v.id, v.name, v.snapshot, v.created_at, u.name AS author
+           FROM component_versions v
+           LEFT JOIN users u ON u.id = v.created_by
+          WHERE v.component_id = ? ORDER BY v.created_at DESC, v.id DESC',
+        [$id]
+    );
+}
+
+/**
+ * Puts a component back to a snapshot.
+ *
+ * The variants are replaced wholesale rather than matched up and updated, because
+ * their ids are not in the snapshot — deliberately, since an id that no longer
+ * exists cannot be restored to and matching on label would silently merge two
+ * variants that had been renamed. Replacing means a restored variant is a new
+ * row, which is correct: it is not the row that was deleted.
+ *
+ * The current state is recorded first, so restoring is itself undoable. Without
+ * that, a restore chosen by mistake destroys the work it replaced.
+ */
+function component_restore(int $id, int $versionId, ?int $userId): bool
+{
+    $version = db_one(
+        'SELECT snapshot FROM component_versions WHERE id = ? AND component_id = ?',
+        [$versionId, $id]
+    );
+    if (!$version) {
+        return false;
+    }
+    $data = json_decode((string) $version['snapshot'], true);
+    if (!is_array($data) || !isset($data['component'])) {
+        return false;
+    }
+
+    component_version_record($id, $userId);
+
+    $fields = $data['component'];
+    $slug = trim((string) ($fields['slug'] ?? ''));
+
+    db_run(
+        'UPDATE components SET name = ?, slug = ?, group_name = ?, status = ?, summary = ?,
+                figma_url = ?, figma_file_key = ?, figma_node_id = ?,
+                base_css = ?, base_js = ?, docs = ?, notes_override = ?, updated_by = ?
+          WHERE id = ?',
+        [
+            str_trim_to((string) ($fields['name'] ?? 'Untitled component'), 190),
+            $slug !== '' ? component_slug($slug, $id) : component_slug((string) ($fields['name'] ?? 'component'), $id),
+            str_trim_to((string) ($fields['group_name'] ?? 'Components'), 120),
+            array_key_exists((string) ($fields['status'] ?? ''), component_statuses()) ? $fields['status'] : 'draft',
+            $fields['summary'] !== null ? str_trim_to((string) $fields['summary'], 400) : null,
+            $fields['figma_url'] ?? null,
+            $fields['figma_file_key'] ?? null,
+            $fields['figma_node_id'] ?? null,
+            (string) ($fields['base_css'] ?? ''),
+            (string) ($fields['base_js'] ?? ''),
+            // A snapshot from a broken write must not put invalid JSON into a
+            // column the block engine will decode.
+            json_decode((string) ($fields['docs'] ?? '[]'), true) !== null ? (string) $fields['docs'] : '[]',
+            json_decode((string) ($fields['notes_override'] ?? '{}'), true) !== null ? (string) $fields['notes_override'] : '{}',
+            $userId,
+            $id,
+        ]
+    );
+
+    db_run('DELETE FROM component_variants WHERE component_id = ?', [$id]);
+    foreach ($data['variants'] ?? [] as $position => $variant) {
+        if (!is_array($variant)) {
+            continue;
+        }
+        db_run(
+            'INSERT INTO component_variants (component_id, label, markup, variant_css, notes, is_default, sort_order)
+             VALUES (?, ?, ?, ?, ?, ?, ?)',
+            [
+                $id,
+                str_trim_to(trim((string) ($variant['label'] ?? '')), 190) ?: 'Untitled variant',
+                (string) ($variant['markup'] ?? ''),
+                (string) ($variant['variant_css'] ?? ''),
+                $variant['notes'] !== null ? str_trim_to((string) $variant['notes'], 400) : null,
+                (int) ($variant['is_default'] ?? 0) === 1 ? 1 : 0,
+                (int) ($variant['sort_order'] ?? $position),
+            ]
+        );
+    }
+
+    // A snapshot taken before the one-default rule existed, or hand-edited, could
+    // have none or several. Settle it rather than leaving the switch nowhere.
+    component_settle_default($id);
+    return true;
+}
+
+/** Exactly one default, whatever the rows currently say. */
+function component_settle_default(int $id): void
+{
+    $variants = component_variants($id);
+    if (!$variants) {
+        return;
+    }
+    $chosen = component_default_variant($variants);
+    db_run('UPDATE component_variants SET is_default = 0 WHERE component_id = ?', [$id]);
+    db_run('UPDATE component_variants SET is_default = 1 WHERE id = ?', [(int) $chosen['id']]);
 }
 
 /** Base CSS is shared by every variant, so it is the component's, not a variant's. */
@@ -311,19 +602,25 @@ function component_save_css(int $componentId, string $css, ?int $userId): void
         'UPDATE components SET base_css = ?, updated_by = ? WHERE id = ?',
         [$css, $userId, $componentId]
     );
+    component_after_write($componentId, $userId);
 }
 
 /**
- * Marks the component edited when one of its variants changed.
+ * What every write to a component or its variants ends with: mark it edited, and
+ * record a version.
  *
- * `updated_at` is ON UPDATE CURRENT_TIMESTAMP, which only fires when a
- * components row itself is written — a variant is a different table, so without
- * this the list would show a component as untouched for weeks while its variants
- * were being rewritten daily.
+ * It lives here rather than in the routes so that a new write cannot forget it.
+ * Six routes each remembering to call two functions is six chances to miss one,
+ * and a missing version is invisible until someone needs it.
+ *
+ * `updated_at` is ON UPDATE CURRENT_TIMESTAMP on the components row only, so a
+ * variant — a different table — would otherwise leave the list showing a
+ * component as untouched for weeks while its variants were rewritten daily.
  */
-function component_touch(int $componentId): void
+function component_after_write(int $componentId, ?int $userId): void
 {
     db_run('UPDATE components SET updated_at = NOW() WHERE id = ?', [$componentId]);
+    component_version_record($componentId, $userId);
 }
 
 /** Existing group names, for the datalist on the Add form. */
@@ -377,7 +674,11 @@ function component_create(string $name, string $group, ?int $userId): int
          VALUES (?, ?, ?, ?, \'\', \'\', \'[]\', \'{}\', ?, ?)',
         [component_slug($name), $name, $group, 'draft', component_next_sort($group), $userId]
     );
-    return (int) db()->lastInsertId();
+    $id = (int) db()->lastInsertId();
+    // The empty state is worth a version too, so the first real edit has
+    // something behind it to go back to.
+    component_after_write($id, $userId);
+    return $id;
 }
 
 /** Last position in the group, so a new component lands at the end of its own. */

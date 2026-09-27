@@ -40,7 +40,7 @@ app/
     versions.php               version recording, collapsing and pruning
     view.php                   template rendering
   blocks/                      25 renderers, one per block type
-  views/                       19 templates, public and admin
+  views/                       20 templates, public and admin
 db/                            9 migrations, applied in filename order
 public_html/                   the only web-accessible directory
 storage/                       uploads and caches, never deployed
@@ -251,8 +251,8 @@ Search filters on label and hint.
 
 ## 4b. The component library
 
-**Phases 1 and 2 of 8 are built. The spec is `docs/COMPONENTS.md`; read it before
-continuing, and start at phase 3.**
+**Phases 1 to 3 of 8 are built. The spec is `docs/COMPONENTS.md`; read it before
+continuing, and start at phase 4, the public pages.**
 
 A Storybook for Years, living in the Components area that `components_enabled`
 already gates. One page per component: the real thing rendered live in a
@@ -321,6 +321,27 @@ CSS and JavaScript.** Four things hold it, and all four are load-bearing:
   build if any of it slips. Run it after touching anything in this area. It was
   verified by sabotage rather than assumed to work.
 
+**Phase 3 shipped the details editor and version history.** A Details card on the
+component screen, `component_figma_parse()` (which reads the file key and node id
+out of a pasted link and fetches nothing), and a history at
+`/admin/components/{id}/versions` with restore.
+
+Three things about it:
+
+- **No autosave, deliberately.** Prose is typed continuously, so losing a
+  paragraph is a real loss; code is edited in deliberate passes and is broken for
+  most of the time it is being written, so autosaving it would fill the history
+  with snapshots of half-finished CSS and reload the preview into a broken state
+  every second. What autosave protects against here is closing the tab with work
+  in it, so `components.js` guards that directly.
+- **`component_after_write()` is where a version gets recorded**, in the library
+  rather than in six routes that each have to remember. Any new write to a
+  component or a variant must end with it.
+- **`version_prune_history()` in `versions.php` is now shared** by pages and
+  components rather than copied, so the thinning policy cannot drift. Its table
+  and column are interpolated, not bound, so they are whitelisted against a
+  hardcoded map.
+
 **The preview's `postMessage` does not validate origin, and that is correct** —
 the frame's origin is `"null"` because it is sandboxed, so there is nothing to
 compare. `event.source === frame.contentWindow` is the check that works, and it
@@ -384,6 +405,21 @@ reduced-motion rule that was supposed to stop the hero headline being held
 invisible — all in one sitting. Put narrow-screen rules **after** the rules they
 override, next to them, not in a shared block further up the file.
 `check-css.js` reports these as `OVERRIDES A MEDIA QUERY`.
+
+**A `#` inside a character class ends a `#`-delimited pattern.** PHP reports
+"Unknown modifier ']'", which points nowhere near the cause, and the `preg_match`
+returns false so the surrounding code carries on as though nothing matched.
+`'#[?&]node-id=([^&#]+)#i'` cost an afternoon's worth of confusion in
+`component_figma_parse` before a check caught it. Use `~` as the delimiter when
+the pattern needs a literal `#`.
+
+**A view's warnings are its bugs, and nothing shows them.** `display_errors` is
+off on the server, so "Undefined variable" in a template renders a page that looks
+almost right — an empty datalist, a missing chip — and says nothing. Worse, a
+check that renders views inside `ob_start()` swallows its own error output into
+the buffer and throws it away, so the count goes up and nothing says why.
+`check-components.php` turns warnings into failures and writes them to STDERR for
+exactly these two reasons. Both bit on 27 September.
 
 **A later CSS rule with the same specificity silently wins.** A stray
 `.masthead { position: relative }` cancelled a `position: sticky` declared
@@ -477,10 +513,10 @@ the canvas.
 
 **Content:** 30 pages scaffolded as drafts. One written: Tone of voice.
 
-**Not built:** the component library past phase 2 — the list, the sandboxed
-preview, variants and base CSS are in; the metadata editor, autosave, versions,
-public pages, derived spec and Figma import are not; see `docs/COMPONENTS.md` —
-motion page content,
+**Not built:** the component library past phase 3 — the list, the sandboxed
+preview, the details editor and version history are in; the public component
+pages, the derived spec table and the Figma import are not; see
+`docs/COMPONENTS.md` — motion page content,
 type exports in `/tokens.css`, password reset, pagination (deliberately
 deferred).
 
@@ -510,9 +546,10 @@ belongs there, not in a caller.
    and neither does `colour_story`. It exports no type either. Search indexes
    all three; the token export has not caught up.
 8. Deferred from the audit: section page caching, password reset.
-9. **Continue the component library at phase 3**: the metadata editor (status,
-   summary, group, Figma link), autosave, versions. Phases 1 and 2 are in and
-   migration 009 is applied. `docs/COMPONENTS.md` section 9 is the phase table.
+9. **Continue the component library at phase 4**: the public `/components` index
+   with live thumbnails, and the component page itself with its code panel. Phases
+   1 to 3 are in and migration 009 is applied. `docs/COMPONENTS.md` section 9 is
+   the phase table.
 
 `MoreYears-Regular.woff2` is in `public_html/assets/fonts/`, so the hero and the
 Typography page can show real specimens.

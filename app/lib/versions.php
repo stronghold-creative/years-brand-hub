@@ -71,15 +71,35 @@ function version_record(int $pageId, string $title, string $blocks, ?int $userId
     return 'created';
 }
 
-/**
- * Thins out a page's history: everything from the last day is kept, then one
- * per day for a month, then one per week. A hard cap catches anything else.
- */
 function version_prune(int $pageId): void
 {
+    version_prune_history('page_versions', 'page_id', $pageId);
+}
+
+/**
+ * Thins out one owner's history: everything from the last day is kept, then one
+ * per day for a month, then one per week. A hard cap catches anything else.
+ *
+ * Parameterised by table because components keep history too, and a second copy
+ * of this policy would drift from the first — which is a trap this project has
+ * already been bitten by twice. The table and column are whitelisted rather than
+ * merely trusted: they are interpolated, not bound, so an identifier arriving
+ * from anywhere but this file would be an injection.
+ */
+function version_prune_history(string $table, string $column, int $ownerId): void
+{
+    $allowed = [
+        'page_versions'      => 'page_id',
+        'component_versions' => 'component_id',
+    ];
+    if (($allowed[$table] ?? null) !== $column) {
+        error_log("version_prune_history refused $table.$column");
+        return;
+    }
+
     $rows = db_all(
-        'SELECT id, created_at FROM page_versions WHERE page_id = ? ORDER BY created_at DESC, id DESC',
-        [$pageId]
+        "SELECT id, created_at FROM $table WHERE $column = ? ORDER BY created_at DESC, id DESC",
+        [$ownerId]
     );
     if (count($rows) <= version_keep_max()) {
         return;
@@ -141,7 +161,7 @@ function version_prune(int $pageId): void
     // Chunked, so a very long history cannot build an enormous statement.
     foreach (array_chunk($drop, 100) as $chunk) {
         $marks = implode(',', array_fill(0, count($chunk), '?'));
-        db_run("DELETE FROM page_versions WHERE page_id = ? AND id IN ($marks)", array_merge([$pageId], $chunk));
+        db_run("DELETE FROM $table WHERE $column = ? AND id IN ($marks)", array_merge([$ownerId], $chunk));
     }
 }
 

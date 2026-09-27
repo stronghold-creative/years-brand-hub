@@ -19,6 +19,64 @@
     }
   }
 
+  // -------------------------------------------------------- unsaved changes
+
+  /**
+   * Warns before leaving a form with unsaved edits in it.
+   *
+   * This is deliberately not autosave. The page editor autosaves because prose is
+   * typed continuously and a lost paragraph is a real loss; a component's fields
+   * hold code, which is edited in deliberate passes and is broken for most of the
+   * time it is being written. Autosaving that would fill the history with
+   * snapshots of half-finished CSS and reload the preview into a broken state
+   * every second. What autosave is actually protecting against here is closing
+   * the tab with work in it, and this protects against that directly.
+   *
+   * It runs before the frame check below, because it applies to the whole screen
+   * and not only to pages that have a preview on them.
+   */
+  feature('unsaved changes', function () {
+    const forms = document.querySelectorAll('form[data-guard]');
+    if (!forms.length) return;
+
+    const initial = new Map();
+    forms.forEach(function (form) { initial.set(form, new FormData(form)); });
+
+    function dirty(form) {
+      const before = initial.get(form);
+      const now = new FormData(form);
+      for (const [key, value] of now.entries()) {
+        if (key === '_csrf') continue;
+        if (String(before.get(key)) !== String(value)) return true;
+      }
+      return false;
+    }
+
+    function anyDirty() {
+      let found = false;
+      forms.forEach(function (form) {
+        const is = dirty(form);
+        form.classList.toggle('is-dirty', is);
+        if (is) found = true;
+      });
+      return found;
+    }
+
+    forms.forEach(function (form) {
+      form.addEventListener('input', anyDirty);
+      form.addEventListener('change', anyDirty);
+      // Submitting is not leaving with unsaved work, so the guard stands down.
+      form.addEventListener('submit', function () { initial.set(form, new FormData(form)); });
+    });
+
+    window.addEventListener('beforeunload', function (event) {
+      if (!anyDirty()) return;
+      event.preventDefault();
+      // Browsers show their own wording; returnValue is what makes them ask.
+      event.returnValue = '';
+    });
+  });
+
   const frame = document.getElementById('cmp-frame');
   if (!frame) return;
 
