@@ -1,15 +1,20 @@
 # The component library: scope
 
-A Storybook for Years, inside the brand hub. **Phases 1 to 6 of 8 are built** —
-the tables, the admin list, the live sandboxed preview, the details editor with
+A Storybook for Years, inside the brand hub. **All eight phases are built**: the
+tables, the admin list, the live sandboxed preview, the details editor with
 version history, the public index and component pages, the spec table derived
-from each component's own CSS, and the Figma import. This is the agreed shape,
-written down
-before any code, so the build can be picked up one phase at a time. Decisions
-here were taken 27 September 2026; where one went against the cheaper option,
-the reason is recorded.
+from each component's own CSS, the Figma import, the written guidance in the
+block editor, and components in search.
 
-Section 9 is the phase table and says where the build has got to.
+This was the agreed shape, written down before any code, so the build could be
+picked up one phase at a time. Decisions were taken on 27 September 2026 and the
+build finished on 28 September; where one went against the cheaper option, the
+reason is recorded. It is kept as the record of why this is the way it is —
+section 9 lists what each phase shipped, and the traps found along the way.
+
+**What is left is content, not build.** No components have been written yet, and
+the area is still behind the `components_enabled` switch in Settings, so nobody
+but an editor can reach it.
 
 Read `HANDOVER.md` first. This document assumes it.
 
@@ -249,10 +254,10 @@ than the build.
 | **4. Public** ✔ **built** | `/components` index with live thumbnails, `/components/{slug}`, the code panel and copy button. The `docs` blocks render here too; phase 7 is now only the editing side | 2, 3 |
 | **5. Derived spec** ✔ **built** | The CSS pass, token matching, the flag, `notes_override`, the states it defines | 3 |
 | **6. Import** ✔ **built** | The Import panel, detection, the Dev Mode split, the `figmeta` refusal, and a review step before anything is written | 3 |
-| **7. Docs blocks** | The `docs` column wired to the existing block editor and renderer | 3, 4 |
-| **8. Search** | Components in the index, with the key fixed | 4 |
+| **7. Docs blocks** ✔ **built** | The `docs` column wired to the existing block editor; the renderer landed in phase 4 | 3, 4 |
+| **8. Search** ✔ **built** | Components in the index, with the cache key gaining the components table | 4 |
 
-A usable library exists at the end of phase 4. Phases 5 to 8 each make it
+All eight are in. A usable library existed at the end of phase 4; phases 5 to 8 each made it
 better and none of them blocks the others.
 
 ### What phase 1 actually shipped
@@ -548,6 +553,46 @@ because an import is usually one more state rather than a fresh start; someone
 who wants a replacement clears the field first, and the screen says so. Markup
 goes to a variant chosen on the review screen, existing or new, never guessed at.
 
+### What phases 7 and 8 shipped
+
+**Phase 7 — the written guidance, in the block editor.** The renderer went in with
+phase 4, so this was only the editing side.
+
+- `app/views/admin/component-docs.php` and `app/views/component-docs-preview.php`.
+- Routes `/admin/components/{id}/docs`, `.../docs/save`, `.../docs/preview`.
+- Two data attributes in `editor.js`: `data-save-url`, and the payload dropping
+  the page fields when there is no page.
+
+**It is the page editor, not a copy of it.** Twelve hundred lines of outline,
+inspector, canvas, drag-to-reorder and editing in place, reused whole — because
+the thing being edited is identical: blocks on a row. What differs is where a
+save goes, which is now a data attribute. The blocks go through the same
+`sanitise_blocks()`, so stored JSON here can only contain known keys.
+
+The inspector needs a `#page-settings-template` to show when nothing is selected —
+without it the first render throws and the screen is unusable. A component has
+nothing to configure there, so it holds a note instead: a blank panel reads as
+broken. Every field `bindPageFields()` then looks for is already optional, so
+nothing else was needed.
+
+**Phase 8 — components in search.** Someone half-remembering a rule does not know
+whether it was written up as guidance or built as a component, and should not
+have to.
+
+- `search_component_entries()` in `search.php`, and the cache key.
+- `search.js` sends a component result to `/components/{slug}` and labels it.
+
+- **The cache key now includes the components table**, which is the whole risk of
+  this phase. Keyed on pages alone, editing a component would serve a stale index
+  for as long as nobody touched a page — and nothing would look wrong.
+  `component_after_write()` moves a component's `updated_at` even when only a
+  variant changed, so counting rows and taking the latest is enough.
+- **The name, summary, group, variant labels and the guidance text are indexed.
+  The markup and the CSS are not** — searching "button" should not match every
+  component whose stylesheet happens to mention one.
+- **A heading in the guidance is its own result**, with its anchor, exactly as a
+  heading on a page is.
+
 ### Two more traps, found in phase 5
 
 1. **`.spec` was already taken.** The `spec_table` block owns `.spec`,
@@ -583,6 +628,12 @@ the public component page below it was rendered for the wrong component, and
 reported as a failing assertion rather than as the muddle it actually was. The
 check re-establishes `$component` before that section. Worth knowing generally:
 `view()` uses `extract()`, so every template shares one scope with its caller.
+
+**It then happened twice more**, in phases 5 and 7, each time costing a confusing
+failing assertion before the cause was seen. Every section of
+`check-components.php` now states the variables its view needs immediately before
+rendering it, rather than relying on what is already in scope. If you add a
+section, do the same — it is not defensiveness, it is the third time.
 
 **Deferred, on purpose:** the Figma REST API sync; a props table; per-component
 theming beyond the site tokens; versioning of variants independently of their

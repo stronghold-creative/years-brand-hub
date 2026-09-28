@@ -36,6 +36,9 @@ $frameBase = '/components/' . rawurlencode($component['slug']) . '/frame/';
       </p>
     </div>
     <div class="m3-page__action">
+      <a class="m3-button m3-button--tonal m3-state" href="/admin/components/<?= (int) $component['id'] ?>/docs">
+        Write the guidance
+      </a>
       <a class="m3-button m3-button--text m3-state" href="/admin/components/<?= (int) $component['id'] ?>/versions">
         <?= ui_icon('history', 'icon') ?> History
       </a>

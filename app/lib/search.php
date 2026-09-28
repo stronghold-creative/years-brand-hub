@@ -119,6 +119,71 @@ function search_entries(bool $includeDrafts): array
         ];
     }
 
+    return array_merge($entries, search_component_entries($includeDrafts));
+}
+
+/**
+ * Components, in the same index.
+ *
+ * Someone half-remembering a rule does not know whether it is written up as
+ * guidance or built as a component, and should not have to. A component result
+ * carries `kind` so the list can label it; a page result has none, which reads
+ * as the default rather than needing one.
+ *
+ * What is searchable: the name, the summary, the variant labels, and the text of
+ * the written guidance — through the same block walker the pages use, so a new
+ * block type is searchable here the moment it exists. Not the markup or the CSS:
+ * a search for "button" should not match every component whose CSS mentions one.
+ */
+function search_component_entries(bool $includeDrafts): array
+{
+    if (!components_installed()) {
+        return [];
+    }
+
+    $rows = $includeDrafts
+        ? db_all('SELECT id, slug, name, group_name, status, summary, docs FROM components ORDER BY group_name, sort_order, name')
+        : db_all("SELECT id, slug, name, group_name, status, summary, docs FROM components
+                   WHERE status IN ('ready', 'deprecated') ORDER BY group_name, sort_order, name");
+
+    if (!$rows) {
+        return [];
+    }
+
+    $labels = [];
+    foreach (db_all('SELECT component_id, label FROM component_variants ORDER BY sort_order, id') as $variant) {
+        $labels[(int) $variant['component_id']][] = (string) $variant['label'];
+    }
+
+    $entries = [];
+    foreach ($rows as $row) {
+        $text  = [(string) $row['name'], (string) ($row['summary'] ?? ''), (string) $row['group_name']];
+        $marks = [];
+
+        foreach ($labels[(int) $row['id']] ?? [] as $label) {
+            $text[] = $label;
+        }
+
+        foreach (json_decode((string) $row['docs'], true) ?: [] as $block) {
+            $found = search_block_text($block);
+            if ($found['heading'] !== '') {
+                $marks[] = ['title' => $found['heading'], 'anchor' => (string) ($block['settings']['anchor'] ?? '')];
+            }
+            $text[] = trim($found['heading'] . ' ' . $found['body']);
+        }
+
+        $entries[] = [
+            'title'   => (string) $row['name'],
+            'section' => (string) $row['group_name'],
+            'slug'    => (string) $row['slug'],
+            'summary' => (string) ($row['summary'] ?? ''),
+            'draft'   => $row['status'] === 'draft',
+            'kind'    => 'component',
+            'marks'   => $marks,
+            'text'    => strtolower(str_trim_to(trim(implode(' ', array_filter($text))), 8000)),
+        ];
+    }
+
     return $entries;
 }
 
@@ -129,13 +194,30 @@ function search_cache_path(bool $includeDrafts): ?string
     if (!$state) {
         return null;
     }
+
+    /**
+     * The index covers components too, so the key has to move when one changes.
+     *
+     * Keyed on pages alone, editing a component would serve a stale index for as
+     * long as nobody touched a page — and nothing would look wrong, which is the
+     * worst kind of wrong. `component_after_write()` moves their `updated_at`,
+     * including when only a variant changed, so this is enough.
+     */
+    $components = components_installed()
+        ? db_one('SELECT COUNT(*) AS n, COALESCE(MAX(updated_at), 0) AS last FROM components')
+        : ['n' => 0, 'last' => 0];
+
     $dir = ROOT_DIR . '/storage/cache';
     if (!is_dir($dir)) {
         @mkdir($dir, 0775, true);
     }
     // Any edit moves updated_at, so the name changes and the old file is
     // simply never read again.
-    $key = sha1($state['n'] . '|' . $state['last'] . '|' . ($includeDrafts ? 'all' : 'published'));
+    $key = sha1(implode('|', [
+        $state['n'], $state['last'],
+        $components['n'] ?? 0, $components['last'] ?? 0,
+        $includeDrafts ? 'all' : 'published',
+    ]));
     return $dir . '/search-' . substr($key, 0, 16) . '.json';
 }
 

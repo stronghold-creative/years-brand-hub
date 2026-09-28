@@ -560,6 +560,54 @@ if (preg_match('#^/admin/components/(\d+)$#', $path, $m)) {
     exit;
 }
 
+// The written guidance on a component, in the same block editor the guidelines
+// use. Same blocks, same sanitiser, same canvas — a different row.
+if (preg_match('#^/admin/components/(\d+)/docs$#', $path, $m)) {
+    require_editor();
+    $component = component_find((int) $m[1]);
+    if (!$component) {
+        not_found();
+    }
+    view('admin/component-docs', [
+        'title'     => $component['name'] . ' guidance',
+        'component' => $component,
+        'blocks'    => json_decode((string) $component['docs'], true) ?: [],
+        'fullBleed' => true,
+    ], 'admin/layout');
+    exit;
+}
+
+if (preg_match('#^/admin/components/(\d+)/docs/save$#', $path, $m) && $method === 'POST') {
+    require_editor();
+    csrf_check();
+    if (!component_find((int) $m[1])) {
+        json_out(['ok' => false, 'error' => 'That component no longer exists.'], 404);
+    }
+    // Through the same sanitiser as a page's blocks, so stored JSON here can only
+    // contain keys the block definitions know about.
+    $blocks = json_encode(sanitise_blocks(json_in()['blocks'] ?? []), JSON_UNESCAPED_SLASHES);
+    $userId = current_user()['id'];
+
+    db_run('UPDATE components SET docs = ?, updated_by = ? WHERE id = ?', [$blocks, $userId, (int) $m[1]]);
+    component_after_write((int) $m[1], $userId);
+
+    json_out(['ok' => true, 'saved_at' => date('H:i')]);
+}
+
+if (preg_match('#^/admin/components/(\d+)/docs/preview$#', $path, $m)) {
+    require_editor();
+    $component = component_find((int) $m[1]);
+    if (!$component) {
+        not_found();
+    }
+    view('component-docs-preview', [
+        'component' => $component,
+        'blocks'    => json_decode((string) $component['docs'], true) ?: [],
+        'editing'   => isset($_GET['edit']),
+    ], null);
+    exit;
+}
+
 // Importing. Two steps on purpose: the first only looks at what was pasted and
 // shows what it would do, the second writes. Dev Mode's output is close but
 // rarely shippable, so it is never saved on the strength of a paste alone.

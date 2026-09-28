@@ -57,6 +57,7 @@ function style_css_value(string $key): string
 }
 function design_colour_tokens(): array { return ['--sand' => '#EFE9DD']; }
 
+require APP_DIR . '/lib/blocks.php';
 require APP_DIR . '/lib/components.php';
 require APP_DIR . '/lib/spec.php';
 require APP_DIR . '/lib/import.php';
@@ -297,7 +298,6 @@ $specEditable = null;
 // be stored XSS if it were ever written unescaped.
 $open = $variants[1];                                  // the hostile one
 $docs = [];
-function render_blocks(array $blocks, bool $editable = false, int $from = 0): void {}
 function can_edit(): bool { return false; }
 
 ob_start();
@@ -529,6 +529,96 @@ require APP_DIR . '/views/admin/component-import.php';
 $refusal = ob_get_clean();
 ok('a refusal offers no Accept',             !str_contains($refusal, 'Accept<'));
 ok('and explains itself',                    str_contains($refusal, 'internal format'));
+
+echo "\nThe guidance editor\n";
+
+// It reuses the page editor, which needs its configuration in data attributes and
+// a #page-settings-template to show when no block is selected — without that the
+// inspector throws on first render and the screen is unusable.
+//
+// $component is stated again because the index view above loops `as $component`,
+// and a template's variables land in this scope. The first run of this section
+// asserted against the last card on the index instead, which is the third time
+// that has happened in this file and the reason it is written up in the traps.
+$component = ['id' => 7, 'slug' => 'button', 'name' => 'Button', 'docs' => '[]'];
+$blocks = [];
+ob_start();
+require APP_DIR . '/views/admin/component-docs.php';
+$docsEditor = ob_get_clean();
+
+ok('the guidance editor rendered',           strlen($docsEditor) > 1000);
+ok('it saves to its own endpoint',           str_contains($docsEditor, 'data-save-url="/admin/components/7/docs/save"'));
+ok('its canvas is its own preview',          str_contains($docsEditor, '/admin/components/7/docs/preview?edit=1'));
+ok('it carries the block schema',            str_contains($docsEditor, 'data-schema='));
+// editor.js requires this template; without it the inspector throws.
+ok('the inspector has something to show',    str_contains($docsEditor, 'id="page-settings-template"'));
+
+echo "\nComponents in search\n";
+
+/**
+ * A stubbed database, so the index can be built without one. $DB is what the
+ * next query answers with; the queries are told apart by what they select, which
+ * is crude and enough — this file is the only caller.
+ */
+$DB = ['pages' => ['n' => 3, 'last' => '2026-09-27 10:00:00'],
+       'components' => ['n' => 2, 'last' => '2026-09-27 10:00:00']];
+
+function db_one(string $sql, array $params = []): ?array
+{
+    global $DB;
+    if (str_contains($sql, 'FROM components')) { return $DB['components']; }
+    if (str_contains($sql, 'FROM pages'))      { return $DB['pages']; }
+    return ['id' => 1];
+}
+function db_all(string $sql, array $params = []): array
+{
+    if (str_contains($sql, 'FROM component_variants')) {
+        return [['component_id' => 7, 'label' => 'Primary'], ['component_id' => 7, 'label' => 'Disabled']];
+    }
+    if (str_contains($sql, 'FROM components')) {
+        return [[
+            'id' => 7, 'slug' => 'button', 'name' => 'Button', 'group_name' => 'Actions',
+            'status' => 'ready', 'summary' => 'The one most often misused.',
+            'docs' => json_encode([[
+                'type' => 'rich_text',
+                'data' => ['heading' => 'When not to use it', 'body' => 'Never two on one screen.'],
+                'settings' => ['anchor' => 'when-not'],
+            ]]),
+        ]];
+    }
+    return [];                       // no pages, and no palette colours
+}
+// components_installed() is the real one: it asks db_one for a row, which the
+// stub above answers, so it reports the tables as present without a stub of
+// its own. Redeclaring it would be a fatal error anyway.
+
+require APP_DIR . '/lib/search.php';
+
+$entries = search_entries(false);
+$component = $entries[0] ?? [];
+
+ok('a component is in the index',            ($component['kind'] ?? null) === 'component');
+ok('it is found by its name',                str_contains($component['text'] ?? '', 'button'));
+ok('and by a variant label',                 str_contains($component['text'] ?? '', 'disabled'));
+ok('and by its written guidance',            str_contains($component['text'] ?? '', 'never two on one screen'));
+ok('a heading in the guidance is its own result',
+    ($component['marks'][0]['title'] ?? '') === 'When not to use it');
+ok('the heading keeps its anchor',            ($component['marks'][0]['anchor'] ?? '') === 'when-not');
+// The markup and CSS are deliberately out: searching "button" should not match
+// every component whose stylesheet happens to mention one.
+ok('the CSS is not indexed',                 !str_contains($component['text'] ?? '', 'border-radius'));
+
+// The one that would fail silently: keyed on pages alone, a component edit would
+// serve a stale index for as long as nobody touched a page, and nothing would
+// look wrong.
+$before = search_cache_path(false);
+$DB['components']['last'] = '2026-09-27 11:00:00';
+$after = search_cache_path(false);
+ok('editing a component changes the cache key', $before !== $after);
+
+$DB['components']['last'] = '2026-09-27 10:00:00';
+ok('and changes back when nothing has',      search_cache_path(false) === $before);
+ok('an editor gets a different index',       search_cache_path(true) !== search_cache_path(false));
 
 echo $failed === 0
     ? "\nEvery component safeguard holds.\n"

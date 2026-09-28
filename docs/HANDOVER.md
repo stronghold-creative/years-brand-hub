@@ -42,7 +42,7 @@ app/
     versions.php               version recording, collapsing and pruning
     view.php                   template rendering
   blocks/                      25 renderers, one per block type
-  views/                       23 templates, public and admin
+  views/                       25 templates, public and admin
 db/                            9 migrations, applied in filename order
 public_html/                   the only web-accessible directory
 storage/                       uploads and caches, never deployed
@@ -154,6 +154,14 @@ carries drafts where a reader's does not.
 again; `search_forget_old_indexes()` deletes the ones left behind. Same
 approach as the asset bundles.
 
+**Components are in the index too**, at their own URLs, labelled as components —
+someone half-remembering a rule does not know whether it was written up as
+guidance or built as a component. Their name, summary, group, variant labels and
+guidance text are indexed; their markup and CSS are not, or searching "button"
+would match every component whose stylesheet mentions one. **The cache key counts
+the components table as well as pages**, or a component edit serves a stale index
+until someone touches a page.
+
 **Which fields are searchable comes from the block definitions,** so a new
 block type is searchable the moment it exists. Only `text`, `textarea` and
 `longtext` are indexed — a select holds a keyword the reader never sees and an
@@ -253,9 +261,10 @@ Search filters on label and hint.
 
 ## 4b. The component library
 
-**Phases 1 to 6 of 8 are built. The spec is `docs/COMPONENTS.md`; read it before
-continuing. What is left is phase 7, the editor for a component's `docs` blocks,
-and phase 8, components in search.**
+**Built, all eight phases. `docs/COMPONENTS.md` is the record of what each one
+shipped and why; read it before changing anything here.** What is left is
+content: no components have been written, and the area is still behind the
+`components_enabled` switch.
 
 A Storybook for Years, living in the Components area that `components_enabled`
 already gates. One page per component: the real thing rendered live in a
@@ -402,6 +411,20 @@ screen; what was pasted is worked out rather than chosen from a menu.
   to try, and a blank result would read as the import being broken.
 - **Applying is additive.** CSS is appended, not substituted, because an import is
   usually one more state rather than a fresh start.
+
+**Phases 7 and 8 finished it.** A component's written guidance is edited in the
+*same* block editor the guidelines use — `editor.js` gained `data-save-url` and
+drops the page fields when there is no page, so twelve hundred lines are reused
+rather than copied. It needs a `#page-settings-template` to exist, so the
+component's version holds an explanatory note; without one the inspector throws
+on first render.
+
+And components are in search. **The cache key had to gain the components table**:
+keyed on pages alone, editing a component would have served a stale index for as
+long as nobody touched a page, and nothing would have looked wrong. The name,
+summary, group, variant labels and guidance text are indexed; the markup and CSS
+are not, because searching "button" should not match every component whose
+stylesheet mentions one.
 
 **The preview's `postMessage` does not validate origin, and that is correct** —
 the frame's origin is `"null"` because it is sandboxed, so there is nothing to
@@ -578,13 +601,14 @@ with a hero opener, version history with collapsing and pruning, people and
 roles, settings, logo, area toggle, backup export, sign-in throttling, two
 kinds of chrome with the mark at the head of the rail while reading, mobile
 slide-out drawer, filtering on the admin pages list, text edited in place on
-the canvas.
+the canvas, and the component library end to end — sandboxed live previews,
+variants, the derived spec, the Figma paste, guidance in the block editor and
+components in search.
 
-**Content:** 30 pages scaffolded as drafts. One written: Tone of voice.
+**Content:** 30 pages scaffolded as drafts. One written: Tone of voice. No
+components written yet.
 
-**Not built:** the component library past phase 6 — the editor for a component's
-`docs` blocks, and components in search; see `docs/COMPONENTS.md` — motion page
-content,
+**Not built:** motion page content,
 type exports in `/tokens.css`, password reset, pagination (deliberately
 deferred).
 
@@ -614,11 +638,9 @@ belongs there, not in a caller.
    and neither does `colour_story`. It exports no type either. Search indexes
    all three; the token export has not caught up.
 8. Deferred from the audit: section page caching, password reset.
-9. **Finish the component library**: phase 7, wiring a component's `docs` column
-   to the existing block editor — the renderer is already in, so this is only the
-   editing side — and phase 8, components in search, where the index key has to
-   gain the components table or a component edit will serve a stale index for as
-   long as no page is touched. `docs/COMPONENTS.md` section 9 is the phase table.
+9. **Write some components.** The library is built and empty, which is the same
+   position the guidelines are in. The button and the product card are the two
+   most often got wrong.
 10. **Turn the Components area on** in Settings once there is something in it. The
     public pages exist now, but readers cannot reach them while the switch is off.
 

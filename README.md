@@ -84,20 +84,21 @@ deploy can never overwrite your credentials or uploaded files.
 - Assets: upload, versioning, replace in place, ZIP bundles, gated downloads,
   and upload from inside the editor's picker
 - Pages: sections, ordering, drafts, version history with restore, filtering
-- Search across every page, opened with ⌘K or a bare `/`
+- Search across every page and every component, opened with ⌘K or a bare `/`
 - People and roles, settings, site logo, area toggle
 - Components: a library at `/components`, each one rendered live in a sandboxed
   iframe with its states, a viewport and dark-mode switch and its code to copy,
   under a spec table read out of the component's own CSS with anything that is
   not one of the brand's tokens flagged; edited at `/admin/components`, with
-  version history, restore, and an import that reads a pasted Figma link, Dev
-  Mode code, CSS or an SVG and shows what it would do before writing anything
+  version history, restore, written guidance in the same block editor the
+  guidelines use, and an import that reads a pasted Figma link, Dev Mode code,
+  CSS or an SVG and shows what it would do before writing anything
 
 ## Not built yet
 
-- The last of the component library. **Phases 1 to 6 of 8 are in**; still to come
-  are the editor for a component's written guidance and components in search.
-  Scoped in [docs/COMPONENTS.md](docs/COMPONENTS.md)
+- Component content. The library itself is finished — all eight phases, recorded
+  in [docs/COMPONENTS.md](docs/COMPONENTS.md) — but nothing has been written into
+  it yet, and the area is still behind its switch in Settings
 - `/tokens.css` exports colours only, not type
 
 ## Checks

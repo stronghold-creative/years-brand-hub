@@ -12,6 +12,19 @@
   const optionDefaults = JSON.parse(root.dataset.optionsDefaults);
   const pageId         = root.dataset.pageId;
 
+  /**
+   * Where a save goes, and what it carries.
+   *
+   * The editor was written for pages and is now also the editor for a
+   * component's written guidance, which is the same blocks on a different row.
+   * Rather than a second copy of 1200 lines, the endpoint is a data attribute and
+   * the payload drops the page fields when there is no page — everything else,
+   * the outline, the inspector, the canvas, editing in place, is identical
+   * because the thing being edited is identical.
+   */
+  const saveUrl = root.dataset.saveUrl || '/admin/pages/' + pageId + '/save';
+  const savesPage = !root.dataset.saveUrl;
+
   let blocks = JSON.parse(root.dataset.blocks);
 
   // Matches the colour fallback in block_defaults() in app/lib/blocks.php. The
@@ -1054,18 +1067,22 @@
         options: block.options || copy(optionDefaults[block.type] || {}),
       }));
 
-      const response = await fetch('/admin/pages/' + pageId + '/save', {
+      const body = savesPage
+        ? {
+            title:        pageState.title,
+            section:      pageState.section,
+            summary:      pageState.summary,
+            status:       pageState.status,
+            cover:        coverId || 0,
+            show_on_home: pageState.home,
+            blocks:       payload,
+          }
+        : { blocks: payload };
+
+      const response = await fetch(saveUrl, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': window.CSRF },
-        body: JSON.stringify({
-          title:        pageState.title,
-          section:      pageState.section,
-          summary:      pageState.summary,
-          status:       pageState.status,
-          cover:        coverId || 0,
-          show_on_home: pageState.home,
-          blocks:       payload,
-        }),
+        body: JSON.stringify(body),
       });
       const result = await response.json();
       if (!response.ok || !result.ok) throw new Error(result.error || 'Save failed');

@@ -68,11 +68,20 @@
       if (section.includes(q)) score += 10;
       if (summary.includes(q)) score += 5;
 
+      // A component lives at its own URL rather than as an anchor inside a
+      // section. Everything else about it — scoring, headings, drafts — is the
+      // same, because someone half-remembering a rule does not know whether it
+      // was written up as guidance or built as a component.
+      const isComponent = page.kind === 'component';
+      const base = isComponent
+        ? '/components/' + page.slug
+        : '/s/' + slug(page.section) + '#' + page.slug;
+
       hits.push({
-        kind: 'page',
+        kind: isComponent ? 'component' : 'page',
         title: page.title,
         where: page.section,
-        href: '/s/' + slug(page.section) + '#' + page.slug,
+        href: base,
         draft: page.draft,
         score: score + 1,
       });
@@ -86,7 +95,9 @@
           kind: 'mark',
           title: mark.title,
           where: page.title,
-          href: '/s/' + slug(page.section) + '#' + (mark.anchor || page.slug),
+          href: isComponent
+            ? '/components/' + page.slug + (mark.anchor ? '#' + mark.anchor : '')
+            : '/s/' + slug(page.section) + '#' + (mark.anchor || page.slug),
           draft: page.draft,
           score: (heading.startsWith(q) ? 40 : 20) + 1,
         });
@@ -157,8 +168,14 @@
           '<span class="search__where"></span>' +
           (hit.draft ? '<span class="search__draft">Draft</span>' : '');
         item.querySelector('.search__what').textContent = hit.title;
+        // A component says so, because "Button" in Actions could be either a
+        // guidelines page or the thing itself, and which one matters.
         item.querySelector('.search__where').textContent =
-          hit.kind === 'mark' ? 'in ' + hit.where : hit.where;
+          hit.kind === 'mark'      ? 'in ' + hit.where
+          // The character itself, not an entity: this is textContent, so an
+          // entity would be shown rather than rendered.
+          : hit.kind === 'component' ? 'Component · ' + hit.where
+          : hit.where;
         item.addEventListener('mouseenter', () => { at = i; mark(); });
         list.append(item);
       });
