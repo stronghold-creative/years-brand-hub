@@ -134,6 +134,9 @@ $docs = json_decode((string) $component['docs'], true) ?: [];
     </section>
   <?php endif; ?>
 
+  <?php // The spec, read out of the CSS above rather than typed beside it. ?>
+  <?php partial('component-spec', ['spec' => $spec]); ?>
+
   <?php if ($docs): ?>
     <?php // The written guidance, through the same block engine the guidelines
           // use. The editor for it is phase 7; the renderer costs nothing now

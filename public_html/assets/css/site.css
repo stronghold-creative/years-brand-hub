@@ -2239,3 +2239,80 @@ html, body { overflow-x: clip; }
   .components__list { grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); }
   .ccard__stage { height: 7.5rem; }
 }
+
+/* ------------------------------------------------- the derived spec table
+
+   Namespaced devspec, not spec: the spec_table BLOCK already owns .spec,
+   .spec__row and .spec__note further up this file, and .spec sets display:grid,
+   which took this table apart the first time it was written. */
+
+.devspec { margin-top: 3rem; }
+.devspec__title { font-size: 1.125rem; margin: 0 0 .75rem; }
+.devspec__flagged {
+  margin: 0 0 1.25rem;
+  padding: .625rem .875rem;
+  border-radius: var(--s-radius, 6px);
+  background: #FFF3D6;
+  color: #6B4E00;
+  font-size: .875rem;
+}
+.devspec__group {
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 1.75rem 0 .5rem;
+}
+.devspec__table { width: 100%; border-collapse: collapse; font-size: .875rem; }
+.devspec__table th {
+  text-align: left;
+  font-size: .6875rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding: .375rem .625rem;
+  border-bottom: 1px solid var(--rule);
+}
+.devspec__table td { padding: .5rem .625rem; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.devspec__table code {
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: .8125rem;
+}
+.devspec__prop { white-space: nowrap; color: var(--ink-soft); }
+.devspec__where { color: var(--ink-faint); }
+.devspec__off { color: var(--ink-faint); }
+.devspec__partly { color: var(--ink-soft); font-size: .8125rem; }
+/* A flag is a marker, not an alarm: most of these turn out to be deliberate. */
+.devspec__row--flagged .devspec__token { color: #8A5A00; font-weight: 600; }
+.devspec__row--flagged td:first-child { box-shadow: inset 2px 0 0 #E0A020; }
+
+.devspec__noterow td { padding-top: 0; }
+.devspec__note { margin: 0; font-size: .8125rem; color: var(--ink-soft); }
+.devspec__notefield {
+  width: 100%;
+  padding: .375rem .5rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--s-radius-inner, var(--s-radius, 6px));
+  background: none;
+  font: inherit;
+  font-size: .8125rem;
+  color: inherit;
+}
+.devspec__states { margin: 0; padding-left: 1.125rem; font-size: .875rem; color: var(--ink-soft); }
+.devspec__missing {
+  margin: 1rem 0 0;
+  padding: .625rem .875rem;
+  border-radius: var(--s-radius, 6px);
+  background: #FBE3E7;
+  color: #8A2233;
+  font-size: .875rem;
+}
+.devspec__caveat { margin: 1.5rem 0 0; font-size: .75rem; color: var(--ink-faint); max-width: 60ch; }
+
+@media (max-width: 42rem) {
+  /* Four columns of code do not fit a phone, and wrapping a selector makes the
+     table unreadable rather than narrow. */
+  .devspec__table { display: block; overflow-x: auto; white-space: nowrap; }
+}

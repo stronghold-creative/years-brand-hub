@@ -87,15 +87,17 @@ deploy can never overwrite your credentials or uploaded files.
 - Search across every page, opened with ⌘K or a bare `/`
 - People and roles, settings, site logo, area toggle
 - Components: a library at `/components`, each one rendered live in a sandboxed
-  iframe with its states, a viewport and dark-mode switch and its code to copy;
-  edited at `/admin/components`, with version history and restore
+  iframe with its states, a viewport and dark-mode switch and its code to copy,
+  under a spec table read out of the component's own CSS with anything that is
+  not one of the brand's tokens flagged; edited at `/admin/components`, with
+  version history and restore
 
 ## Not built yet
 
-- The rest of the component library. **Phases 1 to 4 of 8 are in and it is
-  usable**; still to come are the derived spec table, the Figma Dev Mode import,
-  the editor for a component's written guidance, and components in search. Scoped
-  in [docs/COMPONENTS.md](docs/COMPONENTS.md)
+- The rest of the component library. **Phases 1 to 5 of 8 are in**; still to come
+  are the Figma Dev Mode import, the editor for a component's written guidance,
+  and components in search. Scoped in
+  [docs/COMPONENTS.md](docs/COMPONENTS.md)
 - `/tokens.css` exports colours only, not type
 
 ## Checks

@@ -40,17 +40,11 @@ if ($path === '/search.json') {
 // Design tokens generated from the guidelines themselves.
 if ($path === '/tokens.css') {
     header('Content-Type: text/css');
-    $rows = db_all("SELECT blocks FROM pages WHERE status = 'published'");
     echo ":root {\n";
-    foreach ($rows as $row) {
-        foreach (json_decode($row['blocks'], true) ?: [] as $block) {
-            if (($block['type'] ?? '') !== 'colour_palette') {
-                continue;
-            }
-            foreach ($block['data']['colours'] ?? [] as $colour) {
-                printf("  --%s: %s;\n", slugify($colour['name']), $colour['hex']);
-            }
-        }
+    // The same list the component spec table matches against, so a colour cannot
+    // be a token here and an unknown value there.
+    foreach (design_colour_tokens() as $name => $hex) {
+        printf("  %s: %s;\n", $name, $hex);
     }
     echo "}\n";
     exit;
@@ -150,6 +144,12 @@ if (preg_match('#^/components/([a-z0-9\-]+)$#', $path, $m)) {
         'component'   => $component,
         'variants'    => $variants,
         'open'        => $open,
+        // The spec covers the base CSS plus the open variant's, which is the same
+        // code the panel below it offers to copy.
+        'spec'        => component_spec(
+            trim($component['base_css'] . "\n" . (string) ($open['variant_css'] ?? '')),
+            component_notes($component)
+        ),
         // The preview needs components.js, and no other public page does.
         'needsComponentJs' => true,
     ]);
@@ -555,8 +555,20 @@ if (preg_match('#^/admin/components/(\d+)$#', $path, $m)) {
         'variants'  => $variants,
         'open'      => component_default_variant($variants),
         'groups'    => component_groups(),
+        'spec'      => component_spec($component['base_css'], component_notes($component)),
     ], 'admin/layout');
     exit;
+}
+
+if (preg_match('#^/admin/components/(\d+)/notes$#', $path, $m) && $method === 'POST') {
+    require_editor();
+    csrf_check();
+    if (!component_find((int) $m[1])) {
+        not_found();
+    }
+    $notes = $_POST['note'] ?? [];
+    component_notes_save((int) $m[1], is_array($notes) ? $notes : [], current_user()['id']);
+    redirect('/admin/components/' . (int) $m[1]);
 }
 
 if (preg_match('#^/admin/components/(\d+)/meta$#', $path, $m) && $method === 'POST') {

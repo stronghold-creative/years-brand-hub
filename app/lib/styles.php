@@ -260,6 +260,33 @@ function style_css(): string
     return $lines ? ":root {\n" . implode("\n", $lines) . "\n}" : '';
 }
 
+/**
+ * The colour tokens the guidelines themselves publish, as `--name => #hex`.
+ *
+ * Read from every published `colour_palette` block, which is what `/tokens.css`
+ * serves. It is a function rather than being written out at that route because
+ * the component spec table matches against exactly these — and a second copy of
+ * this loop would be a second answer to "what are the brand's colours", which is
+ * the one question this site exists to answer once.
+ */
+function design_colour_tokens(): array
+{
+    $out = [];
+    foreach (db_all("SELECT blocks FROM pages WHERE status = 'published'") as $row) {
+        foreach (json_decode($row['blocks'], true) ?: [] as $block) {
+            if (($block['type'] ?? '') !== 'colour_palette') {
+                continue;
+            }
+            foreach ($block['data']['colours'] ?? [] as $colour) {
+                if (!empty($colour['name']) && !empty($colour['hex'])) {
+                    $out['--' . slugify($colour['name'])] = $colour['hex'];
+                }
+            }
+        }
+    }
+    return $out;
+}
+
 function style_body_attributes(): string
 {
     $out = '';

@@ -1,9 +1,9 @@
 # The component library: scope
 
-A Storybook for Years, inside the brand hub. **Phases 1 to 4 of 8 are built, and
-it is usable** — the tables, the admin list, the live sandboxed preview, the
-details editor with version history, and the public index and component pages.
-This is the agreed shape, written down
+A Storybook for Years, inside the brand hub. **Phases 1 to 5 of 8 are built** —
+the tables, the admin list, the live sandboxed preview, the details editor with
+version history, the public index and component pages, and the spec table derived
+from each component's own CSS. This is the agreed shape, written down
 before any code, so the build can be picked up one phase at a time. Decisions
 here were taken 27 September 2026; where one went against the cheaper option,
 the reason is recorded.
@@ -246,7 +246,7 @@ than the build.
 | **2. Sandbox** ✔ **built** | The frame route, its CSP, the height bridge, the preview with variant and viewport switchers, and — moved forward from phase 3 — the variants and base CSS that feed it | 1 |
 | **3. Editor** ✔ **built** | Details (name, slug, group, status, summary, Figma link, JS), version history with restore, an unsaved-changes guard in place of autosave. `notes_override` moved to phase 5, where the spec it overrides exists | 1, 2 |
 | **4. Public** ✔ **built** | `/components` index with live thumbnails, `/components/{slug}`, the code panel and copy button. The `docs` blocks render here too; phase 7 is now only the editing side | 2, 3 |
-| **5. Derived spec** | The CSS pass, token matching, the flag, `notes_override` | 3 |
+| **5. Derived spec** ✔ **built** | The CSS pass, token matching, the flag, `notes_override`, the states it defines | 3 |
 | **6. Import** | The Import panel, detection, the Dev Mode split, the `figmeta` refusal | 3 |
 | **7. Docs blocks** | The `docs` column wired to the existing block editor and renderer | 3, 4 |
 | **8. Search** | Components in the index, with the key fixed | 4 |
@@ -456,6 +456,64 @@ Decisions worth knowing:
   is slow and nobody remembers why.
 - **`components.js` loads on the component page only**, behind
   `$needsComponentJs`. The index's thumbnails need no script.
+
+### What phase 5 actually shipped
+
+The table that makes this an audit as well as a catalogue.
+
+- `app/lib/spec.php` — the whole engine: `component_spec()`, `spec_rules()`,
+  `spec_tokens()`, `spec_match()`, the two normalisers, `spec_states()`, and the
+  read and write of `notes_override`.
+- `app/views/component-spec.php` — one template, rendered by both the public page
+  and the admin screen, so the two cannot describe a component differently. It
+  takes `$specEditable` to turn each row's note into a field.
+- `design_colour_tokens()` in `styles.php`, now the single source for both
+  `/tokens.css` and the spec's matching.
+- Route `/admin/components/{id}/notes`.
+- `.devspec` in both stylesheets.
+
+How it decides:
+
+- **A value that *is* `var(--x)` is the answer.** There is nothing to match.
+- **A `var()` inside a larger value is reported as partly tokenised, and not
+  flagged.** `border: 1px solid var(--rule)` has a hardcoded width in it; calling
+  that declaration on-system because it mentions a token would hide precisely
+  what the table is for. Shorthand is not taken apart here, so it is not flagged
+  either.
+- **A literal is matched against the appearance settings and the published
+  palette**, like for like. `6px` is never matched against a token held in `rem`,
+  because converting would mean assuming a root font size — and the body size is
+  itself a setting someone can move.
+- **Colours normalise**, so `#FFF`, `#ffffff` and `#FFFFFFFF` all match. An alpha
+  channel is dropped for matching.
+- **Shorthand that is not a single value is never flagged.** `0 auto` and
+  `1px solid red` are beyond what a text pass can judge, and flagging them would
+  be reporting the tool's limits as findings.
+- **The states are read from selectors and at-rules**, and an *absence* is named:
+  a component with no keyboard focus style gets a line saying so, because a list
+  of what is present cannot show what is missing.
+- **A note is filed under a key that includes the value.** A note explaining why
+  a radius is 6px should not silently follow it to 28px. Changing the value
+  detaches the note — visibly, and at the moment the thing it described stopped
+  being true.
+
+**The honesty line on the page is not decoration.** This reads declarations. It
+does not resolve the cascade, follow a `var()` to a value, or know which rule
+wins. A table that looked authoritative and was wrong in ways nobody could see
+would be worse than no table; the page says what it is.
+
+### Two more traps, found in phase 5
+
+1. **`.spec` was already taken.** The `spec_table` block owns `.spec`,
+   `.spec__row` and `.spec__note` in `site.css`, and `.spec { display: grid }`
+   took the new table apart. `check-css.js` caught the duplicate declaration. The
+   new namespace is `.devspec`. Worth checking a class name against the
+   stylesheet before using it — 27 block types have had most of the obvious ones.
+2. **Tidying a selector threw away the at-rule.** `spec_rules()` cut
+   `@media (max-width: 30rem) { .btn` down to `.btn`, which is right for the
+   selector and lost the only place `@media` and `prefers-reduced-motion` appear
+   — so "responds to width" was reported as absent on CSS that plainly had it.
+   The prelude is kept on the rule now. An assertion caught it.
 
 ### Three bugs the check found in phase 3
 

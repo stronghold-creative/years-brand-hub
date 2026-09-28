@@ -22,6 +22,8 @@ define('ROOT_DIR', dirname(__DIR__));
 
 require APP_DIR . '/lib/http.php';
 require APP_DIR . '/lib/icons.php';
+// The component screens render the spec table through partial().
+require APP_DIR . '/lib/view.php';
 
 // The settings these views read are database-backed and irrelevant here.
 function setting(string $key, $default = null) { return $default; }
@@ -30,7 +32,33 @@ function current_user(): ?array { return ['id' => 1, 'role' => 'admin', 'name' =
 function style_css(): string { return ":root { --s-radius: 6px; }"; }
 function font_head(): string { return '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=X">'; }
 
+// The appearance and palette tokens the spec matches against. Real shapes, fixed
+// values, so a change to the site's own settings cannot make this check fail.
+function style_flat(): array
+{
+    return [
+        'radius'  => ['css' => '--s-radius', 'type' => 'number', 'unit' => 'px',  'default' => 6,     'label' => 'Corner radius'],
+        'pad'     => ['css' => '--s-pad',    'type' => 'number', 'unit' => 'rem', 'default' => 1.75,  'label' => 'Inside panels'],
+        'accent'  => ['css' => '--accent',   'type' => 'colour', 'default' => '#7257B7', 'label' => 'Accent'],
+        'ink'     => ['css' => '--ink',      'type' => 'colour', 'default' => '#1F1F1F', 'label' => 'Text'],
+    ];
+}
+function style_value(string $key): string
+{
+    $field = style_flat()[$key] ?? [];
+    return (string) ($field['default'] ?? '');
+}
+function style_css_value(string $key): string
+{
+    $field = style_flat()[$key] ?? [];
+    return ($field['type'] ?? '') === 'colour'
+        ? (string) $field['default']
+        : $field['default'] . ($field['unit'] ?? '');
+}
+function design_colour_tokens(): array { return ['--sand' => '#EFE9DD']; }
+
 require APP_DIR . '/lib/components.php';
+require APP_DIR . '/lib/spec.php';
 
 $_SESSION = ['csrf' => str_repeat('a', 64)];
 
@@ -99,6 +127,7 @@ $variants = [
 
 $open = component_default_variant($variants);
 $groups = ['Actions', 'Forms'];
+$spec = component_spec($component['base_css'], component_notes($component));
 $_GET = ['v' => '3'];
 
 ob_start();
@@ -258,6 +287,10 @@ $component = [
     'updated_at' => '2026-09-27 10:00:00',
 ];
 
+// Stated rather than inherited from the section above, for the same reason.
+$spec = component_spec($component['base_css'], component_notes($component));
+$specEditable = null;
+
 // The page a reader sees. It shows the markup twice — live in the frame, and
 // escaped in the code panel for copying — and the second is the one that would
 // be stored XSS if it were ever written unescaped.
@@ -308,6 +341,101 @@ $groups = [];
 ob_start();
 require APP_DIR . '/views/components.php';
 ok('the index renders when empty',           strlen(ob_get_clean()) > 200);
+
+echo "\nThe derived spec\n";
+
+$specCss = <<<'CSS'
+/* a comment, which must not be read as a declaration */
+.btn {
+  border-radius: 6px;
+  padding: 1.75rem;
+  background: #7257B7;
+  color: #fff;
+  font-size: 0.9375rem;
+  border: 1px solid var(--rule);
+  gap: 13px;
+  margin: 0 auto;
+}
+.btn--sand { background: #EFE9DD; border-radius: var(--s-radius); }
+.btn:hover { background: #4A3382; }
+@media (max-width: 30rem) { .btn { padding: 1rem; } }
+CSS;
+
+$derived = component_spec($specCss, ['deadbeef0000' => 'a note']);
+$rows = [];
+foreach ($derived['groups'] as $key => $group) {
+    foreach ($group['rows'] as $row) {
+        $rows[$row['property'] . ':' . $row['value']] = $row;
+    }
+}
+$row = function (string $k) use ($rows): array { return $rows[$k] ?? []; };
+
+ok('a comment is not read as a declaration', !isset($rows['a comment, which must not be read as a declaration:']));
+ok('6px is recognised as --s-radius',         ($row('border-radius:6px')['token'] ?? null) === '--s-radius');
+ok('1.75rem is recognised as --s-pad',        ($row('padding:1.75rem')['token'] ?? null) === '--s-pad');
+ok('the accent hex is recognised',            ($row('background:#7257B7')['token'] ?? null) === '--accent');
+ok('a palette colour is recognised',          ($row('background:#EFE9DD')['token'] ?? null) === '--sand');
+ok('case does not matter for a hex',          ($row('background:#EFE9DD')['flagged'] ?? true) === false);
+ok('#fff is flagged',                         ($row('color:#fff')['flagged'] ?? false) === true);
+ok('13px is flagged',                         ($row('gap:13px')['flagged'] ?? false) === true);
+ok('a rule inside a media query is read',     isset($rows['padding:1rem']));
+ok('var() on its own is the token',           ($row('border-radius:var(--s-radius)')['token'] ?? null) === '--s-radius');
+// The distinction that makes the table worth reading: a token inside a shorthand
+// is not the same as the declaration being one, because the 1px is hardcoded.
+ok('var() inside shorthand is only partial',  ($row('border:1px solid var(--rule)')['partial'] ?? false) === true);
+ok('a partial is not claimed as on-system',   ($row('border:1px solid var(--rule)')['flagged'] ?? true) === false);
+// Shorthand this does not take apart must not be reported as off-system, or the
+// table is reporting its own limits as findings.
+ok('"0 auto" is not flagged',                 ($row('margin:0 auto')['flagged'] ?? true) === false);
+ok('hover is found',                          in_array('Hover', $derived['states'], true));
+ok('the width query is found',                in_array('Responds to width', $derived['states'], true));
+ok('missing focus is not claimed as present', !in_array('Keyboard focus', $derived['states'], true));
+ok('empty CSS gives an empty spec',           component_spec('')['groups'] === []);
+
+// Normalising, which is what lets three spellings of one colour match.
+ok('#FFF and #ffffff normalise alike',        spec_normalise_colour('#FFF') === spec_normalise_colour('#ffffff'));
+ok('an alpha channel is ignored',             spec_normalise_colour('#7257B7FF') === '#7257b7');
+ok('0, 0px and 0rem normalise alike',         spec_normalise_length('0px') === spec_normalise_length('0rem'));
+ok('px is not matched against rem',           spec_normalise_length('6px') !== spec_normalise_length('6rem'));
+
+echo "\nThe spec table as rendered\n";
+
+// A note, and a selector, are both author text and both reach this page.
+$spec = component_spec('.btn { border-radius: 6px; content: "x"; }', []);
+$specEditable = null;
+ob_start();
+require APP_DIR . '/views/component-spec.php';
+$table = ob_get_clean();
+ok('the spec table rendered',                strlen($table) > 200);
+ok('it carries the honesty line',            str_contains($table, 'does not work out which rule wins'));
+
+// Hostile text in a selector must not escape into the page.
+$spec = component_spec('.btn<script>alert(3)</script> { border-radius: 9px; }', []);
+ob_start();
+require APP_DIR . '/views/component-spec.php';
+$table = ob_get_clean();
+ok('a hostile selector is escaped',          !str_contains($table, '<script>alert(3)'));
+
+// And in a written note, which is the one field a person types freely.
+$spec = component_spec('.btn { border-radius: 9px; }', []);
+foreach ($spec['groups'] as $k => $g) {
+    foreach ($g['rows'] as $i => $r) {
+        $spec['groups'][$k]['rows'][$i]['note'] = '<script>alert(4)</script>';
+    }
+}
+ob_start();
+require APP_DIR . '/views/component-spec.php';
+$table = ob_get_clean();
+ok('a hostile note is escaped',              !str_contains($table, '<script>alert(4)'));
+
+$specEditable = '/admin/components/7/notes';
+ob_start();
+require APP_DIR . '/views/component-spec.php';
+$editable = ob_get_clean();
+ok('the editable table offers a field',      str_contains($editable, 'name="note['));
+ok('and it carries a CSRF token',            str_contains($editable, 'name="_csrf"'));
+ok('a hostile note is escaped in the field', !str_contains($editable, '<script>alert(4)'));
+$specEditable = null;
 
 echo "\nReading a Figma link\n";
 

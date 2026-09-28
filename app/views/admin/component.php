@@ -296,6 +296,14 @@ $frameBase = '/components/' . rawurlencode($component['slug']) . '/frame/';
           doing the work.
         </p>
       <?php endif; ?>
+
+      <?php // The spec of the base CSS, with every row's note editable. It sits
+            // under the preview so an off-token value is seen while it is being
+            // written rather than after. ?>
+      <?php partial('component-spec', [
+        'spec'         => $spec,
+        'specEditable' => '/admin/components/' . (int) $component['id'] . '/notes',
+      ]); ?>
     </div>
   </div>
 </div>
