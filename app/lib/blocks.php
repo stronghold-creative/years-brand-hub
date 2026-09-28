@@ -12,9 +12,26 @@ declare(strict_types=1);
 function block_types(): array
 {
     return [
+        // A heading on its own. Every other block can carry one, but a section
+        // that needs a title above several blocks had nowhere to put it without
+        // attaching it to whichever block happened to come first — which then
+        // moved with that block when the order changed.
+        'heading' => [
+            'label'  => 'Heading',
+            'hint'   => 'A title over whatever follows it. Not tied to one block.',
+            'group'  => 'Text',
+            'icon'   => 'heading',
+            'fields' => [
+                'text'    => ['type' => 'text', 'label' => 'Heading'],
+                'standfirst' => ['type' => 'textarea', 'label' => 'Standfirst', 'optional' => true],
+            ],
+        ],
+
         'rich_text' => [
             'label'  => 'Text',
             'hint'   => 'Plain paragraphs. Blank line starts a new paragraph.',
+            'group'  => 'Text',
+            'icon'   => 'text',
             'fields' => [
                 'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
                 'body'    => ['type' => 'longtext', 'label' => 'Body'],
@@ -24,6 +41,8 @@ function block_types(): array
         'colour_palette' => [
             'label'  => 'Colour palette',
             'hint'   => 'Swatches with full values and usage notes.',
+            'group'  => 'Colour and type',
+            'icon'   => 'palette',
             'fields' => [
                 'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
                 'colours' => [
@@ -44,6 +63,8 @@ function block_types(): array
         'colour_ramp' => [
             'label'  => 'Colour ramp',
             'hint'   => 'Families of colour, each with its own steps. The scale is whatever you give it.',
+            'group'  => 'Colour and type',
+            'icon'   => 'ramp',
             'fields' => [
                 'heading'  => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
                 'families' => [
@@ -73,6 +94,8 @@ function block_types(): array
         'colour_story' => [
             'label'  => 'Primary and secondary',
             'hint'   => 'The brand\'s colours as one composition, sized by how much each one carries.',
+            'group'  => 'Colour and type',
+            'icon'   => 'story',
             'fields' => [
                 'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
                 'intro'   => ['type' => 'textarea', 'label' => 'Intro', 'optional' => true],
@@ -97,6 +120,8 @@ function block_types(): array
         'type_specimen' => [
             'label'  => 'Type specimen',
             'hint'   => 'Shows a style at its real size, with the spec beside it.',
+            'group'  => 'Colour and type',
+            'icon'   => 'type',
             'fields' => [
                 'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
                 'styles'  => [
@@ -120,6 +145,8 @@ function block_types(): array
         'do_dont' => [
             'label'  => 'Do and do not',
             'hint'   => 'Paired guidance. Keep each line to one rule.',
+            'group'  => 'Guidance',
+            'icon'   => 'dodont',
             'fields' => [
                 'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
                 'pairs'   => [
@@ -138,6 +165,8 @@ function block_types(): array
         'image' => [
             'label'  => 'Image',
             'hint'   => 'One image from the asset library, with a caption. Replacing the file updates this automatically.',
+            'group'  => 'Images and media',
+            'icon'   => 'image',
             'fields' => [
                 'asset'   => ['type' => 'asset', 'label' => 'Image'],
                 'alt'     => ['type' => 'text', 'label' => 'Alt text, describing the image for screen readers'],
@@ -158,6 +187,8 @@ function block_types(): array
         'image_grid' => [
             'label'  => 'Image grid',
             'hint'   => 'Several images side by side. Good for do and do not comparisons, or a set of examples.',
+            'group'  => 'Images and media',
+            'icon'   => 'grid',
             'fields' => [
                 'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
                 'columns' => ['type' => 'select', 'label' => 'Columns', 'options' => [
@@ -186,6 +217,8 @@ function block_types(): array
         'comparison_table' => [
             'label'  => 'Comparison table',
             'hint'   => 'Two columns, for this-not-that guidance. Words we use against words we avoid, for example.',
+            'group'  => 'Guidance',
+            'icon'   => 'compare',
             'fields' => [
                 'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
                 'left'    => ['type' => 'text', 'label' => 'Left column heading'],
@@ -206,6 +239,8 @@ function block_types(): array
         'download_list' => [
             'label'  => 'Downloads',
             'hint'   => 'Lists every asset carrying a tag, so uploading a new file adds it here automatically.',
+            'group'  => 'Reference',
+            'icon'   => 'download',
             'fields' => [
                 'heading'   => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
                 'tag'       => ['type' => 'text', 'label' => 'Asset tag, for example: logo'],
@@ -220,6 +255,8 @@ function block_types(): array
         'callout' => [
             'label'  => 'Callout',
             'hint'   => 'One thing people keep getting wrong.',
+            'group'  => 'Text',
+            'icon'   => 'callout',
             'fields' => [
                 'tone' => ['type' => 'select', 'label' => 'Tone', 'options' => [
                     'note'    => 'Note',
@@ -234,6 +271,8 @@ function block_types(): array
         'clearspace' => [
             'label'  => 'Clearspace diagram',
             'hint'   => 'A mark with its minimum clear space drawn around it.',
+            'group'  => 'Guidance',
+            'icon'   => 'clearspace',
             'fields' => [
                 'heading' => ['type' => 'text',   'label' => 'Heading', 'optional' => true],
                 'asset'   => ['type' => 'asset',  'label' => 'Mark'],
@@ -248,6 +287,8 @@ function block_types(): array
         'spacing_scale' => [
             'label'  => 'Spacing scale',
             'hint'   => 'Each step drawn at its real size, with its value.',
+            'group'  => 'Reference',
+            'icon'   => 'spacing',
             'fields' => [
                 'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
                 'steps'   => [
@@ -264,6 +305,8 @@ function block_types(): array
         'icon_grid' => [
             'label'  => 'Icon grid',
             'hint'   => 'Every asset carrying a tag, shown as a grid you can copy from.',
+            'group'  => 'Images and media',
+            'icon'   => 'icons',
             'fields' => [
                 'heading' => ['type' => 'text',   'label' => 'Heading', 'optional' => true],
                 'tag'     => ['type' => 'text',   'label' => 'Asset tag'],
@@ -274,6 +317,8 @@ function block_types(): array
         'contrast_pairs' => [
             'label'  => 'Contrast pairs',
             'hint'   => 'Colour combinations with their measured contrast ratio.',
+            'group'  => 'Colour and type',
+            'icon'   => 'contrast',
             'fields' => [
                 'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
                 'pairs'   => [
@@ -291,6 +336,8 @@ function block_types(): array
         'misuse_gallery' => [
             'label'  => 'Correct and incorrect',
             'hint'   => 'Images marked right or wrong, with a reason.',
+            'group'  => 'Guidance',
+            'icon'   => 'misuse',
             'fields' => [
                 'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
                 'items'   => [
@@ -307,6 +354,8 @@ function block_types(): array
         'spec_table' => [
             'label'  => 'Specification',
             'hint'   => 'Plain label and value rows.',
+            'group'  => 'Reference',
+            'icon'   => 'spec',
             'fields' => [
                 'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
                 'rows'    => [
@@ -323,6 +372,8 @@ function block_types(): array
         'link_list' => [
             'label'  => 'Links',
             'hint'   => 'Somewhere else to go: Figma, Drive, a tool.',
+            'group'  => 'Reference',
+            'icon'   => 'links',
             'fields' => [
                 'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
                 'links'   => [
@@ -339,6 +390,8 @@ function block_types(): array
         'contacts' => [
             'label'  => 'Who to ask',
             'hint'   => 'People, what they cover, and how to reach them.',
+            'group'  => 'Reference',
+            'icon'   => 'contacts',
             'fields' => [
                 'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
                 'people'  => [
@@ -356,6 +409,8 @@ function block_types(): array
         'checklist' => [
             'label'  => 'Checklist',
             'hint'   => 'Things to confirm before something ships.',
+            'group'  => 'Text',
+            'icon'   => 'checklist',
             'fields' => [
                 'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
                 'items'   => [
@@ -371,6 +426,8 @@ function block_types(): array
         'video' => [
             'label'  => 'Video',
             'hint'   => 'A YouTube or Vimeo link, or an uploaded file.',
+            'group'  => 'Images and media',
+            'icon'   => 'video',
             'fields' => [
                 'heading' => ['type' => 'text',  'label' => 'Heading', 'optional' => true],
                 'url'     => ['type' => 'text',  'label' => 'YouTube or Vimeo address', 'optional' => true],
@@ -385,6 +442,8 @@ function block_types(): array
         'tabs' => [
             'label'  => 'Tabs',
             'hint'   => 'Variants of one thing in a single space.',
+            'group'  => 'Layout',
+            'icon'   => 'tabs',
             'fields' => [
                 'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
                 'panels'  => [
@@ -401,6 +460,8 @@ function block_types(): array
         'accordion' => [
             'label'  => 'Accordion',
             'hint'   => 'Long reference that would otherwise swamp the page.',
+            'group'  => 'Layout',
+            'icon'   => 'accordion',
             'fields' => [
                 'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
                 'items'   => [
@@ -416,6 +477,8 @@ function block_types(): array
         'code' => [
             'label'  => 'Code',
             'hint'   => 'A snippet with a copy button. Liquid, CSS, tokens.',
+            'group'  => 'Text',
+            'icon'   => 'code',
             'fields' => [
                 'heading'  => ['type' => 'text',     'label' => 'Heading', 'optional' => true],
                 'language' => ['type' => 'select',   'label' => 'Language', 'options' => [
@@ -430,6 +493,8 @@ function block_types(): array
         'steps' => [
             'label'  => 'Steps',
             'hint'   => 'A numbered process, in order.',
+            'group'  => 'Text',
+            'icon'   => 'steps',
             'fields' => [
                 'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
                 'steps'   => [
@@ -445,6 +510,8 @@ function block_types(): array
         'hero' => [
             'label'  => 'Hero',
             'hint'   => 'A full-bleed opener. Each line is sized to fill the width.',
+            'group'  => 'Layout',
+            'icon'   => 'hero',
             'fields' => [
                 'label'   => ['type' => 'text',     'label' => 'Small label above', 'optional' => true],
                 'lines'   => ['type' => 'longtext', 'label' => 'Headline, one line per line'],
@@ -458,6 +525,8 @@ function block_types(): array
         'quote' => [
             'label'  => 'Quote',
             'hint'   => 'A line of real copy, shown as an example.',
+            'group'  => 'Text',
+            'icon'   => 'quote',
             'fields' => [
                 'text'   => ['type' => 'longtext', 'label' => 'Quote'],
                 'source' => ['type' => 'text',     'label' => 'Where it is from', 'optional' => true],
@@ -663,6 +732,23 @@ function block_options(string $type): array
 
         'quote' => [
             'size' => ['label' => 'Size', 'options' => ['normal' => 'Normal', 'large' => 'Large']],
+        ],
+        'heading' => [
+            // The level is what the heading means in the document, not how big
+            // it looks — size is set separately, so a sub-heading can still be
+            // large where that is the right emphasis.
+            'level' => ['label' => 'Level', 'options' => [
+                'h2' => 'Section (h2)', 'h3' => 'Sub-section (h3)', 'h4' => 'Minor (h4)',
+            ]],
+            'size' => ['label' => 'Size', 'options' => [
+                'inherit' => 'Match the level', 'large' => 'Large', 'small' => 'Small',
+            ]],
+            'align' => ['label' => 'Alignment', 'options' => [
+                'left' => 'Left', 'centre' => 'Centred',
+            ]],
+            'rule' => ['label' => 'Rule under it', 'options' => [
+                'no' => 'No', 'yes' => 'Yes',
+            ]],
         ],
         'hero' => [
             'height' => ['label' => 'Height', 'options' => [

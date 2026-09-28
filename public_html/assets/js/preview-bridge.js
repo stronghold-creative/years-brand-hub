@@ -30,7 +30,16 @@
     }
     [data-block].is-hover::after { border-color: rgba(114, 87, 183, .45); }
     [data-block].is-selected::after { border-color: #7257B7; background: rgba(114, 87, 183, .04); }
-    [data-block].is-selected > * { position: relative; }
+    /* The block's own children are lifted above the ::after overlay so the
+       tint sits behind the content rather than over it.
+
+       The label must be excluded. It is appended as a direct child, so without
+       the :not() this rule — two classes and an element, against the label's
+       one class — wins on specificity, turns position: absolute into
+       position: relative, and drops the label out of its corner into normal
+       flow at the end of the block. It then renders at the bottom left, which
+       is exactly where it was appearing. */
+    [data-block].is-selected > *:not(.ed-label) { position: relative; }
 
     .ed-label {
       position: absolute;

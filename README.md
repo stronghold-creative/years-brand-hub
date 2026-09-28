@@ -78,7 +78,8 @@ deploy can never overwrite your credentials or uploaded files.
 ## What is built
 
 - Block editor: outline, live canvas, contextual inspector
-- 27 block types, each with its own options, inheriting from global settings
+- 28 block types, grouped and illustrated in the chooser, each with its own
+  options, inheriting from global settings
 - Appearance with a live preview, per-field resets and contrast checks
 - Appearance: numeric global styling, colours, widths, type scale
 - Assets: upload, versioning, replace in place, ZIP bundles, gated downloads,

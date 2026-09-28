@@ -11,6 +11,8 @@ $isAdmin = (current_user()['role'] ?? '') === 'admin';
 ?>
 <div class="ed" id="editor"
      data-page-id="<?= (int) $page['id'] ?>"
+     data-block-icons='<?= e(json_encode(block_icon_set(), JSON_UNESCAPED_SLASHES)) ?>'
+     data-block-groups='<?= e(json_encode(block_groups(), JSON_UNESCAPED_SLASHES)) ?>'
      data-schema='<?= e(json_encode(block_types(), JSON_UNESCAPED_SLASHES)) ?>'
      data-defaults='<?= e(json_encode($defaults, JSON_UNESCAPED_SLASHES)) ?>'
      data-settings='<?= e(json_encode(block_settings_fields(), JSON_UNESCAPED_SLASHES)) ?>'

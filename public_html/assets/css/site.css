@@ -2316,3 +2316,27 @@ html, body { overflow-x: clip; }
      table unreadable rather than narrow. */
   .devspec__table { display: block; overflow-x: auto; white-space: nowrap; }
 }
+
+/* Heading ------------------------------------------------------------------ */
+
+.heading { margin: 0; }
+.heading--centre { text-align: center; }
+.heading__text {
+  margin: 0;
+  /* More Years has one weight, so a request for another gets a faked one: the
+     glyphs smear sideways and the dot of an i becomes a ring. */
+  font-weight: var(--s-headweight, 400);
+  font-synthesis: none;
+}
+.heading--size-large .heading__text { font-size: var(--s-h1, clamp(2rem, 4vw, 2.75rem)); line-height: 1.1; }
+.heading--size-small .heading__text { font-size: var(--s-h3, 1.25rem); }
+.heading__standfirst {
+  margin: .625rem 0 0;
+  max-width: var(--s-measure, 70ch);
+  color: var(--ink-soft);
+}
+.heading--centre .heading__standfirst { margin-inline: auto; }
+.heading--ruled {
+  padding-bottom: .75rem;
+  border-bottom: 1px solid var(--rule);
+}

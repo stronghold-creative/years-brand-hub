@@ -77,13 +77,29 @@ stored JSON can only contain known keys. A new block type needs an entry in
 setting through `block_option($options, $key, $fallback, $siteKey)`. That is
 what makes Appearance in the admin move every block not deliberately overridden.
 
-The 27 block types: rich_text, colour_palette, colour_ramp, colour_story,
-type_specimen, do_dont, image, image_grid, comparison_table, download_list,
-callout, clearspace, spacing_scale, icon_grid, contrast_pairs, misuse_gallery,
-spec_table, link_list, contacts, checklist, video, tabs, accordion, code,
-steps, hero, quote. Every one of them now has appearance options; clearspace,
-video and accordion had none until 26 September and so could not follow the
-site's appearance at all.
+The 28 block types: heading, rich_text, colour_palette, colour_ramp,
+colour_story, type_specimen, do_dont, image, image_grid, comparison_table,
+download_list, callout, clearspace, spacing_scale, icon_grid, contrast_pairs,
+misuse_gallery, spec_table, link_list, contacts, checklist, video, tabs,
+accordion, code, steps, hero, quote. Every one of them has appearance options;
+clearspace, video and accordion had none until 26 September and so could not
+follow the site's appearance at all.
+
+**Every type also carries a `group` and an `icon`,** which is how the chooser
+sorts and illustrates it. `block_groups()` in `icons.php` gives the order and
+`block_icon_set()` the shapes. Neither fails loudly — a missing group drops a
+block into "Other" at the end, a mistyped icon renders a blank square, and both
+look like a decision rather than a mistake — so `check-blocks.php` asserts them.
+
+**`heading` is a block in its own right.** Every other block can carry a heading,
+but a title over *several* blocks had nowhere to live except attached to
+whichever block happened to come first, and it then moved with that block when
+the order changed. Its level and its size are separate settings on purpose: the
+level is what the heading means in the outline, which is what a screen reader
+follows and what search ranks by, and the size is only emphasis. Tying them
+together is the usual reason someone picks the wrong level to get the right size.
+It offers h2, h3 and h4 — never h1, because the page already has one and a second
+leaves the outline with two roots.
 
 **A repeater can hold a repeater.** `field()` in `editor.js` handles a nested
 one and `sanitise_fields()` is recursive, which is what `colour_ramp` needs: a
@@ -253,9 +269,17 @@ Saving reloads the iframe. Autosave fires 700ms after typing stops.
 **Adding a block** opens a centred dialog (`.blockmenu`, built in `editor.js`,
 styled in `admin.css`), always centred rather than anchored, because it is opened
 from the outline, the canvas and the keyboard. The choices are a **grid of
-cards**, `auto-fill minmax(14rem, 1fr)` in a 52rem dialog, so most of the two
-dozen block types are visible at once; below 30rem it falls back to one column.
-Search filters on label and hint.
+cards**, `auto-fill minmax(14rem, 1fr)` in a 52rem dialog, so most of the
+twenty-eight block types are visible at once; below 30rem it falls back to one
+column. Search filters on label, hint and group.
+
+**The cards are grouped and each carries an icon.** Twenty-eight choices in one
+undivided grid is a wall; the groups are what make it scannable by someone who
+knows roughly what they want but not what it is called. The order comes from
+`block_groups()` and runs from what a page is mostly made of to what it
+occasionally needs, rather than alphabetically. A group named on a block but
+missing from that list still appears, at the end, so a block can never vanish
+from the chooser.
 
 ---
 
@@ -394,7 +418,7 @@ over any row.
   and unknown in the other.
 - **The class prefix is `devspec`, not `spec`** — the `spec_table` block already
   owns `.spec` on the public side, and `.spec { display: grid }` took the table
-  apart. Check a class name against the stylesheet before using it; 27 block types
+  apart. Check a class name against the stylesheet before using it; 28 block types
   have had most of the obvious ones.
 
 **Phase 6 shipped the import** (`app/lib/import.php`). One box on the component
@@ -513,6 +537,15 @@ the buffer and throws it away, so the count goes up and nothing says why.
 `check-components.php` turns warnings into failures and writes them to STDERR for
 exactly these two reasons. Both bit on 27 September.
 
+**A more specific rule can undo a positioned element.** The canvas overlay sets
+`[data-block].is-selected > * { position: relative }` to lift a block's content
+above its tint. The block's label is appended as a direct child, so that rule —
+two classes and an element — beat `.ed-label { position: absolute }`, turned it
+into `position: relative`, and dropped the label out of its corner into normal
+flow at the *end* of the block. It rendered at the bottom left and looked like a
+deliberate, odd design choice for weeks. The selector excludes it now. Whenever a
+rule targets `> *`, ask what else is a child.
+
 **A later CSS rule with the same specificity silently wins.** A stray
 `.masthead { position: relative }` cancelled a `position: sticky` declared
 earlier, so the header was never sticky and two rounds of JavaScript fixes
@@ -594,7 +627,7 @@ green run, then Settings, Apply updates.
 
 ## 8. State of the build
 
-**Working:** deploy pipeline, three-column editor, 25 block types, 26 numeric
+**Working:** deploy pipeline, three-column editor, 28 block types, 26 numeric
 appearance settings, asset library with generated image variants and gated
 downloads, upload from inside the editor's picker, sections as scrolling pages
 with a hero opener, version history with collapsing and pruning, people and
@@ -667,7 +700,7 @@ has caught something real:
 - `check-routes.php` renders no pages; it asserts every URL the interface calls
   matches a route. It found a route that was never inserted and two patterns
   with one backslash too many.
-- `check-blocks.php` renders all 27 block types three times — empty, full, and
+- `check-blocks.php` renders all 28 block types three times — empty, full, and
   "gappy", which is full but with the first row of every repeater left blank —
   through the sanitiser first, and reports anything that throws, shows nothing,
   or puts an empty value into an attribute that will be read as a colour or a

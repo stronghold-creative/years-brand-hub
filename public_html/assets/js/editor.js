@@ -11,6 +11,10 @@
   const optionSchema   = JSON.parse(root.dataset.options);
   const optionDefaults = JSON.parse(root.dataset.optionsDefaults);
   const pageId         = root.dataset.pageId;
+  // The block chooser's icons and the order it groups them in. Both come from
+  // the server so a new block type needs no change here.
+  const icons          = JSON.parse(root.dataset.blockIcons || '{}');
+  const groupOrder     = JSON.parse(root.dataset.blockGroups || '[]');
 
   /**
    * Where a save goes, and what it carries.
@@ -926,7 +930,7 @@
     function draw(term) {
       list.innerHTML = '';
       const entries = Object.entries(schema).filter(([, def]) =>
-        !term || (def.label + ' ' + (def.hint || '')).toLowerCase().includes(term));
+        !term || (def.label + ' ' + (def.hint || '') + ' ' + (def.group || '')).toLowerCase().includes(term));
 
       if (!entries.length) {
         const none = document.createElement('p');
@@ -936,27 +940,64 @@
         return;
       }
 
-      entries.forEach(([type, def]) => {
-        const item = document.createElement('button');
-        item.type = 'button';
-        item.className = 'blockmenu__item';
-        item.innerHTML = '<span class="blockmenu__label"></span><span class="blockmenu__hint"></span>';
-        item.querySelector('.blockmenu__label').textContent = def.label;
-        item.querySelector('.blockmenu__hint').textContent = def.hint || '';
-        item.addEventListener('click', () => {
-          remember();
-          blocks.splice(index, 0, {
-            type: type,
-            data: copy(defaults[type]),
-            settings: copy(settingsBlank),
-            options: copy(optionDefaults[type] || {}),
-          });
-          closeBlockMenu();
-          select(index);
-          queueSave();
-        });
-        list.append(item);
+      /**
+       * Grouped, in the order the server gives, with anything whose group is not
+       * in that list falling to the end rather than disappearing. Twenty-eight
+       * choices in one undivided grid is a wall: the groups are what make it
+       * scannable by someone who knows roughly what they want but not its name.
+       */
+      const byGroup = new Map();
+      groupOrder.forEach((name) => byGroup.set(name, []));
+      entries.forEach((entry) => {
+        const name = entry[1].group || 'Other';
+        if (!byGroup.has(name)) byGroup.set(name, []);
+        byGroup.get(name).push(entry);
       });
+
+      byGroup.forEach((group, name) => {
+        if (!group.length) return;
+        const heading = document.createElement('p');
+        heading.className = 'blockmenu__group';
+        heading.textContent = name;
+        list.append(heading);
+        group.forEach(([type, def]) => list.append(entry(type, def)));
+      });
+    }
+
+    function entry(type, def) {
+      const item = document.createElement('button');
+      item.type = 'button';
+      item.className = 'blockmenu__item';
+      item.innerHTML =
+        '<span class="blockmenu__icon"></span>' +
+        '<span class="blockmenu__text">' +
+          '<span class="blockmenu__label"></span><span class="blockmenu__hint"></span>' +
+        '</span>';
+
+      // The icon markup comes from the server's own icon set, never from
+      // anything typed, so it is set as markup; the label and hint are text.
+      item.querySelector('.blockmenu__icon').innerHTML = icons[def.icon]
+        ? '<svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor"' +
+          ' stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+          icons[def.icon] + '</svg>'
+        : '';
+      item.querySelector('.blockmenu__label').textContent = def.label;
+      item.querySelector('.blockmenu__hint').textContent = def.hint || '';
+
+      item.addEventListener('click', () => {
+        remember();
+        blocks.splice(index, 0, {
+          type: type,
+          data: copy(defaults[type]),
+          settings: copy(settingsBlank),
+          options: copy(optionDefaults[type] || {}),
+        });
+        closeBlockMenu();
+        select(index);
+        queueSave();
+      });
+
+      return item;
     }
 
     draw('');

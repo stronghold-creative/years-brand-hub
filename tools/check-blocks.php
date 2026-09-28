@@ -311,6 +311,30 @@ foreach (['empty', 'filled', 'gappy'] as $mode) {
     }
 }
 
+/**
+ * Every block type needs a group and an icon for the chooser.
+ *
+ * Neither fails loudly: a missing group drops the block into an "Other" heading
+ * at the end of the list, and an icon name with a typo in it renders a blank
+ * square. Both look like a design decision rather than a mistake, which is why
+ * they are asserted rather than noticed.
+ */
+$icons  = block_icon_set();
+$groups = block_groups();
+
+foreach (block_types() as $type => $def) {
+    if (empty($def['group'])) {
+        $problems[] = "$type has no group, so it will fall to the end of the chooser";
+    } elseif (!in_array($def['group'], $groups, true)) {
+        $problems[] = "$type is in group \"{$def['group']}\", which block_groups() does not list";
+    }
+    if (empty($def['icon'])) {
+        $problems[] = "$type has no icon";
+    } elseif (!isset($icons[$def['icon']])) {
+        $problems[] = "$type asks for the icon \"{$def['icon']}\", which does not exist";
+    }
+}
+
 echo "\n" . str_repeat('=', 60) . "\n";
 
 // Said plainly rather than passing quietly at reduced strength, so a run that

@@ -146,6 +146,70 @@ function ui_icon_set(): array
     ];
 }
 
+/**
+ * The order the block chooser shows its groups in.
+ *
+ * Not alphabetical: it runs from what a page is mostly made of to what it
+ * occasionally needs, so the common choices are the ones already on screen.
+ * A group named on a block type but missing here still appears, at the end,
+ * rather than the block vanishing from the chooser.
+ */
+function block_groups(): array
+{
+    return ['Text', 'Colour and type', 'Images and media', 'Guidance', 'Reference', 'Layout'];
+}
+
+/**
+ * Icons for the block chooser, drawn on the same 24px grid and stroke as the
+ * interface set. Each one is the shape of what the block puts on the page rather
+ * than a picture of its subject: a ramp is a row of bars, not a paint tin. At
+ * this size a literal illustration reads as a smudge, and the shape is what
+ * someone is actually scanning for.
+ */
+function block_icon_set(): array
+{
+    return [
+        'heading'    => '<path d="M5 5v14"/><path d="M13 5v14"/><path d="M5 12h8"/><path d="M17 10h2v9"/>',
+        'text'       => '<path d="M4 6h16"/><path d="M4 11h16"/><path d="M4 16h11"/>',
+        'quote'      => '<path d="M9 7H5.5A1.5 1.5 0 0 0 4 8.5V12h5V7Z"/><path d="M4 12c0 3 1.5 4.5 4 5"/><path d="M20 7h-3.5A1.5 1.5 0 0 0 15 8.5V12h5V7Z"/><path d="M15 12c0 3 1.5 4.5 4 5"/>',
+        'callout'    => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M12 9v4"/><path d="M12 16h.01"/>',
+        'steps'      => '<circle cx="6" cy="7" r="2"/><circle cx="6" cy="17" r="2"/><path d="M6 9v6"/><path d="M11 7h9"/><path d="M11 17h9"/>',
+        'checklist'  => '<path d="m3 7 2 2 3-3"/><path d="m3 17 2 2 3-3"/><path d="M12 8h9"/><path d="M12 18h9"/>',
+        'code'       => '<path d="m8 8-4 4 4 4"/><path d="m16 8 4 4-4 4"/><path d="m13 6-2 12"/>',
+
+        'palette'    => '<rect x="3" y="6" width="4.5" height="12" rx="1"/><rect x="9.75" y="6" width="4.5" height="12" rx="1"/><rect x="16.5" y="6" width="4.5" height="12" rx="1"/>',
+        'ramp'       => '<rect x="3" y="8" width="18" height="8" rx="1.5"/><path d="M7.5 8v8"/><path d="M12 8v8"/><path d="M16.5 8v8"/>',
+        'story'      => '<rect x="3" y="4" width="11" height="16" rx="1.5"/><rect x="16" y="4" width="5" height="7" rx="1.5"/><rect x="16" y="13" width="5" height="7" rx="1.5"/>',
+        'contrast'   => '<circle cx="12" cy="12" r="8"/><path d="M12 4a8 8 0 0 0 0 16Z" fill="currentColor" stroke="none"/>',
+        'type'       => '<path d="M5 7V5h14v2"/><path d="M12 5v14"/><path d="M9 19h6"/>',
+
+        'image'      => '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="8.5" cy="10" r="1.5"/><path d="m4 17 5-4 3.5 2.5L17 11l3 3"/>',
+        'grid'       => '<rect x="3" y="3" width="8" height="8" rx="1.5"/><rect x="13" y="3" width="8" height="8" rx="1.5"/><rect x="3" y="13" width="8" height="8" rx="1.5"/><rect x="13" y="13" width="8" height="8" rx="1.5"/>',
+        'video'      => '<rect x="3" y="5" width="18" height="14" rx="2"/><path d="m10 9 5 3-5 3V9Z"/>',
+        'icons'      => '<circle cx="7" cy="7" r="3"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><path d="m7 14 3 6H4l3-6Z"/><circle cx="17" cy="17" r="3"/>',
+
+        'dodont'     => '<path d="M3 5h7v14H3z"/><path d="M14 5h7v14h-7z"/><path d="m5 11 1.5 1.5L9 10"/><path d="m16 10 3 3"/><path d="m19 10-3 3"/>',
+        'misuse'     => '<rect x="3" y="5" width="8" height="14" rx="1.5"/><rect x="13" y="5" width="8" height="14" rx="1.5"/><path d="m5.5 11 1.5 1.5L9.5 10"/><path d="m15.5 10.5 3 3"/><path d="m18.5 10.5-3 3"/>',
+        'compare'    => '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16"/><path d="M3 9h18"/>',
+        'clearspace' => '<rect x="3" y="3" width="18" height="18" rx="2" stroke-dasharray="3 3"/><rect x="8" y="8" width="8" height="8" rx="1"/>',
+
+        'spec'       => '<path d="M4 7h7"/><path d="M13 7h7"/><path d="M4 12h7"/><path d="M13 12h7"/><path d="M4 17h7"/><path d="M13 17h7"/>',
+        'spacing'    => '<path d="M4 5v14"/><path d="M20 5v14"/><path d="M8 12h8"/><path d="m8 12 2-2"/><path d="m8 12 2 2"/><path d="m16 12-2-2"/><path d="m16 12-2 2"/>',
+        'links'      => '<path d="M10 13a5 5 0 0 0 7 0l2-2a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-2 2a5 5 0 0 0 7 7l1-1"/>',
+        'contacts'   => '<circle cx="9" cy="8" r="3"/><path d="M3 19a6 6 0 0 1 12 0"/><path d="M17 8h4"/><path d="M17 12h4"/>',
+        'download'   => '<path d="M12 4v10"/><path d="m8 11 4 4 4-4"/><path d="M4 18v1a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-1"/>',
+
+        'hero'       => '<rect x="3" y="4" width="18" height="9" rx="2"/><path d="M4 17h12"/><path d="M4 20h8"/>',
+        'tabs'       => '<path d="M3 9h5V5h13v4"/><path d="M3 9v10h18V9"/>',
+        'accordion'  => '<rect x="3" y="4" width="18" height="4" rx="1.5"/><rect x="3" y="10" width="18" height="10" rx="1.5"/><path d="M7 15h10"/>',
+    ];
+}
+
+function block_icon(string $name): string
+{
+    return block_icon_set()[$name] ?? '';
+}
+
 function ui_icon(string $name, string $class = 'icon'): string
 {
     $set = ui_icon_set();
