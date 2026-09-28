@@ -178,12 +178,35 @@
       Object.entries(def.options).forEach(([key, label]) => {
         input.append(new Option(label, key, false, String(key) === String(value)));
       });
+    } else if (def.type === 'number') {
+      /**
+       * A number with a unit, and blank allowed.
+       *
+       * Blank is the point of it: an empty radius means "follow the site
+       * setting", so the field must not helpfully fill itself in with the
+       * current global — that would pin the block to today's number and the
+       * global would stop reaching it. The same trap as the colour field that
+       * displayed a default and only wrote on input.
+       */
+      input = document.createElement('input');
+      input.type = 'number';
+      input.className = 'm3-field__input';
+      input.placeholder = ' ';
+      input.value = value === 0 || value ? value : '';
+      if (def.min !== undefined) input.min = def.min;
+      if (def.max !== undefined) input.max = def.max;
+      if (def.unit) {
+        wrap.classList.add('m3-field--unit');
+        wrap.dataset.unit = def.unit;
+      }
     } else if (def.type === 'colour') {
       input = document.createElement('input');
       input.type = 'text';
       input.className = 'm3-field__input';
       input.placeholder = ' ';
-      input.value = value || COLOUR_DEFAULT;
+      // An optional colour stays empty. Prefilling one would store a colour
+      // nobody chose the first time the panel was opened.
+      input.value = value || (def.optional ? '' : COLOUR_DEFAULT);
 
       const chip = document.createElement('input');
       chip.type = 'color';

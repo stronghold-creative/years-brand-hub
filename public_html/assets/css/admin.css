@@ -2099,3 +2099,26 @@ form[data-guard].is-dirty {
   color: var(--md-sys-color-on-error-container, var(--md-sys-color-on-surface));
 }
 .imp__actions { display: flex; align-items: center; gap: .5rem; margin-top: 1rem; }
+
+/* A number field that says what its unit is, so "6" is not ambiguous between
+   pixels and rem. The unit is an attribute rather than an element, so the field
+   keeps its single-control markup and the floating label still works. */
+.m3-field--unit { position: relative; }
+.m3-field--unit::after {
+  content: attr(data-unit);
+  position: absolute;
+  right: .875rem;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: .75rem;
+  color: var(--md-sys-color-on-surface-variant);
+  pointer-events: none;
+}
+.m3-field--unit .m3-field__input { padding-right: 2.5rem; }
+/* The spinners crowd a field this narrow and the unit sits where they would. */
+.m3-field--unit input[type='number']::-webkit-outer-spin-button,
+.m3-field--unit input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.m3-field--unit input[type='number'] { -moz-appearance: textfield; appearance: textfield; }

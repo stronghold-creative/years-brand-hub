@@ -65,13 +65,34 @@ A page row holds its blocks as JSON. Each block is:
 ```
 
 - **data** is content, shaped by `block_types()` in `lib/blocks.php`
-- **settings** is placement, shared by all blocks: width, background, spacing,
-  rule, anchor
+- **settings** is placement, shared by all blocks: width, background (including
+  a colour of your own), spacing, rule, anchor, and a per-block corner radius and
+  padding in pixels
 - **options** are per-type appearance, from `block_options($type)`
 
 `sanitise_blocks()` strips anything not in those definitions before saving, so
 stored JSON can only contain known keys. A new block type needs an entry in
 `block_types()` plus a renderer in `app/blocks/`. **No migration.**
+
+**Radius and padding are per block, in pixels, and blank means follow the site.**
+`render_blocks()` emits `--zone-radius` and `--zone-pad` *only* when a block has
+a value of its own, so an untouched block gets no inline style at all and the
+stylesheet's fallback to the global Appearance setting is what runs. Blank is
+therefore stored as blank — never as the global's current number, or moving the
+global would stop reaching any block whose Placement panel had ever been opened.
+A non-numeric value is treated as blank rather than cast, because `(int) "abc"`
+is 0, which is a real setting meaning square corners.
+
+**The zone's padding, radius and `--s-radius-inner` are declared at the very end
+of `site.css`**, after the appearance-token layer, because at equal specificity
+the later rule wins. The earlier copies were removed rather than left as dead
+rules that read as authoritative.
+
+**A background can be a colour of your own.** It is a separate `background_hex`
+field rather than a value typed into the select, so switching to a named
+background and back does not lose it. Whether the text on it goes white is
+decided by `contrast_ratio()` in `render_blocks()`, not by eye: dark text on a
+dark colour someone has just chosen is the obvious way for this to go wrong.
 
 **Inheritance:** an option set to `inherit` falls back to the matching global
 setting through `block_option($options, $key, $fallback, $siteKey)`. That is

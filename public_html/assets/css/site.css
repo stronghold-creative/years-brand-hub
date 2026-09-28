@@ -966,7 +966,9 @@ body[data-card='outlined'] .swatches--cards .swatch { border: var(--s-border, 1p
 .index__lede h1 { font-weight: var(--s-headweight, 400); }
 .prose, .block .prose { max-width: var(--s-measure, 66ch); }
 .zone--sp-normal { margin-bottom: var(--s-gap, 4rem); }
-.zone--bg-tint, .zone--bg-purple, .zone--bg-dark { padding: var(--s-pad, 1.75rem); border-radius: var(--s-radius, 6px); }
+/* A zone's padding and radius are set at the very end of this file instead, so
+   that a per-block value can take precedence over the global one. Declaring
+   them here as well would be a dead rule that reads as the authoritative one. */
 
 /* ===========================================================================
    Nested corners
@@ -990,9 +992,9 @@ body[data-card='outlined'] .swatches--cards .swatch { border: var(--s-border, 1p
    obvious.
    =========================================================================== */
 
-.zone--bg-tint, .zone--bg-purple, .zone--bg-dark {
-  --s-radius-inner: max(0px, calc(var(--s-radius, 6px) - var(--s-pad, 1.75rem)));
-}
+/* A zone publishes its own --s-radius-inner at the end of this file, where it
+   can work from a per-block radius and padding when one has been set. Everything
+   above still applies; only the zone's own line moved. */
 
 /* Panels follow the chosen treatment. */
 body[data-card='outlined'] .zone--bg-tint,
@@ -2340,3 +2342,49 @@ html, body { overflow-x: clip; }
   padding-bottom: .75rem;
   border-bottom: 1px solid var(--rule);
 }
+
+/* ===========================================================================
+   Per-block radius, padding and background colour
+
+   Placed at the end of the file on purpose. The appearance-token rules above
+   set .zone--bg-* padding and radius from the global settings, and at equal
+   specificity the later rule wins — so these have to come after them, not
+   alongside, exactly as the media-query trap in the handover describes.
+
+   --zone-radius and --zone-pad are emitted by render_blocks() only when a block
+   has a value of its own. When it has not, nothing is emitted and these fall
+   through to the global, which is what almost every block should do.
+   =========================================================================== */
+
+.zone--bg-tint,
+.zone--bg-purple,
+.zone--bg-dark,
+.zone--bg-custom {
+  padding: var(--zone-pad, var(--s-pad, 1.75rem));
+  border-radius: var(--zone-radius, var(--s-radius, 6px));
+  /* The nested-corner rule, computed from whichever pair is in force. An inner
+     element reads this and cannot tell where the numbers came from. */
+  --s-radius-inner: max(0px, calc(
+    var(--zone-radius, var(--s-radius, 6px)) - var(--zone-pad, var(--s-pad, 1.75rem))
+  ));
+}
+
+/* A block with no background still takes a radius and padding if it is given
+   them: the ask was every block, and a padded block with no fill is a perfectly
+   ordinary thing to want. Nothing is emitted unless a value was set, so this
+   costs a block that has not been touched nothing at all. */
+.zone[style*="--zone-pad"] { padding: var(--zone-pad); }
+.zone[style*="--zone-radius"] { border-radius: var(--zone-radius); }
+
+.zone--bg-custom { background: var(--zone-bg, var(--raised)); }
+
+/* Chosen by measurement in render_blocks(), not by eye: dark text on a dark
+   colour someone has just picked is the obvious way for this to go wrong. */
+.zone--on-dark { color: #fff; }
+.zone--on-dark h2, .zone--on-dark h3, .zone--on-dark h4 { color: inherit; }
+.zone--on-dark a { color: #C7B6F0; }
+.zone--on-dark .block__note,
+.zone--on-dark .prose { color: rgba(255, 255, 255, .78); }
+
+body[data-card='outlined'] .zone--bg-custom { border: var(--s-border, 1px) solid var(--rule); }
+body[data-card='shadow'] .zone--bg-custom { box-shadow: 0 1px 2px rgba(31,31,31,.06), 0 8px 24px rgba(31,31,31,.06); }

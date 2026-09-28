@@ -820,7 +820,12 @@ function block_settings_fields(): array
             'tint'   => 'Soft tint',
             'purple' => 'Purple',
             'dark'   => 'Dark',
+            'custom' => 'A colour of your own',
         ]],
+        // Only read when the background is set to custom. Kept as its own field
+        // rather than overloading the select, so switching to a named background
+        // and back does not lose the colour that was chosen.
+        'background_hex' => ['type' => 'colour', 'label' => 'That colour', 'optional' => true],
         'spacing' => ['type' => 'select', 'label' => 'Space below', 'options' => [
             'normal' => 'Normal',
             'tight'  => 'Tight',
@@ -830,6 +835,25 @@ function block_settings_fields(): array
             'no'  => 'No',
             'yes' => 'Yes',
         ]],
+        /**
+         * Corner radius and padding, per block, in pixels.
+         *
+         * Blank means follow the site's Appearance setting, which is what almost
+         * every block should do — these exist for the one that genuinely needs to
+         * differ, not as a per-block design system. Blank is therefore the
+         * default, and an empty value is stored as empty rather than as the
+         * global's current number, or moving the global would stop reaching any
+         * block that had ever had this panel opened.
+         *
+         * Pixels because that is what was asked for and what a developer reads
+         * off a spec. The global is in rem, and the two mix perfectly well inside
+         * a calc().
+         */
+        'radius'  => ['type' => 'number', 'label' => 'Corner radius', 'unit' => 'px',
+                      'optional' => true, 'min' => 0, 'max' => 96],
+        'padding' => ['type' => 'number', 'label' => 'Padding', 'unit' => 'px',
+                      'optional' => true, 'min' => 0, 'max' => 160],
+
         'anchor' => ['type' => 'text', 'label' => 'Link anchor', 'optional' => true],
     ];
 }
@@ -938,12 +962,24 @@ function sanitise_blocks(array $blocks): array
         $settings = [];
         foreach (block_settings_fields() as $key => $field) {
             $value = $block['settings'][$key] ?? null;
-            if ($field['type'] === 'select') {
-                $settings[$key] = (string) (isset($field['options'][$value]) ? $value : array_key_first($field['options']));
-            } else {
+            $settings[$key] = match ($field['type']) {
+                'select' => (string) (isset($field['options'][$value]) ? $value : array_key_first($field['options'])),
+                'colour' => sanitise_colour((string) $value),
+                // Blank stays blank: it means "follow the site setting", and
+                // coercing it to 0 would pin a block at no radius for ever.
+                // Anything that is not a number is treated as blank rather than
+                // cast, because (int) "abc" is 0 — a real value meaning square
+                // corners — and silently choosing that for someone is worse than
+                // ignoring what they typed.
+                'number' => is_numeric(trim((string) $value))
+                    ? (string) max(
+                        (int) ($field['min'] ?? 0),
+                        min((int) ($field['max'] ?? 999), (int) $value)
+                    )
+                    : '',
                 // Anchors end up in a URL, so only safe characters survive.
-                $settings[$key] = strtolower(preg_replace('/[^A-Za-z0-9\-]/', '', (string) $value) ?? '');
-            }
+                default  => strtolower(preg_replace('/[^A-Za-z0-9\-]/', '', (string) $value) ?? ''),
+            };
         }
 
         $options = [];
@@ -1001,9 +1037,43 @@ function render_blocks(array $blocks, bool $editable = false, int $indexFrom = 0
             $classes[] = 'zone--ruled';
         }
 
+        /**
+         * Per-block radius, padding and background colour, as custom properties.
+         *
+         * Properties rather than direct declarations so the stylesheet keeps
+         * deciding *what* they apply to — the fill, the nested inner radius, the
+         * outline treatment — and this only supplies the numbers. A blank value
+         * emits nothing at all, so the stylesheet's own fallback to the global
+         * Appearance setting is what runs.
+         */
+        $style = '';
+        $custom = '';
+        if (!$isHero) {
+            if (($settings['radius'] ?? '') !== '') {
+                $style .= '--zone-radius:' . (int) $settings['radius'] . 'px;';
+            }
+            if (($settings['padding'] ?? '') !== '') {
+                $style .= '--zone-pad:' . (int) $settings['padding'] . 'px;';
+            }
+            if (($settings['background'] ?? '') === 'custom') {
+                $custom = sanitise_colour((string) ($settings['background_hex'] ?? ''));
+                if ($custom !== '') {
+                    $style .= '--zone-bg:' . $custom . ';';
+                }
+            }
+        }
+
+        // Dark text on a dark colour someone just chose is the obvious way for
+        // this to go wrong, so the choice is made here rather than left to them.
+        // The same measurement the contrast block uses.
+        if ($custom !== '' && contrast_ratio($custom, '#FFFFFF') > contrast_ratio($custom, '#1F1F1F')) {
+            $classes[] = 'zone--on-dark';
+        }
+
         printf(
-            '<div class="%s"%s%s>',
+            '<div class="%s"%s%s%s>',
             e(implode(' ', $classes)),
+            $style !== '' ? ' style="' . e($style) . '"' : '',
             $settings['anchor'] !== '' ? ' id="' . e($settings['anchor']) . '"' : '',
             $editable ? ' data-block="' . (int) $index . '"' : ''
         );
