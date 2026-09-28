@@ -74,6 +74,37 @@ A page row holds its blocks as JSON. Each block is:
 stored JSON can only contain known keys. A new block type needs an entry in
 `block_types()` plus a renderer in `app/blocks/`. **No migration.**
 
+**Body text carries bold, italic, code and links — as markers, never as HTML.**
+`rich_inline()` in `blocks.php` turns `**bold**`, `*italic*`, `` `code` `` and
+`[text](https://…)` into tags at render. **It runs on already-escaped text and
+must continue to**: that is the whole safety argument, and it is why "blocks
+never render raw HTML" is still exactly true. By the time it sees a value, `e()`
+has turned every `<` into `&lt;`, so nothing anyone typed can become a tag, and
+the only tags in the output are the four written there. A malformed marker
+renders as literal asterisks — visible and harmless.
+
+It also means a pasted Word document arrives as text and stays text: there is no
+sanitiser to keep in step with a browser's idea of what it may produce.
+
+Underscores are deliberately *not* italic markers. A brand hub writes down
+`--s-radius` and `figma_file_key` constantly.
+
+Only `longtext` fields have it, because only they render through `paragraphs()`.
+A single-line label renders through `e()` and would show the markers as
+asterisks.
+
+**`serialise()` in `preview-bridge.js` is the exact inverse, and the two have to
+stay that way.** Editing in place used to read a field with `innerText`, which
+strips tags — so a paragraph containing `<strong>` came back as bare text and the
+markers were gone for good, silently, on a page the writer was looking at. It now
+walks the DOM back to markers, which is also what makes ⌘B and ⌘I work in the
+canvas: whatever `execCommand` leaves behind, `<b>` or `<strong>`, serialises the
+same. Anything else a browser produces contributes its text and nothing more.
+
+`check-blocks.php` asserts both directions, including that a typed `<script>`, a
+`javascript:` link and a `data:` link never become markup. Verified by removing
+the `e()` and watching it fail.
+
 **Radius and padding are per block, in pixels, and blank means follow the site.**
 `render_blocks()` emits `--zone-radius` and `--zone-pad` *only* when a block has
 a value of its own, so an untouched block gets no inline style at all and the

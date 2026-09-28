@@ -164,6 +164,7 @@
     wrap.className = 'm3-field' + (dense ? ' m3-field--dense' : '');
     const id = 'f' + Math.random().toString(36).slice(2, 9);
     let input;
+    let richBar = null;
 
     if (def.type === 'longtext' || def.type === 'textarea') {
       input = document.createElement('textarea');
@@ -171,6 +172,12 @@
       input.rows = def.type === 'longtext' ? 5 : 2;
       input.placeholder = ' ';
       input.value = value || '';
+      // Only a longtext renders through paragraphs(), so only a longtext can
+      // hold formatting. A textarea's markers would show as asterisks.
+      if (def.type === 'longtext') {
+        wrap.classList.add('m3-field--rich');
+        richBar = buildRichBar(input, onInput);
+      }
     } else if (def.type === 'select') {
       wrap.classList.add('m3-field--select');
       input = document.createElement('select');
@@ -244,7 +251,93 @@
     label.textContent = def.label + (def.optional ? ' (optional)' : '');
 
     wrap.append(input, label);
+    if (richBar) wrap.append(richBar);
     return wrap;
+  }
+
+  /**
+   * Bold, italic, code and link, for a body field in the inspector.
+   *
+   * The markers are visible in the textarea as they are typed, which is the
+   * honest version of this: what is stored is plain text, and the field shows
+   * exactly that rather than pretending to be the page. The buttons are here so
+   * the markers are discoverable at all — nobody guesses at a convention.
+   *
+   * Wrapping a selection twice unwraps it, so the buttons toggle rather than
+   * stacking asterisks up.
+   */
+  function buildRichBar(input, onInput) {
+    const bar = document.createElement('div');
+    bar.className = 'richbar';
+
+    const marks = [
+      ['Bold', '**', 'B', 'richbar__btn--bold'],
+      ['Italic', '*', 'I', 'richbar__btn--italic'],
+      ['Code', '`', '<>', ''],
+    ];
+
+    marks.forEach(([title, mark, glyph, extra]) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'richbar__btn ' + extra;
+      button.title = title + (mark === '`' ? '' : ' (' + (isMac() ? '⌘' : 'Ctrl-') + glyph.toLowerCase() + ')');
+      button.textContent = glyph;
+      button.addEventListener('mousedown', (event) => event.preventDefault());
+      button.addEventListener('click', () => wrapSelection(input, mark, mark, onInput));
+      bar.append(button);
+    });
+
+    const link = document.createElement('button');
+    link.type = 'button';
+    link.className = 'richbar__btn';
+    link.title = 'Link';
+    link.textContent = 'Link';
+    link.addEventListener('mousedown', (event) => event.preventDefault());
+    link.addEventListener('click', () => {
+      const url = window.prompt('Link to (http:// or https://)');
+      if (!url || !/^https?:\/\//i.test(url)) return;
+      wrapSelection(input, '[', '](' + url + ')', onInput);
+    });
+    bar.append(link);
+
+    const note = document.createElement('span');
+    note.className = 'richbar__note';
+    note.textContent = '**bold**, *italic*';
+    bar.append(note);
+
+    return bar;
+  }
+
+  function isMac() {
+    return /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '');
+  }
+
+  function wrapSelection(input, before, after, onInput) {
+    const start = input.selectionStart;
+    const end = input.selectionEnd;
+    const value = input.value;
+    const chosen = value.slice(start, end);
+
+    // Already wrapped, so this is an unwrap. Without it a second click gives
+    // ****bold****, which renders as literal asterisks around bold text.
+    const outside = value.slice(Math.max(0, start - before.length), start) === before
+                 && value.slice(end, end + after.length) === after;
+
+    if (outside) {
+      input.value = value.slice(0, start - before.length) + chosen + value.slice(end + after.length);
+      input.setSelectionRange(start - before.length, end - before.length);
+    } else if (chosen.startsWith(before) && chosen.endsWith(after) && chosen.length > before.length + after.length) {
+      const inner = chosen.slice(before.length, chosen.length - after.length);
+      input.value = value.slice(0, start) + inner + value.slice(end);
+      input.setSelectionRange(start, start + inner.length);
+    } else {
+      input.value = value.slice(0, start) + before + chosen + after + value.slice(end);
+      // Nothing selected leaves the cursor between the markers, ready to type.
+      input.setSelectionRange(start + before.length, start + before.length + chosen.length);
+    }
+
+    input.focus();
+    onInput(input.value);
   }
 
   /**

@@ -1182,8 +1182,55 @@ function paragraphs(string $text): string
     $parts = preg_split("/\n\s*\n/", $text) ?: [];
     $out = '';
     foreach ($parts as $part) {
-        $out .= '<p>' . nl2br(e(trim($part))) . '</p>';
+        $out .= '<p>' . rich_inline(nl2br(e(trim($part)))) . '</p>';
     }
+    return $out;
+}
+
+/**
+ * Bold, italic, code and links, from markers in plain text.
+ *
+ * **THIS RUNS ON ALREADY-ESCAPED TEXT AND MUST CONTINUE TO.** That is the whole
+ * safety argument, and it is why the project's rule — blocks never render raw
+ * HTML — is still exactly true with formatting in place. What is stored is plain
+ * text: `**bold**`, never `<strong>`. By the time this sees it, `e()` has turned
+ * every `<` into `&lt;`, so nothing anyone typed can become a tag. The only tags
+ * in the output are the four written here. A malformed marker renders as literal
+ * asterisks, which is visible and harmless, rather than as broken markup.
+ *
+ * It also means a pasted Word document arrives as text and stays text. There is
+ * no sanitiser to keep in step with a browser's idea of what it may produce.
+ *
+ * Underscores are deliberately not italic markers. Token names are full of them
+ * — `--s-radius`, `figma_file_key` — and a brand hub is a document where those
+ * get written down constantly.
+ */
+function rich_inline(string $escaped): string
+{
+    // Bold before italic: the single-asterisk pattern would otherwise eat the
+    // first two of a `**`. The tags it writes contain no asterisks, so the
+    // second pass cannot reach inside them.
+    $out = preg_replace('/\*\*(?=\S)(.+?)(?<=\S)\*\*/s', '<strong>$1</strong>', $escaped) ?? $escaped;
+    $out = preg_replace('/(?<![\w*])\*(?=\S)([^*]+?)(?<=\S)\*(?![\w*])/s', '<em>$1</em>', $out) ?? $out;
+    $out = preg_replace('/`(?=\S)([^`]+?)(?<=\S)`/s', '<code>$1</code>', $out) ?? $out;
+
+    // Only http and https become links, as everywhere else in this project. A
+    // link to anything else renders as the literal text someone typed.
+    $out = preg_replace_callback(
+        '/\[(?=\S)([^\]]+?)\]\((https?:&#0*58;|https?:\/\/)([^\s)]*)\)/i',
+        function (array $m): string {
+            // e() leaves a colon alone, so the scheme arrives intact; the
+            // alternative above is only there in case an entity form appears.
+            $url = str_starts_with(strtolower($m[2]), 'http') && str_contains($m[2], '//')
+                ? $m[2] . $m[3]
+                : '';
+            return $url === ''
+                ? '[' . $m[1] . '](' . $m[2] . $m[3] . ')'
+                : '<a href="' . $url . '">' . $m[1] . '</a>';
+        },
+        $out
+    ) ?? $out;
+
     return $out;
 }
 

@@ -240,16 +240,60 @@
       return node.innerText.replace(/\n{3,}/g, '\n\n').trim();
     }
     return Array.from(paragraphs)
-      .map((p) => {
-        // A <br> inside a paragraph is a line break, not a new paragraph.
-        const html = p.innerHTML.replace(/<br\s*\/?>/gi, '\n');
-        const holder = document.createElement('div');
-        holder.innerHTML = html;
-        return holder.innerText.replace(/ /g, ' ').trim();
-      })
+      .map((p) => serialise(p).trim())
       .filter((text) => text !== '')
       .join('\n\n');
   }
+
+  /**
+   * The DOM back to the markers that produced it.
+   *
+   * Without this, formatting is destroyed by the next keystroke: the field used
+   * to be read with innerText, which strips tags, so a paragraph containing
+   * <strong>bold</strong> came back as "bold" and the ** was gone for good —
+   * silently, on a page the writer was looking at.
+   *
+   * It is the exact inverse of rich_inline() in blocks.php, and the two have to
+   * stay that way. It also means the browser's own bold and italic work in the
+   * canvas: whatever execCommand leaves behind — <b> or <strong>, <i> or <em> —
+   * serialises to the same markers.
+   *
+   * Anything else a browser produces on paste or a stray keystroke — a span with
+   * a style, a div, a font tag — contributes its text and nothing more. That is
+   * the point of storing text: there is no markup to sanitise, because none is
+   * kept.
+   */
+  function serialise(node) {
+    let out = '';
+
+    node.childNodes.forEach((child) => {
+      if (child.nodeType === Node.TEXT_NODE) {
+        // A non-breaking space is what contenteditable leaves at the end of a
+        // line. Stored as one it survives into the page and will not wrap.
+        out += child.nodeValue.replace(/ /g, ' ');
+        return;
+      }
+      if (child.nodeType !== Node.ELEMENT_NODE) return;
+
+      const tag = child.tagName.toLowerCase();
+      if (tag === 'br') { out += '\n'; return; }
+
+      const inner = serialise(child);
+      // An empty wrapper would otherwise produce "****", which renders as four
+      // literal asterisks.
+      if (inner.trim() === '') { out += inner; return; }
+
+      if (tag === 'strong' || tag === 'b')  { out += '**' + inner + '**'; }
+      else if (tag === 'em' || tag === 'i') { out += '*' + inner + '*'; }
+      else if (tag === 'code')              { out += '`' + inner + '`'; }
+      else if (tag === 'a' && /^https?:\/\//i.test(child.getAttribute('href') || '')) {
+        out += '[' + inner + '](' + child.getAttribute('href') + ')';
+      } else                                { out += inner; }
+    });
+
+    return out;
+  }
+
 
   function editableFields() {
     return Array.from(document.querySelectorAll('[data-field]'));
@@ -283,6 +327,28 @@
       // Enter in a single-line field would insert a break the field cannot
       // hold, so it ends the edit instead.
       node.addEventListener('keydown', (event) => {
+        /**
+         * Bold and italic, where the writing is happening.
+         *
+         * Only in a multiline field: the single-line ones are labels, captions
+         * and rule text, which render through e() rather than paragraphs() and
+         * would store the markers as literal asterisks.
+         *
+         * execCommand is deprecated and has no replacement for this. It is also
+         * the only thing that applies formatting to a selection inside
+         * contenteditable without writing a selection model by hand, and it
+         * works everywhere. Whatever it leaves behind — b or strong, i or em —
+         * serialise() reads back to the same markers.
+         */
+        const accel = event.metaKey || event.ctrlKey;
+        if (accel && node.dataset.multiline !== undefined && (event.key === 'b' || event.key === 'i')) {
+          event.preventDefault();
+          document.execCommand(event.key === 'b' ? 'bold' : 'italic');
+          // execCommand does not fire input, so the change has to be sent.
+          node.dispatchEvent(new Event('input', { bubbles: true }));
+          return;
+        }
+
         if (event.key === 'Enter' && node.dataset.multiline === undefined) {
           event.preventDefault();
           node.blur();

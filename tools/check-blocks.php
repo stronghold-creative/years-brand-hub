@@ -312,6 +312,45 @@ foreach (['empty', 'filled', 'gappy'] as $mode) {
 }
 
 /**
+ * Inline formatting.
+ *
+ * rich_inline() is the only place this project turns stored text into tags, and
+ * its safety rests on running *after* e() — so what reaches it can no longer
+ * contain a `<`. These assertions exist because that ordering is one edit away
+ * from being wrong and nothing about the page would look different if it were.
+ */
+foreach ([
+    ['**bold**',                    '<strong>bold</strong>',        'bold'],
+    ['*italic*',                    '<em>italic</em>',              'italic'],
+    ['`--s-radius`',                '<code>--s-radius</code>',      'code'],
+    ['[Years](https://years.com)',  '<a href="https://years.com">Years</a>', 'a link'],
+] as [$input, $expected, $what]) {
+    if (!str_contains(paragraphs($input), $expected)) {
+        $problems[] = "rich_inline does not render $what";
+    }
+}
+
+foreach ([
+    ['<script>alert(1)</script>',   '<script',  'a typed script tag'],
+    ['<b>typed</b>',                '<b>',      'typed markup'],
+    ['[x](javascript:alert(1))',    '<a ',      'a javascript: link'],
+    ['[x](data:text/html,y)',       '<a ',      'a data: link'],
+] as [$input, $forbidden, $what]) {
+    if (str_contains(paragraphs($input), $forbidden)) {
+        $problems[] = "rich_inline lets $what through";
+    }
+}
+
+// Token names and arithmetic are ordinary content in a brand hub and must come
+// out exactly as they went in.
+foreach (['a --s-radius and figma_file_key', '2 * 3 = 6', 'an * orphan', '**unclosed'] as $plain) {
+    $rendered = paragraphs($plain);
+    if (str_contains($rendered, '<em>') || str_contains($rendered, '<strong>')) {
+        $problems[] = "rich_inline formats \"$plain\", which is plain text";
+    }
+}
+
+/**
  * Every block type needs a group and an icon for the chooser.
  *
  * Neither fails loudly: a missing group drops the block into an "Other" heading
