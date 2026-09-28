@@ -280,7 +280,7 @@ if (preg_match('#^/admin/pages/(\d+)$#', $path, $m)) {
     view('admin/edit', [
         'title'     => $page['title'],
         'page'      => $page,
-        'blocks'    => json_decode($page['blocks'], true) ?: [],
+        'blocks'    => block_upgrade(json_decode($page['blocks'], true) ?: []),
         'fullBleed' => true,
     ], 'admin/layout');
     exit;
@@ -334,7 +334,7 @@ if (preg_match('#^/admin/pages/(\d+)/preview$#', $path, $m)) {
     view('preview', [
         'title'   => $page['title'],
         'page'    => $page,
-        'blocks'  => json_decode($page['blocks'], true) ?: [],
+        'blocks'  => block_upgrade(json_decode($page['blocks'], true) ?: []),
         'config'  => $config,
         'editing' => isset($_GET['edit']),
     ], null);
@@ -571,7 +571,7 @@ if (preg_match('#^/admin/components/(\d+)/docs$#', $path, $m)) {
     view('admin/component-docs', [
         'title'     => $component['name'] . ' guidance',
         'component' => $component,
-        'blocks'    => json_decode((string) $component['docs'], true) ?: [],
+        'blocks'    => block_upgrade(json_decode((string) $component['docs'], true) ?: []),
         'fullBleed' => true,
     ], 'admin/layout');
     exit;
@@ -602,7 +602,7 @@ if (preg_match('#^/admin/components/(\d+)/docs/preview$#', $path, $m)) {
     }
     view('component-docs-preview', [
         'component' => $component,
-        'blocks'    => json_decode((string) $component['docs'], true) ?: [],
+        'blocks'    => block_upgrade(json_decode((string) $component['docs'], true) ?: []),
         'editing'   => isset($_GET['edit']),
     ], null);
     exit;

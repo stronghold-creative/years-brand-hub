@@ -8,11 +8,12 @@
  *
  * @var array $data @var array $options
  */
-$layout = block_option($options, 'layout', 'strip');
-$height = block_option($options, 'height', 'medium');
-$labels = block_option($options, 'labels', 'inside');
-$values = block_option($options, 'values', 'hover');
-$naming = block_option($options, 'name', 'above');
+$layout  = block_option($options, 'layout', 'strip');
+$height  = block_option($options, 'height', 'medium');
+$labels  = block_option($options, 'labels', 'inside');
+$values  = block_option($options, 'values', 'hover');
+$naming  = block_option($options, 'name', 'above');
+$corners = block_option($options, 'corners', 'inherit');
 
 // The keys are kept, not renumbered with array_values(), because editable()
 // paths are routes into the stored data: a family that was filtered out still
@@ -25,7 +26,7 @@ $families = array_filter(
     fn($family) => !empty(array_filter((array) ($family['steps'] ?? []), fn($s) => sanitise_colour((string) ($s['hex'] ?? '')) !== ''))
 );
 ?>
-<section class="block block--ramp ramps--<?= e($layout) ?> ramps--h-<?= e($height) ?> ramps--name-<?= e($naming) ?>">
+<section class="block block--ramp ramps--<?= e($layout) ?> ramps--h-<?= e($height) ?> ramps--name-<?= e($naming) ?> ramps--c-<?= e($corners) ?>">
   <?php if (!empty($data['heading'])): ?>
     <h3<?= editable('heading') ?>><?= e($data['heading']) ?></h3>
   <?php endif; ?>
@@ -56,6 +57,16 @@ $families = array_filter(
           <li class="ramp__step<?= $onDark ? ' is-dark' : '' ?>" style="--step: <?= e($hex) ?>">
             <button class="ramp__chip" type="button" data-copy="<?= e($hex) ?>"
                     aria-label="Copy <?= e($name !== '' ? $name . ', ' : '') ?><?= e($hex) ?>">
+              <?php // Every step is a copy button and nothing said so until you
+                    // hovered, so most people never found out. A mark in the
+                    // corner says it is clickable before it is touched. ?>
+              <span class="ramp__copy" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+                     stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="9" y="9" width="11" height="11" rx="2"/>
+                  <path d="M5 15V5a2 2 0 0 1 2-2h8"/>
+                </svg>
+              </span>
               <?php if ($labels === 'inside' && $name !== ''): ?>
                 <span class="ramp__label"><?= e($name) ?></span>
               <?php endif; ?>
@@ -74,4 +85,10 @@ $families = array_filter(
       </ul>
     </div>
   <?php endforeach; ?>
+
+  <?php // Said once for the block rather than on every step, where it would be
+        // noise on a ramp of eleven. ?>
+  <?php if ($families): ?>
+    <p class="ramp__hint">Click any step to copy its value.</p>
+  <?php endif; ?>
 </section>

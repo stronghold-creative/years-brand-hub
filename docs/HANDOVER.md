@@ -74,6 +74,15 @@ A page row holds its blocks as JSON. Each block is:
 stored JSON can only contain known keys. A new block type needs an entry in
 `block_types()` plus a renderer in `app/blocks/`. **No migration.**
 
+**A change of block shape is code, not SQL, and must run before the editor sees
+it.** Blocks are JSON on a row, which is what makes a new block type need no
+migration; the price is that a *renamed or restructured* field has to be brought
+forward by `block_upgrade()` in `blocks.php`. It runs on every path that reads
+blocks — rendering, the editor, both previews — because `sanitise_blocks()` drops
+anything the definitions do not name: open a page, save it, and whatever was not
+migrated is gone. It is idempotent and never runs on save. `do_dont`'s paired
+rows becoming two independent lists is the worked example.
+
 **Body text carries bold, italic, code and links — as markers, never as HTML.**
 `rich_inline()` in `blocks.php` turns `**bold**`, `*italic*`, `` `code` `` and
 `[text](https://…)` into tags at render. **It runs on already-escaped text and
@@ -128,6 +137,13 @@ dark colour someone has just chosen is the obvious way for this to go wrong.
 **Inheritance:** an option set to `inherit` falls back to the matching global
 setting through `block_option($options, $key, $fallback, $siteKey)`. That is
 what makes Appearance in the admin move every block not deliberately overridden.
+
+**`do_dont` is two independent lists, not paired rows.** Each column has its own
+heading, so it covers Do/Do not, "we say"/"we do not say" and Use/Avoid
+without three block types, and the two sides can be different lengths because
+nothing on the left is the counterpart of anything on the right. A column with
+nothing in it is not drawn, so a one-sided block shows one column rather than
+one column and a gap. Old paired content is folded in by `block_upgrade()`.
 
 The 28 block types: heading, rich_text, colour_palette, colour_ramp,
 colour_story, type_specimen, do_dont, image, image_grid, comparison_table,
@@ -644,6 +660,14 @@ context and a menu inside one cannot paint above later rows. Raise the row.
 **`[hidden]` loses to any class that sets `display`.** Anything hidden from
 JavaScript needs its own `[hidden] { display: none }` rule. `.m3-asset`,
 `.m3-list-item` and `.m3-section` all have one.
+
+**An `editable()` region must contain the text and nothing else.** The two-column
+guidance block draws a tick before each column heading, and marking the whole
+heading editable meant editing it in place read the tick back as part of the
+label — so the first keystroke would have stored "✓ We say". Wrap the words in
+their own span, as an accordion's summary already does. `check-blocks.php --edit`
+catches this by comparing the text on the page with the value the path points at,
+which is exactly what it was written for.
 
 **A state expressed as different markup will drift.** The rail styled the
 current section differently because it rendered a `<span>` where the others

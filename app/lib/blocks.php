@@ -142,21 +142,43 @@ function block_types(): array
             ],
         ],
 
+        /**
+         * Two columns, each its own list.
+         *
+         * It used to be one list of rows, each tagged Do or Do not, which is the
+         * right shape when the two genuinely correspond — this, not that. It is
+         * the wrong shape for "we say / we do not say", where the two sides are
+         * simply two lists of different lengths and nothing on the left is the
+         * counterpart of anything on the right.
+         *
+         * The column headings are yours, so the block covers Do/Do not, We
+         * say/We do not say, and Use/Avoid without three block types.
+         */
         'do_dont' => [
-            'label'  => 'Do and do not',
-            'hint'   => 'Paired guidance. Keep each line to one rule.',
+            'label'  => 'Two columns of guidance',
+            'hint'   => 'Do and do not, we say and we do not say. Two lists, added to separately.',
             'group'  => 'Guidance',
             'icon'   => 'dodont',
             'fields' => [
-                'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
-                'pairs'   => [
+                'heading'    => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
+                'do_label'   => ['type' => 'text', 'label' => 'Left column heading', 'optional' => true],
+                'dont_label' => ['type' => 'text', 'label' => 'Right column heading', 'optional' => true],
+                'dos' => [
                     'type'   => 'repeater',
-                    'label'  => 'Rules',
-                    'item'   => 'Rule',
+                    'label'  => 'Left column',
+                    'item'   => 'Line',
                     'fields' => [
-                        'stance' => ['type' => 'select', 'label' => 'Type', 'options' => ['do' => 'Do', 'dont' => 'Do not']],
-                        'rule'   => ['type' => 'text', 'label' => 'Rule'],
-                        'why'    => ['type' => 'textarea', 'label' => 'Why', 'optional' => true],
+                        'text' => ['type' => 'text', 'label' => 'Line'],
+                        'why'  => ['type' => 'textarea', 'label' => 'Why', 'optional' => true],
+                    ],
+                ],
+                'donts' => [
+                    'type'   => 'repeater',
+                    'label'  => 'Right column',
+                    'item'   => 'Line',
+                    'fields' => [
+                        'text' => ['type' => 'text', 'label' => 'Line'],
+                        'why'  => ['type' => 'textarea', 'label' => 'Why', 'optional' => true],
                     ],
                 ],
             ],
@@ -586,7 +608,11 @@ function block_options(string $type): array
                 'strip' => 'Continuous strip', 'separate' => 'Separate swatches',
             ]],
             'height' => ['label' => 'Ramp height', 'options' => [
-                'short' => 'Short', 'medium' => 'Medium', 'tall' => 'Tall',
+                'medium' => 'Medium', 'short' => 'Short', 'tall' => 'Tall',
+            ]],
+            'corners' => ['label' => 'Corners', 'options' => [
+                'inherit' => 'Site default', 'square' => 'Square',
+                'round' => 'Rounded', 'pill' => 'Pill',
             ]],
             'labels' => ['label' => 'Step labels', 'options' => [
                 'inside' => 'Inside the ramp', 'below' => 'Below it', 'none' => 'None',
@@ -649,7 +675,10 @@ function block_options(string $type): array
         ],
         'do_dont' => [
             'layout' => ['label' => 'Layout', 'options' => [
-                'rows' => 'Rows', 'columns' => 'Two columns',
+                'columns' => 'Side by side', 'rows' => 'Stacked',
+            ]],
+            'markers' => ['label' => 'Tick and cross', 'options' => [
+                'show' => 'Show', 'hide' => 'Hide',
             ]],
         ],
         'image' => [
@@ -947,6 +976,55 @@ function sanitise_fields(array $fields, array $values, int $depth = 0): array
     return $clean;
 }
 
+/**
+ * Brings stored blocks up to the current shape.
+ *
+ * `sanitise_blocks()` strips anything the definitions do not name, which is what
+ * makes stored JSON trustworthy — and it is also why a field that is renamed or
+ * restructured has to be migrated *before* the editor ever sees it. Open a page,
+ * save it, and whatever was not migrated is gone.
+ *
+ * So this runs on every path that reads blocks: rendering, the editor, and the
+ * preview. It is idempotent, it never runs on save, and a block already in the
+ * new shape is returned untouched.
+ *
+ * There is no migration file for this. The blocks are JSON on a row, which is
+ * what makes a new block type need no migration; the price is that a change of
+ * shape is code rather than SQL, and has to be written here.
+ */
+function block_upgrade(array $blocks): array
+{
+    foreach ($blocks as $i => $block) {
+        if (($block['type'] ?? '') !== 'do_dont' || empty($block['data']['pairs'])) {
+            continue;
+        }
+
+        // Paired rows became two independent lists. Each row's stance decides
+        // which column it lands in, and the order within a column is the order
+        // the rows were in, so a page reads the same afterwards.
+        $dos = $blocks[$i]['data']['dos'] ?? [];
+        $donts = $blocks[$i]['data']['donts'] ?? [];
+
+        foreach ((array) $block['data']['pairs'] as $pair) {
+            $line = ['text' => (string) ($pair['rule'] ?? ''), 'why' => (string) ($pair['why'] ?? '')];
+            if ($line['text'] === '' && $line['why'] === '') {
+                continue;
+            }
+            if (($pair['stance'] ?? 'do') === 'dont') {
+                $donts[] = $line;
+            } else {
+                $dos[] = $line;
+            }
+        }
+
+        $blocks[$i]['data']['dos'] = $dos;
+        $blocks[$i]['data']['donts'] = $donts;
+        unset($blocks[$i]['data']['pairs']);
+    }
+
+    return $blocks;
+}
+
 function sanitise_blocks(array $blocks): array
 {
     $types = block_types();
@@ -1007,6 +1085,9 @@ function sanitise_blocks(array $blocks): array
 function render_blocks(array $blocks, bool $editable = false, int $indexFrom = 0): void
 {
     block_editing($editable);
+    // Old shapes brought forward before anything is drawn, so a page written
+    // against a previous definition still renders and still reads the same.
+    $blocks = block_upgrade($blocks);
 
     foreach ($blocks as $offset => $block) {
         $index = $indexFrom + (int) $offset;
