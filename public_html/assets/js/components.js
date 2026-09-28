@@ -139,6 +139,7 @@
         });
 
         load(chip.getAttribute('data-frame-src'));
+        showFor(chip.getAttribute('data-variant-id'));
 
         // The URL follows, so a reload or a shared link opens the same variant.
         if (window.history && window.history.replaceState) {
@@ -147,6 +148,20 @@
       });
     });
   });
+
+  /**
+   * Everything else that belongs to the variant on screen: its note, and its
+   * code panel. Both are written out for every variant and hidden, so switching
+   * costs no request — and both have to move with the frame, or the page shows
+   * one variant and describes another.
+   */
+  function showFor(id) {
+    if (!id) return;
+    document.querySelectorAll('[data-variant-note], [data-variant-code]').forEach(function (node) {
+      const owner = node.getAttribute('data-variant-note') || node.getAttribute('data-variant-code');
+      node.hidden = owner !== String(id);
+    });
+  }
 
   /**
    * Everything that changes what the frame shows goes through here, and the path

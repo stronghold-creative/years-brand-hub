@@ -61,6 +61,8 @@ $expected = [
     'POST /admin/components/7/meta'    => '/admin/components/7/meta',
     'GET  /admin/components/7/versions'=> '/admin/components/7/versions',
     'POST /admin/components/7/restore/4' => '/admin/components/7/restore/4',
+    'GET  /components'                 => '/components',
+    'GET  /components/button'          => '/components/button',
 ];
 
 $failed = 0;

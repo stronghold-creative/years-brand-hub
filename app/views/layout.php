@@ -133,5 +133,10 @@ $reading = $chrome === 'reading';
 <script src="<?= e(asset_url('/assets/js/motion-ui.js')) ?>"></script>
 <script src="<?= e(asset_url('/assets/js/site.js')) ?>"></script>
 <script src="<?= e(asset_url('/assets/js/search.js')) ?>"></script>
+<?php // Only the component page has a preview to drive, and it is the only page
+      // that pays for this file. The index's thumbnails need no script. ?>
+<?php if (!empty($needsComponentJs)): ?>
+  <script src="<?= e(asset_url('/assets/js/components.js')) ?>"></script>
+<?php endif; ?>
 </body>
 </html>

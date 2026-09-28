@@ -244,6 +244,71 @@ require APP_DIR . '/views/admin/component-versions.php';
 $broken = ob_get_clean();
 ok('a corrupt snapshot does not break the page', strlen($broken) > 500);
 
+echo "\nThe public component page\n";
+
+// Re-established, because the list view above loops `as $component` and a
+// template's variables land in this scope — which is exactly how the first run
+// of this section ended up rendering the page for the wrong component and
+// reporting it as a failing assertion rather than as the muddle it was.
+$component = [
+    'id' => 7, 'slug' => 'button', 'name' => 'Button', 'group_name' => 'Actions',
+    'status' => 'ready', 'summary' => null, 'figma_url' => null,
+    'base_css' => '.btn { border-radius: var(--s-radius); }', 'base_js' => '',
+    'docs' => '[]', 'notes_override' => '{}', 'sort_order' => 0,
+    'updated_at' => '2026-09-27 10:00:00',
+];
+
+// The page a reader sees. It shows the markup twice — live in the frame, and
+// escaped in the code panel for copying — and the second is the one that would
+// be stored XSS if it were ever written unescaped.
+$open = $variants[1];                                  // the hostile one
+$docs = [];
+function render_blocks(array $blocks, bool $editable = false, int $from = 0): void {}
+function can_edit(): bool { return false; }
+
+ob_start();
+require APP_DIR . '/views/component.php';
+$public = ob_get_clean();
+
+ok('the component page rendered',            strlen($public) > 1000);
+ok('no live script in the code panel',       !str_contains($public, '<script>alert(2)'));
+ok('no live onerror in the code panel',      !str_contains($public, 'onerror="alert'));
+ok('the markup is offered, escaped',         str_contains($public, '&lt;img src=x'));
+ok('every variant has a code panel',         substr_count($public, 'data-variant-code=') === count($variants));
+ok('the variant chips are real links',       str_contains($public, 'href="/components/button?v='));
+
+$sandbox = preg_match('/<iframe[^>]*\bsandbox="([^"]*)"/i', $public, $pm) ? trim($pm[1]) : null;
+ok('its frame is sandboxed the same way',    $sandbox === 'allow-scripts');
+
+echo "\nThe public index\n";
+
+// Shaped as components_with_variants() leaves them: the variants attached, in
+// one query, rather than the view asking per card.
+$components = [
+    ['id' => 7, 'slug' => 'button', 'name' => 'Button', 'group_name' => 'Actions',
+     'status' => 'ready', 'summary' => 'The one most often misused.', 'variants' => $variants],
+    ['id' => 8, 'slug' => 'card', 'name' => 'Card', 'group_name' => 'Commerce',
+     'status' => 'deprecated', 'summary' => null, 'variants' => []],
+];
+$groups = components_by_group($components);
+
+ob_start();
+require APP_DIR . '/views/components.php';
+$index = ob_get_clean();
+
+ok('the index rendered',                     strlen($index) > 500);
+ok('a card links to its component',          str_contains($index, 'href="/components/button"'));
+ok('a thumbnail is a sandboxed frame',       str_contains($index, 'sandbox="allow-scripts"'));
+ok('a thumbnail is lazy',                    str_contains($index, 'loading="lazy"'));
+ok('a component with no variants says so',   str_contains($index, 'Nothing to show yet'));
+ok('deprecated is labelled',                 str_contains($index, 'Deprecated'));
+
+$components = [];
+$groups = [];
+ob_start();
+require APP_DIR . '/views/components.php';
+ok('the index renders when empty',           strlen(ob_get_clean()) > 200);
+
 echo "\nReading a Figma link\n";
 
 foreach ([

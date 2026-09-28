@@ -1,8 +1,8 @@
 # The component library: scope
 
-A Storybook for Years, inside the brand hub. **Phases 1 to 3 of 8 are built** —
-the tables, the library, the admin list, the live sandboxed preview with the
-variants and base CSS that feed it, and the details editor with version history.
+A Storybook for Years, inside the brand hub. **Phases 1 to 4 of 8 are built, and
+it is usable** — the tables, the admin list, the live sandboxed preview, the
+details editor with version history, and the public index and component pages.
 This is the agreed shape, written down
 before any code, so the build can be picked up one phase at a time. Decisions
 here were taken 27 September 2026; where one went against the cheaper option,
@@ -245,7 +245,7 @@ than the build.
 | **1. Spine** ✔ **built** | `009_components.sql`, `lib/components.php`, the admin list, Add, Delete, reorder, the drawer item and its icon. No preview, no import | — |
 | **2. Sandbox** ✔ **built** | The frame route, its CSP, the height bridge, the preview with variant and viewport switchers, and — moved forward from phase 3 — the variants and base CSS that feed it | 1 |
 | **3. Editor** ✔ **built** | Details (name, slug, group, status, summary, Figma link, JS), version history with restore, an unsaved-changes guard in place of autosave. `notes_override` moved to phase 5, where the spec it overrides exists | 1, 2 |
-| **4. Public** | `/components` index with live thumbnails, `/components/{slug}`, the code panel and copy button | 2, 3 |
+| **4. Public** ✔ **built** | `/components` index with live thumbnails, `/components/{slug}`, the code panel and copy button. The `docs` blocks render here too; phase 7 is now only the editing side | 2, 3 |
 | **5. Derived spec** | The CSS pass, token matching, the flag, `notes_override` | 3 |
 | **6. Import** | The Import panel, detection, the Dev Mode split, the `figmeta` refusal | 3 |
 | **7. Docs blocks** | The `docs` column wired to the existing block editor and renderer | 3, 4 |
@@ -403,6 +403,60 @@ Decisions worth knowing before phase 4:
   copied, so the thinning policy cannot drift between the two. The table and column
   are interpolated, not bound, so they are whitelisted against a hardcoded map.
 
+### What phase 4 actually shipped
+
+**The library is usable from here.** Someone who cannot edit can now find a
+component, see it, switch its states and copy its code.
+
+- `app/views/components.php` — the index, replacing the placeholder. Grouped,
+  each card carrying the component rendered in its own sandboxed frame.
+- `app/views/component.php` — the component page: the preview with its switchers,
+  a code panel per variant plus the CSS and any JS, the variant notes, the `docs`
+  blocks, and an Open in Figma link.
+- Routes `/components` (rewritten) and `/components/{slug}`, with `?v=` to open a
+  named state.
+- `components_visible()`, `components_with_variants()`, `components_by_group()`,
+  `component_is_visible()`.
+- The public side of `components.js`: the code panel and the note follow the
+  variant chips.
+- The component styles at the end of `site.css`.
+
+Decisions worth knowing:
+
+- **The thumbnail is the component, not a picture of it.** A screenshot would
+  have to be generated, stored and regenerated whenever the CSS moved — and the
+  one time it was not, the index would be advertising something that no longer
+  exists. This cannot go out of date. The cost is an iframe per card, kept
+  reasonable by showing only the default variant, `loading="lazy"`, and no height
+  bridge on thumbnails: they are a fixed cropped window, because twenty frames
+  each reporting and resizing would reflow the index continuously as it loaded.
+  If it ever gets slow at a hundred components, page the index rather than going
+  back to pictures.
+- **`pointer-events: none` on the thumbnail frame.** Without it the component
+  inside catches the click and the card, which is one link, does nothing.
+- **An editor sees drafts on the public index**, as the search index already
+  gives an editor a copy with drafts in it. Otherwise you build a component, open
+  the public page to check it, and find nothing there.
+- **Deprecated components stay listed, for everyone.** That is the point of the
+  status — it says do not use this for anything new, which is exactly what a
+  reader needs to know. Delisting it only means someone copies it out of the
+  theme instead.
+- **`component_is_visible()` is one function, not a condition repeated at three
+  routes.** The day one of them is written slightly differently is the day a
+  draft component is public.
+- **Every variant's code panel is on the page, hidden.** Switching costs no
+  request, and the panel and the note move with the frame — a page showing one
+  variant and describing another is worse than one that reloads.
+- **The CSS panel is base plus variant, concatenated.** The variant's CSS alone
+  is missing the half that makes it look like anything, and someone copying it
+  needs both.
+- **`components_with_variants()` loads them in one query.** The index needs each
+  component's variants for the thumbnail and the count, and asking per card is a
+  query per card — fine at five, not at fifty, and never noticed until the index
+  is slow and nobody remembers why.
+- **`components.js` loads on the component page only**, behind
+  `$needsComponentJs`. The index's thumbnails need no script.
+
 ### Three bugs the check found in phase 3
 
 Worth recording, because each was invisible and each was found by an assertion
@@ -418,6 +472,13 @@ rather than by looking:
    `ob_start()`, so the handler's output went into the buffer and was discarded
    with it — `$failed` went up and nothing said why. The handler writes to STDERR
    now.
+
+And one in phase 4, of the same family: the check renders the admin list, which
+loops `as $component`, and a template's variables land in the calling scope — so
+the public component page below it was rendered for the wrong component, and
+reported as a failing assertion rather than as the muddle it actually was. The
+check re-establishes `$component` before that section. Worth knowing generally:
+`view()` uses `extract()`, so every template shares one scope with its caller.
 
 **Deferred, on purpose:** the Figma REST API sync; a props table; per-component
 theming beyond the site tokens; versioning of variants independently of their

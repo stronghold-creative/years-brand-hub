@@ -137,16 +137,94 @@ function components_all(): array
     );
 }
 
-/** Just the ones a reader may see. */
-function components_published(): array
+/**
+ * The ones to show on the public index.
+ *
+ * An editor sees drafts as well, exactly as the search index gives an editor a
+ * copy with drafts in it — the alternative is building a component, opening the
+ * public page to check it, and finding nothing there.
+ *
+ * Deprecated components stay listed for everyone. That is the point of the
+ * status: it says do not use this for anything new, which is information a
+ * reader needs, and delisting it only means someone copies it out of the theme
+ * instead.
+ */
+function components_visible(): array
 {
     if (!components_installed()) {
         return [];
     }
+    if (can_edit()) {
+        return db_all(
+            'SELECT id, slug, name, group_name, status, summary
+               FROM components ORDER BY group_name, sort_order, name'
+        );
+    }
     return db_all(
         "SELECT id, slug, name, group_name, status, summary
-           FROM components WHERE status = 'ready' ORDER BY group_name, sort_order, name"
+           FROM components WHERE status IN ('ready', 'deprecated')
+          ORDER BY group_name, sort_order, name"
     );
+}
+
+/**
+ * Attaches each component's variants, in one query rather than one per card.
+ *
+ * The index needs them for the thumbnail and the count, and asking per component
+ * is a query per card — fine at five components, not at fifty, and the sort of
+ * thing that is never noticed until the index is slow and nobody remembers why.
+ *
+ * Only the columns the index uses are fetched. `markup` and `variant_css` are
+ * whole documents and the index renders neither: it points an iframe at the
+ * frame route, which loads them itself.
+ */
+function components_with_variants(array $components): array
+{
+    if (!$components || !components_installed()) {
+        return $components;
+    }
+    $ids = array_map('intval', array_column($components, 'id'));
+    $marks = implode(',', array_fill(0, count($ids), '?'));
+
+    $byComponent = [];
+    foreach (db_all(
+        "SELECT id, component_id, label, is_default, sort_order
+           FROM component_variants WHERE component_id IN ($marks) ORDER BY sort_order, id",
+        $ids
+    ) as $variant) {
+        $byComponent[(int) $variant['component_id']][] = $variant;
+    }
+
+    foreach ($components as $i => $component) {
+        $components[$i]['variants'] = $byComponent[(int) $component['id']] ?? [];
+    }
+    return $components;
+}
+
+/** Grouped for the index, in the order the admin list puts them. */
+function components_by_group(array $components): array
+{
+    $out = [];
+    foreach ($components as $component) {
+        $out[$component['group_name']][] = $component;
+    }
+    ksort($out);
+    return $out;
+}
+
+/**
+ * Whether this component may be shown to whoever is asking.
+ *
+ * One function rather than the same two-part condition written out at each of
+ * the three public routes, because the day one of them is written slightly
+ * differently is the day a draft component is public.
+ */
+function component_is_visible(?array $component): bool
+{
+    if (!$component) {
+        return false;
+    }
+    return can_edit() || in_array($component['status'], ['ready', 'deprecated'], true);
 }
 
 function component_find(int $id): ?array

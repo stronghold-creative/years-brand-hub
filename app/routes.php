@@ -75,7 +75,7 @@ if (preg_match('#^/components/([a-z0-9\-]+)/frame/(\d+)$#', $path, $m)) {
     }
 
     $component = component_find_slug($m[1]);
-    if (!$component || ($component['status'] !== 'ready' && !can_edit())) {
+    if (!component_is_visible($component)) {
         not_found();
     }
 
@@ -99,10 +99,60 @@ if ($path === '/components') {
     if (site_is_private($config) && !current_user()) {
         redirect('/admin/sign-in');
     }
-    if (!components_enabled()) {
+    // An editor gets in while the area is still switched off, or the area could
+    // never be filled before being turned on.
+    if (!components_enabled() && !can_edit()) {
         not_found();
     }
-    view('components', ['title' => 'Components', 'currentArea' => 'components', 'config' => $config]);
+    $components = components_with_variants(components_visible());
+    view('components', [
+        'title'       => 'Components',
+        'currentArea' => 'components',
+        'config'      => $config,
+        'components'  => $components,
+        'groups'      => components_by_group($components),
+    ]);
+    exit;
+}
+
+// One component: the real thing, its variants, its code and the rules.
+if (preg_match('#^/components/([a-z0-9\-]+)$#', $path, $m)) {
+    if (site_is_private($config) && !current_user()) {
+        redirect('/admin/sign-in');
+    }
+    if (!components_enabled() && !can_edit()) {
+        not_found();
+    }
+
+    $component = component_find_slug($m[1]);
+    if (!component_is_visible($component)) {
+        not_found();
+    }
+
+    $variants = component_variants((int) $component['id']);
+
+    // ?v= opens a named variant, so a link to one state can be shared. An id
+    // that is not this component's falls back to the default rather than 404ing:
+    // a stale link should still land on the component.
+    $open = component_default_variant($variants);
+    foreach ($variants as $variant) {
+        if ((int) $variant['id'] === (int) ($_GET['v'] ?? 0)) {
+            $open = $variant;
+            break;
+        }
+    }
+
+    view('component', [
+        'title'       => $component['name'],
+        'description' => $component['summary'] ?? '',
+        'currentArea' => 'components',
+        'config'      => $config,
+        'component'   => $component,
+        'variants'    => $variants,
+        'open'        => $open,
+        // The preview needs components.js, and no other public page does.
+        'needsComponentJs' => true,
+    ]);
     exit;
 }
 

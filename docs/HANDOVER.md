@@ -40,7 +40,7 @@ app/
     versions.php               version recording, collapsing and pruning
     view.php                   template rendering
   blocks/                      25 renderers, one per block type
-  views/                       20 templates, public and admin
+  views/                       21 templates, public and admin
 db/                            9 migrations, applied in filename order
 public_html/                   the only web-accessible directory
 storage/                       uploads and caches, never deployed
@@ -251,8 +251,9 @@ Search filters on label and hint.
 
 ## 4b. The component library
 
-**Phases 1 to 3 of 8 are built. The spec is `docs/COMPONENTS.md`; read it before
-continuing, and start at phase 4, the public pages.**
+**Phases 1 to 4 of 8 are built, and the library is usable. The spec is
+`docs/COMPONENTS.md`; read it before continuing, and start at phase 5, the
+derived spec table.**
 
 A Storybook for Years, living in the Components area that `components_enabled`
 already gates. One page per component: the real thing rendered live in a
@@ -342,6 +343,27 @@ Three things about it:
   and column are interpolated, not bound, so they are whitelisted against a
   hardcoded map.
 
+**Phase 4 shipped the public side**, which is the point at which the library
+became usable by someone who cannot edit: `/components` as a real index and
+`/components/{slug}` with the preview, its switchers, a code panel per variant
+and the CSS.
+
+- **A thumbnail is the component in its own frame, not a screenshot.** It cannot
+  go out of date. One iframe per card, kept reasonable by the default variant
+  only, `loading="lazy"`, and no height bridge on thumbnails — twenty frames each
+  reporting and resizing would reflow the index continuously as it loaded. It
+  also needs `pointer-events: none`, or the component catches the click and the
+  card does nothing.
+- **An editor sees drafts there**, as they do in search; otherwise you build a
+  component, open the public page to check it, and find nothing.
+- **Deprecated components stay listed for everyone**, because "do not use this
+  for anything new" is what a reader needs to know, and delisting it only means
+  someone copies it out of the theme.
+- **`component_is_visible()` is one function**, not the same condition written
+  out at three routes. The day one of them differs is the day a draft is public.
+- **`components_with_variants()` loads the variants in one query**, because the
+  index asking per card is a query per card.
+
 **The preview's `postMessage` does not validate origin, and that is correct** —
 the frame's origin is `"null"` because it is sandboxed, so there is nothing to
 compare. `event.source === frame.contentWindow` is the check that works, and it
@@ -412,6 +434,14 @@ returns false so the surrounding code carries on as though nothing matched.
 `'#[?&]node-id=([^&#]+)#i'` cost an afternoon's worth of confusion in
 `component_figma_parse` before a check caught it. Use `~` as the delimiter when
 the pattern needs a literal `#`.
+
+**`view()` uses `extract()`, so a template shares one scope with its caller.** A
+template that loops `as $component` leaves `$component` set to the last row, and
+anything rendered afterwards in the same scope quietly gets it. It cost an
+afternoon in `check-components.php`, where the admin list's loop meant the public
+component page below it rendered for the wrong component — and reported as a
+failing assertion rather than as the muddle it was. Re-establish what a view needs
+immediately before rendering it, rather than relying on what is already in scope.
 
 **A view's warnings are its bugs, and nothing shows them.** `display_errors` is
 off on the server, so "Undefined variable" in a template renders a page that looks
@@ -513,10 +543,10 @@ the canvas.
 
 **Content:** 30 pages scaffolded as drafts. One written: Tone of voice.
 
-**Not built:** the component library past phase 3 — the list, the sandboxed
-preview, the details editor and version history are in; the public component
-pages, the derived spec table and the Figma import are not; see
-`docs/COMPONENTS.md` — motion page content,
+**Not built:** the component library past phase 4 — the library is usable end to
+end; the derived spec table, the Figma import, the editor for a component's
+`docs` blocks and components in search are not; see `docs/COMPONENTS.md` —
+motion page content,
 type exports in `/tokens.css`, password reset, pagination (deliberately
 deferred).
 
@@ -546,10 +576,12 @@ belongs there, not in a caller.
    and neither does `colour_story`. It exports no type either. Search indexes
    all three; the token export has not caught up.
 8. Deferred from the audit: section page caching, password reset.
-9. **Continue the component library at phase 4**: the public `/components` index
-   with live thumbnails, and the component page itself with its code panel. Phases
-   1 to 3 are in and migration 009 is applied. `docs/COMPONENTS.md` section 9 is
-   the phase table.
+9. **Continue the component library at phase 5**: the derived spec table — radius,
+   colour tokens, spacing and type read out of the component's own CSS and matched
+   against the site's, with anything off-system flagged. Phases 1 to 4 are in and
+   the library is usable; `docs/COMPONENTS.md` section 9 is the phase table.
+10. **Turn the Components area on** in Settings once there is something in it. The
+    public pages exist now, but readers cannot reach them while the switch is off.
 
 `MoreYears-Regular.woff2` is in `public_html/assets/fonts/`, so the hero and the
 Typography page can show real specimens.

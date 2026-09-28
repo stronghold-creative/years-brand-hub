@@ -2041,3 +2041,201 @@ html, body { overflow-x: clip; }
   color: var(--ink-faint);
   background: var(--raised);
 }
+
+/* ===========================================================================
+   The component library
+
+   The index shows each component rendered in its own sandboxed frame rather
+   than as a picture, so it cannot go out of date. The page beside it shows the
+   same frame at full size with its states and its code.
+   =========================================================================== */
+
+.index--components { padding-bottom: 4rem; }
+
+.components__head { padding: clamp(2rem, 5vw, 3.5rem) var(--gutter) 1rem; max-width: 46ch; }
+.components__head h1 {
+  font-family: var(--display);
+  /* Pinned, because More Years has one weight and a heading rule further up
+     asks for another, which the browser then fakes. */
+  font-weight: 400;
+  font-synthesis: none;
+  font-size: clamp(2.25rem, 5vw, 3.25rem);
+  line-height: 1.08;
+  margin: 0 0 .75rem;
+}
+.components__head p { margin: 0; color: var(--ink-soft); }
+
+.components__group { padding: 1.5rem var(--gutter) 0; }
+.components__groupname {
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 .75rem;
+}
+.components__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  gap: .75rem;
+}
+
+.ccard {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  border: 1px solid var(--rule);
+  border-radius: var(--s-radius, 6px);
+  background: var(--page);
+  text-decoration: none;
+  color: inherit;
+  overflow: hidden;
+  transition: border-color var(--d-base) var(--e-out), background var(--d-base) var(--e-out);
+}
+.ccard:hover { border-color: var(--ink-faint); background: var(--raised); }
+
+/* A fixed window onto the component, cropped. The thumbnails carry no height
+   bridge on purpose: twenty frames each reporting and resizing would reflow the
+   index continuously as it loaded. */
+.ccard__stage {
+  display: block;
+  height: 9rem;
+  background: var(--raised);
+  border-bottom: 1px solid var(--rule);
+  overflow: hidden;
+}
+.ccard__frame {
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: block;
+  /* The card is one link. Without this the component inside catches the click
+     and the card does nothing. */
+  pointer-events: none;
+}
+.ccard__none {
+  display: grid;
+  place-items: center;
+  height: 100%;
+  font-size: .8125rem;
+  color: var(--ink-faint);
+}
+
+.ccard__body { display: block; padding: .875rem 1rem 1rem; }
+.ccard__name { display: flex; align-items: center; gap: .5rem; font-weight: 600; }
+.ccard__summary {
+  display: block;
+  margin-top: .25rem;
+  font-size: .875rem;
+  color: var(--ink-soft);
+}
+.ccard__count { display: block; margin-top: .5rem; font-size: .75rem; color: var(--ink-faint); }
+.ccard__chip {
+  font-size: .625rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  padding: .125rem .375rem;
+  border-radius: 999px;
+  background: var(--accent-tint);
+  color: var(--accent-deep, var(--accent));
+}
+.ccard__chip--deprecated { background: #F8D8E1; color: #A02F4B; }
+
+/* --------------------------------------------------------- one component */
+
+.component { padding-inline: var(--gutter); }
+.component__crumb { margin: 1.5rem 0 .5rem; font-size: .8125rem; }
+.component__crumb a { color: var(--accent); }
+.component__head { margin-bottom: 2rem; }
+.component__summary {
+  font-size: 1.125rem;
+  color: var(--ink-soft);
+  max-width: min(var(--s-measure, 70ch), 52ch);
+  margin: 0;
+}
+.component__status {
+  margin: 0 0 1rem;
+  padding: .625rem .875rem;
+  border-radius: var(--s-radius, 6px);
+  font-size: .875rem;
+  background: var(--accent-tint);
+}
+.component__status--deprecated { background: #F8D8E1; color: #A02F4B; }
+.component__empty { color: var(--ink-soft); }
+
+.component__toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: .75rem;
+}
+.component__chips, .component__toggles { display: flex; align-items: center; gap: .375rem; flex-wrap: wrap; }
+.component__chip {
+  display: inline-block;
+  padding: .3125rem .75rem;
+  border: 1px solid var(--rule);
+  border-radius: 999px;
+  background: none;
+  font: inherit;
+  font-size: .8125rem;
+  color: var(--ink-soft);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background var(--d-swift) var(--e-out), color var(--d-swift) linear, border-color var(--d-swift) var(--e-out);
+}
+.component__chip:hover { border-color: var(--ink-faint); color: var(--ink); }
+.component__chip.is-on {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #FFF;
+}
+
+/* Chequered, so a component with a transparent background reads as transparent
+   rather than as one with a white background. */
+.component__stage {
+  background:
+    repeating-conic-gradient(rgba(0, 0, 0, .04) 0 25%, transparent 0 50%) 0 0 / 16px 16px;
+  background-color: var(--page);
+  border: 1px solid var(--rule);
+  border-radius: var(--s-radius, 6px);
+  overflow: hidden;
+  transition: max-width var(--d-calm) var(--e-out);
+}
+.component__frame {
+  display: block;
+  width: 100%;
+  height: 22rem;            /* until the frame reports its own */
+  border: 0;
+  background: transparent;
+  transition: height var(--d-swift) var(--e-out);
+}
+.component__note { margin: .75rem 0 0; font-size: .875rem; color: var(--ink-soft); }
+
+.component__code { margin-top: 3rem; }
+.component__code h2 { font-size: 1.125rem; margin: 0 0 .75rem; }
+.component__panel { margin-bottom: 1rem; }
+/* [hidden] loses to any class that sets display, and these are switched from
+   JavaScript, so it is stated rather than assumed. */
+.component__panel[hidden], .component__note[hidden] { display: none; }
+
+.component__docs { margin-top: 3rem; }
+.component__foot {
+  display: flex;
+  gap: 1.25rem;
+  flex-wrap: wrap;
+  margin-top: 3rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--rule);
+}
+.component__link { font-size: .875rem; color: var(--accent); }
+
+@media (max-width: 48rem) {
+  .components__list { grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr)); }
+  .ccard__stage { height: 7.5rem; }
+}
