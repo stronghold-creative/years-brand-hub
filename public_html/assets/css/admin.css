@@ -2059,3 +2059,21 @@ form[data-guard].is-dirty {
 @media (max-width: 42rem) {
   .devspec__table { display: block; overflow-x: auto; white-space: nowrap; }
 }
+
+/* ------------------------------------------------------------ import review */
+
+.imp__note {
+  margin: 0 0 1.25rem;
+  padding: .75rem .875rem;
+  border-radius: var(--md-sys-shape-s);
+  background: var(--md-sys-color-surface-container-highest);
+  font-size: .875rem;
+  line-height: 1.5;
+}
+/* Refusing is the one case that has to read as a dead end rather than a warning,
+   because the answer is to go and copy something else. */
+.imp__note--refused {
+  background: var(--md-sys-color-error-container, var(--md-sys-color-surface-container-highest));
+  color: var(--md-sys-color-on-error-container, var(--md-sys-color-on-surface));
+}
+.imp__actions { display: flex; align-items: center; gap: .5rem; margin-top: 1rem; }

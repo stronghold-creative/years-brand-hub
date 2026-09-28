@@ -59,6 +59,7 @@ function design_colour_tokens(): array { return ['--sand' => '#EFE9DD']; }
 
 require APP_DIR . '/lib/components.php';
 require APP_DIR . '/lib/spec.php';
+require APP_DIR . '/lib/import.php';
 
 $_SESSION = ['csrf' => str_repeat('a', 64)];
 
@@ -458,6 +459,76 @@ foreach ([
 // rendered as an href on the component page.
 $refused = component_figma_parse('javascript:alert(1)');
 ok('javascript: is not kept as a link',      $refused['url'] === null);
+
+echo "\nWorking out what was pasted\n";
+
+$pastes = [
+    // label, text, expected kind, expects markup, expects css
+    ['Figma\'s clipboard', '<meta charset="utf-8"><span data-metadata="<!--(figmeta)eyJ(/figmeta)-->"></span>'
+        . '<span data-buffer="<!--(figma)AAA(/figma)-->"></span>', 'figma-clipboard', false, false],
+    ['a node link',    'https://www.figma.com/design/AbCdEf123456/Years?node-id=1234-5678', 'figma-link', false, false],
+    ['a file link',    'https://www.figma.com/design/AbCdEf123456/Years',                   'figma-link', false, false],
+    ['some other link', 'https://example.com/thing',                                        'figma-link', false, false],
+    ['an SVG',         '<svg viewBox="0 0 24 24"><path d="M4 4h16"/></svg>',                'svg',        true,  false],
+    ['Dev Mode code',  "<button class=\"btn\">Buy</button>\n<style>.btn { background: #7257B7; }</style>", 'devmode', true, true],
+    ['markup then CSS', "<button class=\"btn\">Buy</button>\n\n.btn { background: #7257B7; }", 'devmode',  true,  true],
+    ['markup alone',   '<button class="btn">Buy</button>',                                  'html',       true,  false],
+    ['CSS alone',      '.btn { background: #7257B7; border-radius: 6px; }',                 'css',        false, true],
+    ['prose',          'make the button purple please',                                     'unknown',    false, false],
+    ['nothing',        '   ',                                                               'empty',      false, false],
+];
+
+foreach ($pastes as [$label, $text, $kind, $wantsMarkup, $wantsCss]) {
+    $got = component_import_detect($text);
+    ok(
+        sprintf('%-18s reads as %s', $label, $kind),
+        $got['kind'] === $kind
+        && ($got['markup'] !== '') === $wantsMarkup
+        && ($got['css'] !== '') === $wantsCss
+    );
+}
+
+// The one that has to fail loudly rather than quietly, because it is the obvious
+// thing to try and a blank result would read as the feature being broken.
+$clip = component_import_detect('<span data-buffer="<!--(figma)AAA(/figma)-->"></span>');
+ok('the binary clipboard is refused',        $clip['refused'] === true);
+ok('and it says what to paste instead',      str_contains($clip['note'], 'Dev Mode'));
+
+// A link that cannot be followed must not be stored, since it becomes an href.
+$bad = component_import_detect('javascript:alert(1)');
+ok('javascript: is not taken as a link',     ($bad['figma']['url'] ?? null) === null);
+
+$node = component_import_detect('https://www.figma.com/design/AbCdEf123456/Years?node-id=1234-5678');
+ok('the node is read from a link',           ($node['figma']['node_id'] ?? null) === '1234-5678');
+$file = component_import_detect('https://www.figma.com/design/AbCdEf123456/Years');
+ok('a whole-file link says so',              str_contains($file['note'], 'Copy link to selection'));
+
+echo "\nThe import review screen\n";
+
+$found = component_import_detect("<button class=\"btn\">$nasty</button>\n<style>.btn { border-radius: 9px; }</style>");
+$spec  = component_spec($found['css'], []);
+$variants = [['id' => 2, 'label' => 'Primary']];
+
+ob_start();
+require APP_DIR . '/views/admin/component-import.php';
+$review = ob_get_clean();
+
+ok('the review screen rendered',             strlen($review) > 800);
+ok('it says nothing has been saved',         str_contains($review, 'Nothing has been saved yet'));
+ok('the pasted markup is escaped',           !str_contains($review, '<script>alert(2)'));
+ok('and no live img either',                 !str_contains($review, '<img src=x'));
+ok('it offers a variant to land in',         str_contains($review, 'name="variant"'));
+ok('accepting is a separate post',           str_contains($review, '/import/apply'));
+ok('it carries a CSRF token',                str_contains($review, 'name="_csrf"'));
+
+// The refusal path must offer no way to accept anything.
+$found = component_import_detect('<span data-buffer="<!--(figma)AAA(/figma)-->"></span>');
+$spec  = component_spec('', []);
+ob_start();
+require APP_DIR . '/views/admin/component-import.php';
+$refusal = ob_get_clean();
+ok('a refusal offers no Accept',             !str_contains($refusal, 'Accept<'));
+ok('and explains itself',                    str_contains($refusal, 'internal format'));
 
 echo $failed === 0
     ? "\nEvery component safeguard holds.\n"

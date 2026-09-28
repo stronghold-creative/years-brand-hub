@@ -90,14 +90,14 @@ deploy can never overwrite your credentials or uploaded files.
   iframe with its states, a viewport and dark-mode switch and its code to copy,
   under a spec table read out of the component's own CSS with anything that is
   not one of the brand's tokens flagged; edited at `/admin/components`, with
-  version history and restore
+  version history, restore, and an import that reads a pasted Figma link, Dev
+  Mode code, CSS or an SVG and shows what it would do before writing anything
 
 ## Not built yet
 
-- The rest of the component library. **Phases 1 to 5 of 8 are in**; still to come
-  are the Figma Dev Mode import, the editor for a component's written guidance,
-  and components in search. Scoped in
-  [docs/COMPONENTS.md](docs/COMPONENTS.md)
+- The last of the component library. **Phases 1 to 6 of 8 are in**; still to come
+  are the editor for a component's written guidance and components in search.
+  Scoped in [docs/COMPONENTS.md](docs/COMPONENTS.md)
 - `/tokens.css` exports colours only, not type
 
 ## Checks

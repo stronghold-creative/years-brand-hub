@@ -131,6 +131,25 @@ $frameBase = '/components/' . rawurlencode($component['slug']) . '/frame/';
       </section>
 
       <section class="m3-card">
+        <h2 class="m3-card__title">Import</h2>
+        <p class="m3-field__support">
+          One box, and what you paste is worked out from what it is: a Figma link,
+          the code from Dev Mode, some CSS on its own, or an SVG. Nothing is saved
+          until you have seen what it would do.
+        </p>
+        <form method="post" action="/admin/components/<?= (int) $component['id'] ?>/import">
+          <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
+          <div class="m3-field">
+            <textarea class="m3-field__input m3-field__textarea cmp__code" name="pasted" rows="5"
+                      id="pasted" placeholder=" "
+                      spellcheck="false" autocapitalize="off"></textarea>
+            <label class="m3-field__label" for="pasted">Paste here</label>
+          </div>
+          <button class="m3-button m3-button--tonal m3-state" type="submit">See what this is</button>
+        </form>
+      </section>
+
+      <section class="m3-card">
         <h2 class="m3-card__title">Variants</h2>
         <p class="m3-field__support">One per state worth documenting. The default is
            the one the component page opens on.</p>

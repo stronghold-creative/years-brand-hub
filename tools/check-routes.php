@@ -64,6 +64,8 @@ $expected = [
     'GET  /components'                 => '/components',
     'GET  /components/button'          => '/components/button',
     'POST /admin/components/7/notes'   => '/admin/components/7/notes',
+    'POST /admin/components/7/import'  => '/admin/components/7/import',
+    'POST /admin/components/7/import/apply' => '/admin/components/7/import/apply',
 ];
 
 $failed = 0;

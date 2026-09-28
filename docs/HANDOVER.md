@@ -24,11 +24,12 @@ app/
   bootstrap.php                loads every file in app/lib, then config
   config.php                   SERVER ONLY, gitignored, database credentials
   routes.php                   the whole router, top to bottom, first match wins
-  lib/                         15 files, all auto-loaded
+  lib/                         16 files, all auto-loaded
     assets.php                 uploads, image variants, bundles, serving
     auth.php                   sessions, roles, sign-in throttling
     blocks.php                 block definitions, sanitising, rendering, contrast
     components.php             the component library: rows, slugs, ordering
+    import.php                 reading a Figma paste into a component
     spec.php                   the spec derived from a component's own CSS
     db.php                     PDO helpers
     fontmetrics.php            character widths, so a hero line can be fitted
@@ -41,7 +42,7 @@ app/
     versions.php               version recording, collapsing and pruning
     view.php                   template rendering
   blocks/                      25 renderers, one per block type
-  views/                       22 templates, public and admin
+  views/                       23 templates, public and admin
 db/                            9 migrations, applied in filename order
 public_html/                   the only web-accessible directory
 storage/                       uploads and caches, never deployed
@@ -252,8 +253,9 @@ Search filters on label and hint.
 
 ## 4b. The component library
 
-**Phases 1 to 5 of 8 are built. The spec is `docs/COMPONENTS.md`; read it before
-continuing, and start at phase 6, the Figma Dev Mode import.**
+**Phases 1 to 6 of 8 are built. The spec is `docs/COMPONENTS.md`; read it before
+continuing. What is left is phase 7, the editor for a component's `docs` blocks,
+and phase 8, components in search.**
 
 A Storybook for Years, living in the Components area that `components_enabled`
 already gates. One page per component: the real thing rendered live in a
@@ -385,6 +387,21 @@ over any row.
   owns `.spec` on the public side, and `.spec { display: grid }` took the table
   apart. Check a class name against the stylesheet before using it; 27 block types
   have had most of the obvious ones.
+
+**Phase 6 shipped the import** (`app/lib/import.php`). One box on the component
+screen; what was pasted is worked out rather than chosen from a menu.
+
+- **Always two steps.** The first only looks and shows what it would do, the
+  second writes. Dev Mode's output is close but rarely shippable, so it is never
+  saved on the strength of a paste — and the derived spec runs on the incoming
+  CSS on the review screen, so a hardcoded colour is flagged before it is
+  accepted.
+- **Figma's binary clipboard is recognised and refused, with an explanation.**
+  It is checked first, because it arrives as an HTML fragment and would otherwise
+  be taken for markup. Refusing it clearly is the feature: it is the obvious thing
+  to try, and a blank result would read as the import being broken.
+- **Applying is additive.** CSS is appended, not substituted, because an import is
+  usually one more state rather than a fresh start.
 
 **The preview's `postMessage` does not validate origin, and that is correct** —
 the frame's origin is `"null"` because it is sandboxed, so there is nothing to
@@ -565,9 +582,9 @@ the canvas.
 
 **Content:** 30 pages scaffolded as drafts. One written: Tone of voice.
 
-**Not built:** the component library past phase 5 — the Figma Dev Mode import,
-the editor for a component's `docs` blocks, and components in search; see
-`docs/COMPONENTS.md` — motion page content,
+**Not built:** the component library past phase 6 — the editor for a component's
+`docs` blocks, and components in search; see `docs/COMPONENTS.md` — motion page
+content,
 type exports in `/tokens.css`, password reset, pagination (deliberately
 deferred).
 
@@ -597,10 +614,11 @@ belongs there, not in a caller.
    and neither does `colour_story`. It exports no type either. Search indexes
    all three; the token export has not caught up.
 8. Deferred from the audit: section page caching, password reset.
-9. **Continue the component library at phase 6**: the Figma Dev Mode import — one
-   paste, detected rather than chosen from a menu, landing as a proposal rather
-   than saved silently. Phases 1 to 5 are in; `docs/COMPONENTS.md` section 6 is
-   the specification and section 9 the phase table.
+9. **Finish the component library**: phase 7, wiring a component's `docs` column
+   to the existing block editor — the renderer is already in, so this is only the
+   editing side — and phase 8, components in search, where the index key has to
+   gain the components table or a component edit will serve a stale index for as
+   long as no page is touched. `docs/COMPONENTS.md` section 9 is the phase table.
 10. **Turn the Components area on** in Settings once there is something in it. The
     public pages exist now, but readers cannot reach them while the switch is off.
 

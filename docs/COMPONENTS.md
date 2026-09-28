@@ -1,9 +1,10 @@
 # The component library: scope
 
-A Storybook for Years, inside the brand hub. **Phases 1 to 5 of 8 are built** —
+A Storybook for Years, inside the brand hub. **Phases 1 to 6 of 8 are built** —
 the tables, the admin list, the live sandboxed preview, the details editor with
-version history, the public index and component pages, and the spec table derived
-from each component's own CSS. This is the agreed shape, written down
+version history, the public index and component pages, the spec table derived
+from each component's own CSS, and the Figma import. This is the agreed shape,
+written down
 before any code, so the build can be picked up one phase at a time. Decisions
 here were taken 27 September 2026; where one went against the cheaper option,
 the reason is recorded.
@@ -247,7 +248,7 @@ than the build.
 | **3. Editor** ✔ **built** | Details (name, slug, group, status, summary, Figma link, JS), version history with restore, an unsaved-changes guard in place of autosave. `notes_override` moved to phase 5, where the spec it overrides exists | 1, 2 |
 | **4. Public** ✔ **built** | `/components` index with live thumbnails, `/components/{slug}`, the code panel and copy button. The `docs` blocks render here too; phase 7 is now only the editing side | 2, 3 |
 | **5. Derived spec** ✔ **built** | The CSS pass, token matching, the flag, `notes_override`, the states it defines | 3 |
-| **6. Import** | The Import panel, detection, the Dev Mode split, the `figmeta` refusal | 3 |
+| **6. Import** ✔ **built** | The Import panel, detection, the Dev Mode split, the `figmeta` refusal, and a review step before anything is written | 3 |
 | **7. Docs blocks** | The `docs` column wired to the existing block editor and renderer | 3, 4 |
 | **8. Search** | Components in the index, with the key fixed | 4 |
 
@@ -501,6 +502,51 @@ How it decides:
 does not resolve the cascade, follow a `var()` to a value, or know which rule
 wins. A table that looked authoritative and was wrong in ways nobody could see
 would be worse than no table; the page says what it is.
+
+### What phase 6 actually shipped
+
+One box on the component screen. What was pasted is worked out rather than chosen
+from a menu — a menu asks someone to classify their own clipboard before they
+have looked at it, and they will get it wrong in the direction that loses work.
+
+- `app/lib/import.php` — `component_import_detect()` and
+  `component_import_apply()`.
+- `app/views/admin/component-import.php` — the review screen.
+- The Import card on the component screen, and routes
+  `/admin/components/{id}/import` and `.../import/apply`.
+
+**Two steps, always.** The first only looks and shows what it would do; the
+second writes. Dev Mode's output is close but rarely shippable — absolute
+positioning, generated class names, hardcoded hex where a token exists — so it is
+never saved on the strength of a paste. The proposal arrives in editable fields,
+because the usual thing to want is *most* of what Dev Mode produced.
+
+**The spec runs on the incoming CSS before it is accepted**, so a hardcoded colour
+is flagged on the review screen rather than discovered afterwards. That is the
+import and the audit meeting in the one place they are both useful.
+
+What the detector recognises, in this order and for these reasons:
+
+| Pasted | How | What happens |
+|---|---|---|
+| Figma's binary clipboard | `figmeta`, `(figma)` or `data-buffer=` | **Refused, with an explanation.** First, because it arrives as an HTML fragment and would otherwise be taken for markup |
+| A link on its own | a single-line http(s) URL | Kept; file key and node id read out. Before markup, because a URL is not HTML but is easily taken for nothing in particular |
+| An SVG | `<svg` | Becomes the variant's markup as it is |
+| Markup with a `<style>` | a tag and a style element | Split into markup and CSS |
+| Markup then CSS, no `<style>` | a tag, then rules | Split at the last closing tag, and the screen says where it split |
+| Markup alone | a tag | Markup only |
+| CSS alone | rules and no tag | Appended to the base CSS |
+| Anything else | — | Says so, and says what to paste instead |
+
+**Refusing the binary clipboard is a feature, not a limitation.** It is the
+obvious thing to try, and a blank result or a shrug would send someone away
+thinking the import is broken. It says what it is — an encoded copy of the Figma
+document, not code — and what to do instead.
+
+**Applying is additive.** CSS is appended rather than replacing what is there,
+because an import is usually one more state rather than a fresh start; someone
+who wants a replacement clears the field first, and the screen says so. Markup
+goes to a variant chosen on the review screen, existing or new, never guessed at.
 
 ### Two more traps, found in phase 5
 

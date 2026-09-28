@@ -560,6 +560,48 @@ if (preg_match('#^/admin/components/(\d+)$#', $path, $m)) {
     exit;
 }
 
+// Importing. Two steps on purpose: the first only looks at what was pasted and
+// shows what it would do, the second writes. Dev Mode's output is close but
+// rarely shippable, so it is never saved on the strength of a paste alone.
+if (preg_match('#^/admin/components/(\d+)/import$#', $path, $m) && $method === 'POST') {
+    require_editor();
+    csrf_check();
+    $component = component_find((int) $m[1]);
+    if (!$component) {
+        not_found();
+    }
+
+    $found = component_import_detect((string) ($_POST['pasted'] ?? ''));
+
+    view('admin/component-import', [
+        'title'     => 'Import into ' . $component['name'],
+        'component' => $component,
+        'variants'  => component_variants((int) $component['id']),
+        'found'     => $found,
+        // What the incoming CSS would look like once it is in, which is where a
+        // hardcoded Dev Mode colour shows up — before it is accepted, not after.
+        'spec'      => component_spec($found['css'], []),
+    ], 'admin/layout');
+    exit;
+}
+
+if (preg_match('#^/admin/components/(\d+)/import/apply$#', $path, $m) && $method === 'POST') {
+    require_editor();
+    csrf_check();
+    if (!component_find((int) $m[1])) {
+        not_found();
+    }
+    $landed = component_import_apply((int) $m[1], [
+        'markup'    => $_POST['markup'] ?? '',
+        'css'       => $_POST['css'] ?? '',
+        'figma_url' => $_POST['figma_url'] ?? '',
+        'variant'   => $_POST['variant'] ?? 0,
+        'label'     => $_POST['label'] ?? '',
+    ], current_user()['id']);
+
+    redirect('/admin/components/' . (int) $m[1] . ($landed ? '?v=' . $landed : ''));
+}
+
 if (preg_match('#^/admin/components/(\d+)/notes$#', $path, $m) && $method === 'POST') {
     require_editor();
     csrf_check();
