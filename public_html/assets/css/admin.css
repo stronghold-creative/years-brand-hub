@@ -2165,3 +2165,30 @@ form[data-guard].is-dirty {
 /* A typeface the server cannot serve. Louder than an off-token value, because
    the component silently renders in a fallback and looks nearly right. */
 .devspec__missingfont { font-weight: 600; color: var(--md-sys-color-error, #8A2233); }
+
+/* Restoring from a backup */
+.m3-file {
+  display: block;
+  width: 100%;
+  margin-bottom: 1rem;
+  padding: .875rem;
+  border: 1px dashed var(--md-sys-color-outline);
+  border-radius: var(--md-sys-shape-s);
+  background: none;
+  font: inherit;
+  font-size: .875rem;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.m3-file::file-selector-button {
+  margin-right: .75rem;
+  padding: .375rem .75rem;
+  border: 0;
+  border-radius: var(--md-sys-shape-full);
+  background: var(--md-sys-color-secondary-container, var(--md-sys-color-surface-container-highest));
+  font: inherit;
+  font-size: .8125rem;
+  cursor: pointer;
+}
+.restore__head { margin: 1.5rem 0 .5rem; font-size: .9375rem; font-weight: 500; }
+.restore__list { margin: 0 0 1rem; padding-left: 1.125rem; font-size: .875rem; line-height: 1.7; }
+.restore__list code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .75rem; }

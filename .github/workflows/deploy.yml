@@ -33,6 +33,12 @@ jobs:
       - name: Check the component preview's safeguards
         run: php tools/check-components.php
 
+      # Restoring is the most destructive thing in the admin and every one of its
+      # safeguards fails invisibly — a restore that dropped version history or
+      # deleted a page written since would look like a successful restore.
+      - name: Check the restore's safeguards
+        run: php tools/check-restore.php
+
       - name: Check the stylesheets
         run: node tools/check-css.js public_html/assets/css/site.css public_html/assets/css/admin.css
 

@@ -24,7 +24,7 @@ app/
   bootstrap.php                loads every file in app/lib, then config
   config.php                   SERVER ONLY, gitignored, database credentials
   routes.php                   the whole router, top to bottom, first match wins
-  lib/                         16 files, all auto-loaded
+  lib/                         17 files, all auto-loaded
     assets.php                 uploads, image variants, bundles, serving
     auth.php                   sessions, roles, sign-in throttling
     blocks.php                 block definitions, sanitising, rendering, contrast
@@ -36,13 +36,14 @@ app/
     http.php                   escaping, CSRF, redirects, asset_url()
     icons.php                  inline SVG icon sets
     migrate.php                pending and applied migrations
+    restore.php                putting a downloaded backup back in
     search.php                 the search index, built and cached
     settings.php               settings, sections, logo, areas, export
     styles.php                 global appearance tokens
     versions.php               version recording, collapsing and pruning
     view.php                   template rendering
   blocks/                      25 renderers, one per block type
-  views/                       25 templates, public and admin
+  views/                       26 templates, public and admin
 db/                            9 migrations, applied in filename order
 public_html/                   the only web-accessible directory
 storage/                       uploads and caches, never deployed
@@ -73,6 +74,31 @@ A page row holds its blocks as JSON. Each block is:
 `sanitise_blocks()` strips anything not in those definitions before saving, so
 stored JSON can only contain known keys. A new block type needs an entry in
 `block_types()` plus a renderer in `app/blocks/`. **No migration.**
+
+**Restoring from a backup exists, and is deliberately not a wipe-and-reload.**
+`lib/restore.php`, at `/admin/restore`, behind an admin. Four rules shape it,
+each there to stop a restore doing more damage than whatever prompted it:
+
+- **Pages are matched by slug and updated in place, never deleted and
+  reinserted.** `page_versions` cascades on its page, so a delete-and-reinsert
+  restore would destroy every page's entire history — including the versions
+  from before the backup, which are the thing most likely to be wanted next. It
+  also keeps each page's id, so covers and links still resolve.
+- **The state being replaced is recorded as a version first**, so a restore is
+  itself undoable, one page at a time.
+- **Nothing is deleted unless asked for.** A page on the site but not in the
+  backup was almost certainly written after it. It is listed; removing it is a
+  separate switch that says plainly it cannot be undone.
+- **Users and assets are never written.** The export carries no password hashes,
+  so restoring people would make accounts nobody can sign in to and could remove
+  the only admin. It carries no uploaded files either, only the register
+  describing them, so writing asset rows would point the site at files that may
+  not be on disk. Both are reported instead, which is what the register is for.
+
+Two steps always: the first reads the file and says what it would do, the second
+does it. Blocks go back in through `sanitise_blocks(block_upgrade(...))`, exactly
+as a save would, so a backup taken before a block changed shape restores into the
+current one rather than being dropped by the sanitiser.
 
 **A change of block shape is code, not SQL, and must run before the editor sees
 it.** Blocks are JSON on a row, which is what makes a new block type need no
@@ -736,7 +762,8 @@ green run, then Settings, Apply updates.
 appearance settings, asset library with generated image variants and gated
 downloads, upload from inside the editor's picker, sections as scrolling pages
 with a hero opener, version history with collapsing and pruning, people and
-roles, settings, logo, area toggle, backup export, sign-in throttling, two
+roles, settings, logo, area toggle, backup export and restore, sign-in
+throttling, two
 kinds of chrome with the mark at the head of the rail while reading, mobile
 slide-out drawer, filtering on the admin pages list, text edited in place on
 the canvas, and the component library end to end — sandboxed live previews,
@@ -796,10 +823,11 @@ php tools/check-routes.php
 php tools/check-blocks.php
 php tools/check-blocks.php --edit
 php tools/check-components.php
+php tools/check-restore.php
 node tools/check-css.js public_html/assets/css/site.css public_html/assets/css/admin.css
 ```
 
-The last five were ad-hoc scripts and are now committed, because each of them
+The last six were ad-hoc scripts and are now committed, because each of them
 has caught something real:
 
 - `check-routes.php` renders no pages; it asserts every URL the interface calls
@@ -821,6 +849,15 @@ has caught something real:
   `javascript:` URL never becomes an `href`. Every one of those fails silently in
   the browser — the page renders and looks correct — which is why they are
   asserted rather than reviewed. It needs no database.
+- `check-restore.php` asserts what a restore promises: that a malformed file is
+  refused with a reason, that pages are updated rather than deleted and
+  reinserted, that the state being replaced is kept as a version first, that a
+  page written since the backup is left alone unless removal is asked for, that
+  no user or asset row is ever written, and that a block whose shape has changed
+  since the backup is migrated rather than dropped. Every one of those fails
+  invisibly — a restore that destroyed version history would look like a
+  successful restore. Its first run found an undefined-key warning that would
+  have emptied a page's summary silently. No database needed.
 - `check-css.js` checks braces balance, finds any property set twice on the
   same selector in the same at-rule context, and flags a rule inside a media
   query that a later rule outside it overrides. Read its output rather than

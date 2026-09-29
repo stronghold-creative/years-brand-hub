@@ -1112,6 +1112,74 @@ if ($path === '/admin/migrate' && $method === 'POST') {
     redirect('/admin/settings?notice=' . urlencode($notice));
 }
 
+/**
+ * Restoring from a backup. Two steps, always: the first reads the file and says
+ * what it would do, the second does it. A restore is the most destructive thing
+ * in the admin, and the review screen is the only place to find out that the
+ * file is the wrong one before rather than after.
+ */
+if ($path === '/admin/restore' && $method !== 'POST') {
+    require_admin();
+    view('admin/restore', ['title' => 'Restore'], 'admin/layout');
+    exit;
+}
+
+if ($path === '/admin/restore' && $method === 'POST') {
+    require_admin();
+    csrf_check();
+
+    $upload = $_FILES['backup'] ?? null;
+    if (!$upload || ($upload['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+        view('admin/restore', [
+            'title' => 'Restore',
+            'error' => ($upload['error'] ?? null) === UPLOAD_ERR_INI_SIZE
+                ? 'That file is larger than the server accepts for an upload.'
+                : 'No file arrived. Choose the JSON file you downloaded and try again.',
+        ], 'admin/layout');
+        exit;
+    }
+
+    // is_uploaded_file first: a path in $_FILES is not by itself proof that the
+    // request put it there.
+    $tmp = (string) $upload['tmp_name'];
+    $json = is_uploaded_file($tmp) ? (string) file_get_contents($tmp) : '';
+    $read = restore_read($json);
+
+    if (!$read['ok']) {
+        view('admin/restore', ['title' => 'Restore', 'error' => $read['error']], 'admin/layout');
+        exit;
+    }
+
+    view('admin/restore', [
+        'title'   => 'Restore',
+        'payload' => $read['payload'],
+        'plan'    => restore_plan($read['payload']),
+        // Carried back to the apply step in the form, so the file is read once
+        // and what is applied is exactly what was reviewed.
+        'json'    => $json,
+    ], 'admin/layout');
+    exit;
+}
+
+if ($path === '/admin/restore/apply' && $method === 'POST') {
+    require_admin();
+    csrf_check();
+
+    $read = restore_read((string) ($_POST['payload'] ?? ''));
+    if (!$read['ok']) {
+        view('admin/restore', ['title' => 'Restore', 'error' => $read['error']], 'admin/layout');
+        exit;
+    }
+
+    $done = restore_apply($read['payload'], !empty($_POST['remove_extra']), current_user()['id']);
+
+    view('admin/restore', [
+        'title' => 'Restore',
+        'done'  => $done,
+    ], 'admin/layout');
+    exit;
+}
+
 if ($path === '/admin/export') {
     require_admin();
     $name = 'years-brand-hub-' . date('Y-m-d') . '.json';

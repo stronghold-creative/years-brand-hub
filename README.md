@@ -90,6 +90,8 @@ deploy can never overwrite your credentials or uploaded files.
 - Pages: sections, ordering, drafts, version history with restore, filtering
 - Search across every page and every component, opened with ⌘K or a bare `/`
 - People and roles, settings, site logo, area toggle
+- Backup to JSON, and restore from one: it shows what it would do first, keeps
+  what it replaces in each page's history, and never touches people or uploads
 - Components: a library at `/components`, each one rendered live in a sandboxed
   iframe with its states, a viewport and dark-mode switch and its code to copy,
   under a spec table read out of the component's own CSS with anything that is

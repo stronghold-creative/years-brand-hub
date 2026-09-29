@@ -89,4 +89,16 @@
        Uploaded files themselves are not included; those live in storage on the server.</p>
     <a class="m3-button m3-button--tonal m3-state" href="/admin/export">Download a backup</a>
   </section>
+
+  <section class="m3-card">
+    <h2 class="m3-card__title">Restore</h2>
+    <p class="m3-body-medium">Puts the site back to a backup you have downloaded.
+       It shows what it would do before doing any of it, and every page it replaces
+       keeps its current state in History — so a restore can itself be undone.</p>
+    <p class="m3-field__support">Pages are matched by their URL and updated in place,
+       so nothing loses its history. Pages written since the backup are left alone
+       unless you ask for them to go. People are never restored, because a backup
+       holds no passwords.</p>
+    <a class="m3-button m3-button--tonal m3-state" href="/admin/restore">Restore from a backup</a>
+  </section>
 </div>
