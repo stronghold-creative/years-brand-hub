@@ -193,6 +193,17 @@ dark colour someone has just chosen is the obvious way for this to go wrong.
 setting through `block_option($options, $key, $fallback, $siteKey)`. That is
 what makes Appearance in the admin move every block not deliberately overridden.
 
+**`clearspace` shows a diagram you uploaded, not one it draws.** A clearspace
+diagram is a designed thing — corner marks, the measured letter called out,
+guides where the construction actually is — and a generated one can only ever
+be a rectangle with a gap round it. Export it from Figma and upload it. What
+the block adds on top of the picture is the part a static export cannot do:
+**the guides can be toggled over it**, so the margin can be seen in place and
+then taken away. The switch is written hidden and revealed by `site.js`,
+because it does nothing without JavaScript and a control that cannot work
+should not be offered. A rough generated diagram remains for a page with no
+image yet, and says that is what it is.
+
 **`do_dont` is two independent lists, not paired rows.** Each column has its own
 heading, so it covers Do/Do not, "we say"/"we do not say" and Use/Avoid
 without three block types, and the two sides can be different lengths because

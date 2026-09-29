@@ -2192,3 +2192,26 @@ form[data-guard].is-dirty {
 .restore__head { margin: 1.5rem 0 .5rem; font-size: .9375rem; font-weight: 500; }
 .restore__list { margin: 0 0 1rem; padding-left: 1.125rem; font-size: .875rem; line-height: 1.7; }
 .restore__list code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: .75rem; }
+
+/* Getting a component out of Figma: folded away, because it is read once and
+   then never again, but present where the paste happens rather than in a wiki. */
+.cmp__howto { margin: .25rem 0 1rem; }
+.cmp__howto > summary {
+  cursor: pointer;
+  padding: .5rem 0;
+  font-size: .8125rem;
+  font-weight: 500;
+  color: var(--md-sys-color-primary);
+}
+.cmp__steps {
+  margin: .25rem 0 .75rem;
+  padding-left: 1.25rem;
+  font-size: .8125rem;
+  line-height: 1.65;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.cmp__steps li { margin-bottom: .5rem; }
+.cmp__steps code, .cmp__howto code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .75rem;
+}

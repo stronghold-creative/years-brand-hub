@@ -377,15 +377,19 @@ function block_types(): array
             'icon'   => 'clearspace',
             'fields' => [
                 'heading' => ['type' => 'text',   'label' => 'Heading', 'optional' => true],
-                'asset'   => ['type' => 'asset',  'label' => 'Mark'],
+                'asset'   => ['type' => 'asset',  'label' => 'The diagram',
+                              'help' => 'Export the clearspace diagram from Figma as a PNG or SVG and upload it here. A drawn diagram will always beat a generated one — it can show the corner marks, the measured letter and the exact construction you designed.'],
                 'measure' => ['type' => 'text',   'label' => 'Clear space equals', 'optional' => true,
-                              'help' => 'The sentence under the diagram, for example "x is the height of the Y".'],
-                'unit'    => ['type' => 'text',   'label' => 'Letter on the diagram', 'optional' => true,
-                              'help' => 'Drawn in the gap on each side. Defaults to x.'],
+                              'help' => 'The sentence under the diagram, for example "x is the height of the Y in the wordmark".'],
+                'unit'    => ['type' => 'text',   'label' => 'Letter on the generated diagram', 'optional' => true,
+                              'help' => 'Only used when there is no diagram uploaded. Defaults to x.'],
                 'ratio'   => ['type' => 'select', 'label' => 'Clear space around it', 'options' => [
                     '25' => 'A quarter of the mark', '50' => 'Half the mark',
                     '75' => 'Three quarters of the mark', '100' => 'The full mark',
-                ], 'help' => 'Measured against the mark itself, not the page. Half the mark means the gap on each side is half the mark\'s width.'],
+                ], 'help' => 'Only used when there is no diagram uploaded, to draw a rough one from the mark.'],
+                'inset'   => ['type' => 'number', 'label' => 'Where the guides sit', 'unit' => '%',
+                              'optional' => true, 'min' => 0, 'max' => 45,
+                              'help' => 'The margin the guides are drawn at, as a percentage of the image. Leave blank for 8%.'],
                 'note'    => ['type' => 'textarea', 'label' => 'Note', 'optional' => true],
             ],
         ],
@@ -731,8 +735,13 @@ function block_options(string $type): array
             'tone' => ['label' => 'Diagram colour', 'options' => [
                 'accent' => 'Accent', 'ink' => 'Text colour', 'faint' => 'Faint',
             ]],
-            'background' => ['label' => 'Behind the mark', 'options' => [
-                'panel' => 'Panel', 'none' => 'None', 'dark' => 'Dark',
+            'background' => ['label' => 'Behind the diagram', 'options' => [
+                'panel' => 'Panel', 'none' => 'None', 'dark' => 'Dark', 'light' => 'White',
+            ]],
+            // The thing worth having from a good clearspace page: seeing the
+            // margin drawn over the real thing rather than described beside it.
+            'guides' => ['label' => 'Guides', 'options' => [
+                'toggle' => 'A switch to show them', 'on' => 'Always shown', 'off' => 'None',
             ]],
         ],
 
@@ -1052,6 +1061,13 @@ function sanitise_fields(array $fields, array $values, int $depth = 0): array
             $clean[$key] = (string) (int) (is_scalar($value) ? $value : 0);
         } elseif ($field['type'] === 'colour') {
             $clean[$key] = sanitise_colour(is_scalar($value) ? (string) $value : '');
+        } elseif ($field['type'] === 'number') {
+            // As in block settings: blank stays blank, and a non-number is blank
+            // rather than 0, which is a real value someone may have meant.
+            $raw = is_scalar($value) ? trim((string) $value) : '';
+            $clean[$key] = is_numeric($raw)
+                ? (string) max((int) ($field['min'] ?? 0), min((int) ($field['max'] ?? 9999), (int) $raw))
+                : '';
         } else {
             // Anything that is not a scalar cannot be text, so it becomes empty
             // rather than "Array".

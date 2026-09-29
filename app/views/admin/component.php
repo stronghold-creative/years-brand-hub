@@ -140,6 +140,54 @@ $frameBase = '/components/' . rawurlencode($component['slug']) . '/frame/';
           the code from Dev Mode, some CSS on its own, or an SVG. Nothing is saved
           until you have seen what it would do.
         </p>
+
+        <?php // Where to get the right thing from Figma. Written here rather than
+              // in a wiki nobody opens, because the moment someone needs it is
+              // the moment they are looking at this box. ?>
+        <details class="cmp__howto">
+          <summary>Getting this out of Figma</summary>
+          <ol class="cmp__steps">
+            <li><strong>Select the component</strong> in Figma — the component
+                itself, not a frame around it. If it has variants, select one; each
+                variant here is one of them.</li>
+            <li><strong>Switch to Dev Mode</strong> (the toggle at the top right,
+                or Shift&nbsp;D). Without it the inspector shows design properties
+                rather than code.</li>
+            <li>In the right-hand panel, set the language to <strong>CSS</strong>
+                and copy the block it shows. That is the CSS half.</li>
+            <li>For the markup, use <strong>Copy as code</strong> from the
+                right-click menu where your Figma plan offers it. Where it does
+                not, write the element yourself — a button is
+                <code>&lt;button class="btn"&gt;Label&lt;/button&gt;</code> — and
+                paste only the CSS here.</li>
+            <li>Paste either or both into the box above and press
+                <strong>See what this is</strong>.</li>
+            <li>Right-click the component again and <strong>Copy link to
+                selection</strong>, then paste that here too. It is stored as the
+                component's link so anyone can open the original.</li>
+          </ol>
+
+          <p class="m3-field__support">
+            <strong>Two things to expect.</strong> Dev Mode writes absolute
+            positions and generated class names, so the result is a starting point
+            you tidy, not a finished component — the review screen shows it in
+            editable fields for exactly that reason.
+          </p>
+          <p class="m3-field__support">
+            And <strong>type only matches if the typeface is on the server</strong>.
+            The preview loads the brand faces from
+            <code>public_html/assets/fonts/</code>; anything else falls back and
+            the component will look nearly right in a way that is hard to place.
+            The spec table under the preview says <em>not on the server</em> when
+            that is what has happened, which is the first place to look when an
+            import is close but not exact.
+          </p>
+          <p class="m3-field__support">
+            Copying the component in Figma and pasting that will not work, and the
+            box will tell you so: Figma's clipboard is an encoded copy of its own
+            document rather than code.
+          </p>
+        </details>
         <form method="post" action="/admin/components/<?= (int) $component['id'] ?>/import">
           <input type="hidden" name="_csrf" value="<?= e(csrf_token()) ?>">
           <div class="m3-field">

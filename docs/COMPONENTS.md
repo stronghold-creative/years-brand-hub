@@ -593,6 +593,29 @@ have to.
 - **A heading in the guidance is its own result**, with its anchor, exactly as a
   heading on a page is.
 
+### The workflow, Figma to component library
+
+Written on the Import panel itself as well, folded away, because the moment
+someone needs it is the moment they are looking at that box.
+
+1. **Select the component in Figma** — the component, not a frame around it. If
+   it has variants, select one; each variant here is one of them.
+2. **Switch to Dev Mode** (Shift-D). Without it the inspector shows design
+   properties rather than code.
+3. Set the language to **CSS** and copy the block. That is the CSS half.
+4. For the markup, **Copy as code** from the right-click menu where the Figma
+   plan offers it. Where it does not, write the element by hand — a button is
+   `<button class="btn">Label</button>` — and paste only the CSS.
+5. Paste either or both into the Import box and press **See what this is**.
+6. **Copy link to selection** and paste that too, so the component keeps a link
+   back to the original.
+
+**Two things to expect.** Dev Mode writes absolute positions and generated class
+names, so what arrives is a starting point to tidy rather than a finished
+component — which is why the review screen puts it in editable fields.
+
+And **type only matches if the typeface is on the server.** See below.
+
 ### Getting a component to match the design exactly
 
 The frame deliberately does not load `site.css`, which is where the public site

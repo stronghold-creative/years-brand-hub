@@ -297,6 +297,30 @@ feature('tabs', function () {
   });
 });
 
+/**
+ * The guides on a clearspace diagram.
+ *
+ * Seeing the margin drawn over the real artwork, and then seeing the artwork
+ * without it, is the thing a static export of a diagram cannot do — and the
+ * reason to have the diagram here rather than as a PDF.
+ *
+ * The button is written hidden and revealed here, because it does nothing at all
+ * without this: a control that cannot work should not be offered.
+ */
+feature('clearspace guides', function () {
+  document.querySelectorAll('[data-guides]').forEach(function (button) {
+    button.hidden = false;
+
+    button.addEventListener('click', function () {
+      const figure = button.closest('.clearspace');
+      if (!figure) return;
+      const on = !figure.classList.contains('is-guides');
+      figure.classList.toggle('is-guides', on);
+      button.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+  });
+});
+
 /** Copy a code snippet. */
 feature('copy code', function () {
   document.addEventListener('click', async function (event) {

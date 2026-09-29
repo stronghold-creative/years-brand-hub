@@ -1395,32 +1395,141 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 .block__placeholder-cue { color: var(--ink-faint); }
 
 /* Clearspace --------------------------------------------------------------- */
+/* ---------------------------------------------------------- clear space
+
+   The diagram is an uploaded image, shown as designed. What this adds is the
+   part a static export cannot do: guides drawn over it, and a switch to take
+   them away again. */
+
 .clearspace { margin: 0; }
-/* The frame is the mark plus its clear space. The mark is sized as a
-   proportion of the frame — 1/(1+2r) for a ratio r — so the gap drawn on
-   every side really is r times the mark, which is the only thing this
-   diagram is for. Padding a percentage of the frame, as it did before,
-   measured the gap against the container and meant nothing. */
-.clearspace__frame {
+.clearspace__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: .5rem .75rem;
+  font-size: .8125rem;
+}
+.clearspace__title { font-weight: 500; }
+
+/* The switch reads as a switch, and is revealed by site.js — it does nothing
+   without JavaScript, so without it there is nothing to press. */
+.clearspace__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .25rem .375rem .25rem .625rem;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: .8125rem;
+  color: inherit;
+  cursor: pointer;
+  border-radius: 999px;
+}
+.clearspace__switch {
+  position: relative;
+  width: 2.25rem;
+  height: 1.25rem;
+  border-radius: 999px;
+  background: var(--rule-firm);
+  transition: background var(--d-swift) var(--e-out);
+}
+.clearspace__switch::after {
+  content: '';
+  position: absolute;
+  top: .1875rem;
+  left: .1875rem;
+  width: .875rem;
+  height: .875rem;
+  border-radius: 999px;
+  background: var(--page);
+  transition: transform var(--d-swift) var(--e-out);
+}
+.clearspace__toggle[aria-pressed='true'] .clearspace__switch { background: var(--accent); }
+.clearspace__toggle[aria-pressed='true'] .clearspace__switch::after { transform: translateX(1rem); }
+
+.clearspace__art { position: relative; overflow: hidden; }
+.clearspace__art img { display: block; width: 100%; height: auto; }
+
+/* The guides: a margin box at --guide-inset, drawn over the artwork. Dashed
+   borders rather than gradients, so the corners meet properly at any size. */
+.clearspace__guides {
+  position: absolute;
+  inset: var(--guide-inset, 8%);
+  border: 1px dashed rgba(255, 255, 255, .55);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity var(--d-base) var(--e-out);
+}
+.clearspace__guides::before,
+.clearspace__guides::after {
+  content: '';
+  position: absolute;
+  border: 0 dashed rgba(255, 255, 255, .28);
+}
+/* The full-bleed extensions of the margin lines, which is what makes a margin
+   read as a grid rather than as a box floating on the picture. */
+.clearspace__guides::before {
+  inset: 0 calc(-1 * var(--guide-inset, 8%));
+  border-top-width: 1px;
+  border-bottom-width: 1px;
+}
+.clearspace__guides::after {
+  inset: calc(-1 * var(--guide-inset, 8%)) 0;
+  border-left-width: 1px;
+  border-right-width: 1px;
+}
+.clearspace.is-guides .clearspace__guides { opacity: 1; }
+
+/* On a light diagram the guides have to be dark to be seen at all. */
+.clearspace--bg-light .clearspace__guides,
+.clearspace--bg-panel .clearspace__guides,
+.clearspace--bg-none .clearspace__guides { border-color: rgba(31, 31, 31, .45); }
+.clearspace--bg-light .clearspace__guides::before,
+.clearspace--bg-light .clearspace__guides::after,
+.clearspace--bg-panel .clearspace__guides::before,
+.clearspace--bg-panel .clearspace__guides::after,
+.clearspace--bg-none .clearspace__guides::before,
+.clearspace--bg-none .clearspace__guides::after { border-color: rgba(31, 31, 31, .22); }
+
+.clearspace--bg-panel { background: var(--raised); }
+.clearspace--bg-light { background: #fff; }
+.clearspace--bg-dark  { background: var(--ink); color: #fff; }
+.clearspace--bg-dark .clearspace__measure { color: rgba(255, 255, 255, .7); }
+.clearspace--bg-panel, .clearspace--bg-light, .clearspace--bg-dark {
+  border-radius: var(--s-radius-inner, var(--s-radius, 6px));
+  overflow: hidden;
+}
+
+.clearspace__measure {
+  margin: 0;
+  padding: .75rem;
+  font-size: .8125rem;
+  color: var(--ink-faint);
+}
+
+/* The generated fallback, for a page with no diagram uploaded yet. The mark is
+   sized as a proportion of the frame — 1/(1+2r) — so the gap really is r times
+   the mark, which is the only thing the diagram is for. */
+.clearspace--drawn .clearspace__frame {
   position: relative;
   display: grid;
   place-items: center;
-  padding: 0;
-  background:
-    repeating-linear-gradient(45deg, var(--raised) 0 6px, transparent 6px 12px);
+  aspect-ratio: 16 / 9;
+  background: repeating-linear-gradient(45deg, var(--raised) 0 6px, transparent 6px 12px);
   border: 1px dashed var(--rule-firm);
   border-radius: var(--s-radius-inner, var(--s-radius, 6px));
-  aspect-ratio: 1;
 }
 .clearspace__mark {
-  width: var(--mark-width, 66.6667%);
+  width: var(--mark-width, 50%);
   background: var(--page);
   padding: 1rem;
   display: grid;
   place-items: center;
   outline: 1px solid var(--rule-firm);
 }
-/* The gap labelled where it is, which is how a brand guideline draws it. */
+.clearspace__mark img { display: block; max-width: 100%; height: auto; }
 .clearspace__gap {
   position: absolute;
   font-size: .75rem;
@@ -1429,19 +1538,13 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
   background: var(--page);
   padding: 0 .25rem;
 }
-.clearspace__gap--x { left: calc((100% - var(--mark-width, 66.6667%)) / 4); top: 50%; transform: translate(-50%, -50%); }
-.clearspace__gap--y { top: calc((100% - var(--mark-width, 66.6667%)) / 4); left: 50%; transform: translate(-50%, -50%); }
-.clearspace__mark img { display: block; max-width: 100%; height: auto; }
-.clearspace__measure { margin: .75rem 0 0; font-size: .8125rem; color: var(--ink-faint); }
+.clearspace__gap--x { left: calc((100% - var(--mark-width, 50%)) / 4); top: 50%; transform: translate(-50%, -50%); }
+.clearspace__gap--y { top: calc((100% - var(--mark-width, 50%)) / 4); left: 50%; transform: translate(-50%, -50%); }
 
-/* The diagram's own colour and the surface behind the mark, so a clearspace
-   block can sit on a dark page or be drawn faintly. */
 .clearspace--accent .clearspace__frame { border-color: var(--accent); }
 .clearspace--ink .clearspace__frame    { border-color: var(--ink); }
 .clearspace--faint .clearspace__frame  { border-color: var(--rule-firm); }
-.clearspace--bg-panel .clearspace__mark { background: var(--raised); }
-.clearspace--bg-none .clearspace__mark  { background: none; }
-.clearspace--bg-dark .clearspace__mark  { background: var(--ink); }
+
 
 /* Spacing scale ------------------------------------------------------------ */
 .scale { list-style: none; margin: 0; padding: 0; display: grid; gap: .75rem; }
