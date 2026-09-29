@@ -74,6 +74,10 @@ $docs = json_decode((string) $component['docs'], true) ?: [];
           <?php endforeach; ?>
           <button class="component__chip" type="button" data-frame-scheme="dark"
                   aria-pressed="false">Dark</button>
+          <?php // The measurements, as Dev Mode gives them. Off by default:
+                // nobody reading the page wants an overlay on every hover. ?>
+          <button class="component__chip" type="button" data-frame-inspect
+                  aria-pressed="false">Inspect</button>
         </span>
       </div>
 
@@ -133,6 +137,14 @@ $docs = json_decode((string) $component['docs'], true) ?: [];
       <?php endif; ?>
     </section>
   <?php endif; ?>
+
+  <?php // The type the component is actually set in, measured in the frame and
+        // filled in by components.js. Hidden until it has something to say, so a
+        // component with no text does not carry an empty heading. ?>
+  <section class="component__type" data-text-styles-wrap hidden>
+    <h2>Text styles</h2>
+    <div data-text-styles></div>
+  </section>
 
   <?php // The spec, read out of the CSS above rather than typed beside it. ?>
   <?php partial('component-spec', ['spec' => $spec]); ?>

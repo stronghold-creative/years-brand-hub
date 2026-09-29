@@ -116,6 +116,23 @@ to contain a dash. `*` is a bullet only when followed by a space, which is what
 keeps it from colliding with `*italic*`.
 
 **`brand_fonts()` in `settings.php` is the one answer to "which typefaces exist".**
+**Typefaces can be uploaded, not only deployed.** It reads two places: the files
+in `public_html/assets/fonts/`, which ship with the code, and any woff2 or woff
+in the asset library, served from `/f/{id}`. Without the second, adding a face
+meant a commit — and a component imported from Figma in a face nobody could add
+was the thing standing between "nearly right" and right.
+
+The family and weight come from the original filename, because that is what a
+foundry names its files: `Mulish-SemiBold.woff2` is Mulish at 600. `/f/` is its
+own route because `/i/` rightly serves only images and video, and `/d/` logs a
+download meant for a person clicking a link — a typeface is a subresource asked
+for dozens of times and has to be cacheable. It carries the asset version in the
+URL, since it is served immutable and replacing a face keeps its id. Only woff2
+and woff are served: a ttf is accepted as an upload because it is what a foundry
+sends, and handing one to a browser is handing over a more reusable copy of a
+licensed font than it needs.
+
+
 It reads the files themselves — `MoreYears-Regular.woff2` is More Years at 400 —
 so dropping a face into `public_html/assets/fonts/` is all that is needed. Three
 things read it: the type specimen's dropdown, the component preview's
@@ -583,6 +600,26 @@ long as nobody touched a page, and nothing would have looked wrong. The name,
 summary, group, variant labels and guidance text are indexed; the markup and CSS
 are not, because searching "button" should not match every component whose
 stylesheet mentions one.
+
+**The preview has an Inspect mode**, `assets/js/component-inspect.js`, loaded
+into the frame only when it is asked for with `?inspect=1`. It draws what Dev
+Mode draws — outline, size, padding inside, margin outside, the gap to the next
+element written in the gap, and a panel of font, size, weight, line, colour,
+background and radius. It runs inside the frame because the frame is a
+different origin and nothing outside can measure anything in it; it reads and
+never writes, and draws in a container outside the component's tree so no
+measurement is of the measuring apparatus.
+
+It is a file rather than an inline script, which is why the frame's
+`script-src` gained `'self'`. Inline was already allowed for the height
+bridge, so that widens nothing that was closed, and `check-components.php`
+asserts the directive is exactly `'self' 'unsafe-inline'` and nothing more.
+
+The same script reports the component's **text styles** to the page around it:
+every distinct family, size, weight, line height, tracking and colour it
+actually renders in, read off the rendered result rather than the CSS. The
+parent writes them as text, never as markup — they come from inside a frame
+that renders author-supplied HTML.
 
 **The preview's `postMessage` does not validate origin, and that is correct** —
 the frame's origin is `"null"` because it is sandboxed, so there is nothing to

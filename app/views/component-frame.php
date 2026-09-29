@@ -113,5 +113,10 @@ img, svg, video { max-width: 100%; height: auto; }
 <?php if (trim((string) $component['base_js']) !== ''): ?>
 <script><?= $component['base_js'] ?></script>
 <?php endif; ?>
+<?php // The measurements, on request. Last, so it measures the component after
+      // its own script has had its say. ?>
+<?php if (!empty($inspect)): ?>
+  <script src="<?= e(asset_url('/assets/js/component-inspect.js')) ?>"></script>
+<?php endif; ?>
 </body>
 </html>

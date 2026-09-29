@@ -212,22 +212,61 @@ function brand_fonts(): array
         'extrabold' => 800, 'ultrabold' => 800, 'black' => 900, 'heavy' => 900,
     ];
 
+    /** `MoreYears-SemiBold` becomes ['More Years', 600]. */
+    $read = function (string $name) use ($weights): array {
+        $parts  = explode('-', $name, 2);
+        $family = preg_replace('/(?<=[a-z0-9])(?=[A-Z])/', ' ', $parts[0]) ?? $parts[0];
+        $style  = strtolower(str_replace(['-', ' ', '_', 'italic'], '', $parts[1] ?? 'Regular'));
+        return [trim(str_replace('_', ' ', $family)), $weights[$style] ?? 400];
+    };
+
     $found = [];
+
+    // Deployed with the code.
     foreach (glob(ROOT_DIR . '/public_html/assets/fonts/*.woff2') ?: [] as $file) {
         $name = basename($file, '.woff2');
-
         // The interface face is written by font_head() with its own naming, and
         // is not a brand face to document.
         if (str_starts_with($name, 'plus-jakarta-sans-')) {
             continue;
         }
+        [$family, $weight] = $read($name);
+        $found[$family]['/assets/fonts/' . basename($file)] = $weight;
+    }
 
-        $parts  = explode('-', $name, 2);
-        $family = preg_replace('/(?<=[a-z0-9])(?=[A-Z])/', ' ', $parts[0]) ?? $parts[0];
-        $style  = strtolower(str_replace(['-', ' ', 'italic'], '', $parts[1] ?? 'Regular'));
-        $weight = $weights[$style] ?? 400;
-
-        $found[trim($family)]['/assets/fonts/' . basename($file)] = $weight;
+    /**
+     * And uploaded through the asset library.
+     *
+     * Without this a typeface could be uploaded and still not exist as far as the
+     * site was concerned: the folder above is deployed with the code, so adding a
+     * face meant a commit. A component imported from Figma in a face nobody could
+     * add was the thing standing between "nearly right" and right.
+     *
+     * The family and weight are read from the original filename, because that is
+     * what a foundry names its files and what a designer has to hand —
+     * `Mulish-SemiBold.woff2` is Mulish at 600. The label is a fallback for a file
+     * named something less helpful.
+     */
+    if (function_exists('asset_is_font')) {
+        try {
+            $rows = db_all("SELECT id, label, original_name, mime, version FROM assets ORDER BY id");
+        } catch (Throwable $e) {
+            $rows = [];
+        }
+        foreach ($rows as $row) {
+            if (!asset_is_font($row)) {
+                continue;
+            }
+            $base = pathinfo((string) $row['original_name'], PATHINFO_FILENAME);
+            [$family, $weight] = $read($base !== '' ? $base : (string) $row['label']);
+            if ($family === '') {
+                continue;
+            }
+            // The version is in the URL because /f/ is served immutable: replacing a
+            // face in place keeps its id, and without this the old one would be
+            // cached for a year.
+            $found[$family]['/f/' . (int) $row['id'] . '?v=' . (int) ($row['version'] ?? 1)] = $weight;
+        }
     }
 
     ksort($found);
@@ -247,8 +286,14 @@ function brand_font_faces(): string
     $css = '';
     foreach (brand_fonts() as $family => $files) {
         foreach ($files as $path => $weight) {
+            // A deployed file is stamped with its modification time so a replaced
+            // face beats the cache. An uploaded one is served from /f/{id}, where
+            // there is no file on disk to stamp — asset_url() would fall back to
+            // the current time and bust the cache on every single request.
+            $url = str_starts_with($path, '/f/') ? $path : asset_url($path);
+            $format = str_ends_with($path, '.woff') ? 'woff' : 'woff2';
             $css .= "@font-face{font-family:'" . $family . "';"
-                  . "src:url('" . e(asset_url($path)) . "') format('woff2');"
+                  . "src:url('" . e($url) . "') format('" . $format . "');"
                   . 'font-weight:' . $weight . ';font-style:normal;font-display:swap}';
         }
     }

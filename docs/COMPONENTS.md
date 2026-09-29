@@ -610,11 +610,37 @@ someone needs it is the moment they are looking at that box.
 6. **Copy link to selection** and paste that too, so the component keeps a link
    back to the original.
 
+0. **Upload the typefaces first**, once. A woff2 per weight, into Assets, named
+   the way a foundry names them — `Mulish-SemiBold.woff2` is read as Mulish at
+   600. Without this the component falls back to another face and is nearly
+   right in a way that is hard to place.
+
 **Two things to expect.** Dev Mode writes absolute positions and generated class
 names, so what arrives is a starting point to tidy rather than a finished
 component — which is why the review screen puts it in editable fields.
 
-And **type only matches if the typeface is on the server.** See below.
+And **type only matches if the typeface is here.** See below.
+
+### Reading the component once it is in
+
+The preview has an **Inspect** switch. With it on, hovering any part of the
+component draws what Dev Mode draws: the element outlined, its size, its padding
+shaded inside it and its margin outside, the gap to the next element written in
+the gap, and a panel giving the font, size, weight, line height, colour,
+background and radius.
+
+It runs **inside the frame**, because the frame is a different origin and nothing
+outside it can measure anything in it. It reads and never writes, and everything
+it draws sits outside the component's own tree so no measurement is of the
+measuring apparatus. It is only loaded when asked for — a reader who never
+presses Inspect is never sent it.
+
+Under the preview, **Text styles** lists every distinct combination of family,
+size, weight, line height, tracking and colour the component actually renders in,
+read off the rendered result rather than off the CSS. So it reports what the
+component *is*, cascade and all, rather than what its stylesheet asks for — which
+is the same list Figma shows, and the quickest way to see that a face has fallen
+back.
 
 ### Getting a component to match the design exactly
 

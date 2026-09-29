@@ -115,6 +115,11 @@ ok("base-uri 'none'",                      str_contains($csp, "base-uri 'none'")
 ok("object-src 'none'",                    str_contains($csp, "object-src 'none'"));
 ok("frame-ancestors 'self', so only we may frame it", str_contains($csp, "frame-ancestors 'self'"));
 ok("no unsafe-eval anywhere",              !str_contains($csp, 'unsafe-eval'));
+// Scripts may come from this site and from inline, and from nowhere else. The
+// widening to 'self' is what lets the inspector be a file; it must not become a
+// host somebody could point at.
+ok("script-src is only self and inline",
+    preg_match("/script-src 'self' 'unsafe-inline'(;|$)/", $csp) === 1);
 // A wildcard in connect-src or default-src would undo the point of the policy.
 ok("no wildcard source",                   !preg_match('/(^|[; ])(default|connect)-src[^;]*\*/', $csp));
 
@@ -189,6 +194,16 @@ ok('the frame does not load site.css',       !str_contains($frame, 'site.css'));
 ok('the frame does not load admin.css',      !str_contains($frame, 'admin.css'));
 // The bridge is what sizes the iframe; without it every preview is 20rem tall.
 ok('the frame reports its height',           str_contains($frame, "source: 'component-frame'"));
+// The inspector is only shipped when asked for: a reader who never presses
+// Inspect should not be sent it, and it must not be on by default.
+ok('the inspector is not loaded by default',  !str_contains($frame, 'component-inspect.js'));
+
+$inspect = true;
+ob_start();
+require APP_DIR . '/views/component-frame.php';
+$inspecting = ob_get_clean();
+ok('and is loaded when asked for',            str_contains($inspecting, 'component-inspect.js'));
+$inspect = false;
 
 echo "\nStored links that become an href\n";
 

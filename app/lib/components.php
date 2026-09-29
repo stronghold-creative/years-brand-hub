@@ -52,7 +52,10 @@ function component_frame_csp(): string
         "font-src 'self' data: https://fonts.gstatic.com",
         "img-src 'self' data: blob:",
         "media-src 'self' data: blob:",
-        "script-src 'unsafe-inline'",
+        // 'self' so the inspector can be a file rather than a few hundred lines
+        // inlined into a view. Inline is already allowed — the height bridge
+        // needs it — so this widens nothing that was closed.
+        "script-src 'self' 'unsafe-inline'",
         "connect-src 'none'",
         "form-action 'none'",
         "base-uri 'none'",

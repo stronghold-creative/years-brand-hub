@@ -82,6 +82,7 @@
 
   const stage = document.querySelector('[data-frame-stage]');
   let dark = false;
+  let inspect = false;
 
   // ------------------------------------------------------------------ height
 
@@ -102,6 +103,13 @@
 
       const data = event.data;
       if (!data || data.source !== 'component-frame') return;
+
+      // The text styles the component actually renders in, measured inside the
+      // frame because only the frame can measure them.
+      if (Array.isArray(data.styles)) {
+        paintTextStyles(data.styles);
+        return;
+      }
 
       const height = Number(data.height);
       if (!isFinite(height) || height <= 0) return;
@@ -171,8 +179,11 @@
   function load(src) {
     if (!src) return;
     const bare = String(src).split('?')[0];
+    const query = [];
+    if (dark) query.push('scheme=dark');
+    if (inspect) query.push('inspect=1');
     frame.style.height = '';
-    frame.src = dark ? bare + '?scheme=dark' : bare;
+    frame.src = query.length ? bare + '?' + query.join('&') : bare;
   }
 
   function currentSrc() {
@@ -199,6 +210,73 @@
       });
     });
   });
+
+  // ----------------------------------------------------------------- inspect
+
+  /**
+   * Measurements on hover, the way Dev Mode gives them.
+   *
+   * It reloads the frame rather than toggling something inside it, because the
+   * frame is cross-origin and cannot be reached into — and because the inspector
+   * should not be shipped to a reader who never asks for it.
+   */
+  feature('inspect toggle', function () {
+    const button = document.querySelector('[data-frame-inspect]');
+    if (!button) return;
+
+    button.addEventListener('click', function () {
+      inspect = !inspect;
+      button.classList.toggle('is-on', inspect);
+      button.setAttribute('aria-pressed', inspect ? 'true' : 'false');
+      load(currentSrc());
+    });
+  });
+
+  /**
+   * The text styles panel: the distinct type the component is actually set in.
+   *
+   * Written as text, never as markup — the values come from inside a frame that
+   * renders author-supplied HTML, and a sample string is whatever that HTML
+   * happened to contain.
+   */
+  function paintTextStyles(styles) {
+    const mount = document.querySelector('[data-text-styles]');
+    if (!mount) return;
+
+    const wrap = mount.closest('[data-text-styles-wrap]') || mount;
+    mount.innerHTML = '';
+    if (!styles.length) {
+      wrap.hidden = true;
+      return;
+    }
+    wrap.hidden = false;
+
+    styles.forEach(function (style) {
+      const row = document.createElement('div');
+      row.className = 'typestyle';
+
+      const sample = document.createElement('p');
+      sample.className = 'typestyle__sample';
+      sample.textContent = style.sample || 'Aa';
+      sample.style.fontFamily = style.family;
+      sample.style.fontSize = style.size;
+      sample.style.fontWeight = style.weight;
+      sample.style.color = style.colour;
+
+      const spec = document.createElement('p');
+      spec.className = 'typestyle__spec';
+      spec.textContent = [
+        style.family,
+        style.size + ' / ' + style.weight,
+        style.line !== 'normal' ? style.line + ' line' : null,
+        style.tracking !== 'normal' ? style.tracking + ' tracking' : null,
+        style.colour,
+      ].filter(Boolean).join('  ·  ');
+
+      row.append(sample, spec);
+      mount.append(row);
+    });
+  }
 
   // ------------------------------------------------------------------ scheme
 

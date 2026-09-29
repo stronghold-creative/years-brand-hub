@@ -2651,3 +2651,22 @@ body[data-card='shadow'] .zone--bg-custom { box-shadow: 0 1px 2px rgba(31,31,31,
 /* A typeface the server cannot serve. Louder than an off-token value, because
    the component silently renders in a fallback and looks nearly right. */
 .devspec__missingfont { font-weight: 600; color: #8A2233; }
+
+/* The type a component is actually set in, measured in its frame. */
+.component__type { margin-top: 3rem; }
+.component__type h2 { font-size: 1.125rem; margin: 0 0 .75rem; }
+.component__type[hidden] { display: none; }
+.typestyle {
+  display: grid;
+  gap: .25rem;
+  padding: .875rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+.typestyle:last-child { border-bottom: 0; }
+.typestyle__sample { margin: 0; overflow-wrap: anywhere; }
+.typestyle__spec {
+  margin: 0;
+  font-size: .75rem;
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  color: var(--ink-faint);
+}

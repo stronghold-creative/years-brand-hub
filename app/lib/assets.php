@@ -269,6 +269,20 @@ function asset_is_inline_video(array $asset): bool
 }
 
 /**
+ * A font file in the asset library.
+ *
+ * Only woff2 and woff are served to a browser: the other two are accepted as
+ * uploads because they are what a foundry sends and what a designer has to hand,
+ * but a browser has no reason to be given a ttf when a woff2 exists, and serving
+ * one is handing over a more reusable copy of a licensed font than it needs.
+ */
+function asset_is_font(array $asset): bool
+{
+    return in_array($asset['mime'], ['font/woff2', 'font/woff', 'application/font-woff'], true)
+        || in_array(strtolower(pathinfo((string) $asset['original_name'], PATHINFO_EXTENSION)), ['woff2', 'woff'], true);
+}
+
+/**
  * Anything that displays in a page rather than downloading.
  *
  * The video block offers an uploaded file as an alternative to a YouTube or

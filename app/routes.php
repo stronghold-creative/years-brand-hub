@@ -85,6 +85,9 @@ if (preg_match('#^/components/([a-z0-9\-]+)/frame/(\d+)$#', $path, $m)) {
         // Only the two values are honoured, so the attribute cannot be steered
         // into anything else by the query string.
         'scheme'    => ($_GET['scheme'] ?? '') === 'dark' ? 'dark' : 'light',
+        // Measurements on hover. A flag, not a value, so there is nothing to
+        // steer: either the file is included or it is not.
+        'inspect'   => isset($_GET['inspect']),
     ], null);
     exit;
 }
@@ -846,6 +849,39 @@ if (preg_match('#^/admin/users/(\d+)/delete$#', $path, $m) && $method === 'POST'
 // Images and video shown inside pages. Separate from /d/ because these display
 // rather than download, and are not counted as downloads. Anchored, so
 // /i/9/anything cannot reach here on a partial match.
+/**
+ * A font file, for `@font-face`.
+ *
+ * Its own route rather than `/i/`, which serves inline media and rightly refuses
+ * anything that is not an image or a video, and rather than `/d/`, which logs a
+ * download and is meant for someone clicking a link. A typeface is neither: it is
+ * a subresource a stylesheet asks for, dozens of times, and it needs to be
+ * cacheable and to answer with the right content type or the browser discards it.
+ *
+ * Gated exactly as the rest of the site. A private site does not serve its
+ * licensed typefaces to the world.
+ */
+if (preg_match('#^/f/(\d+)$#', $path, $m)) {
+    if (site_is_private($config) && !current_user()) {
+        not_found();
+    }
+    $asset = asset_find((int) $m[1]);
+    if (!$asset || !asset_is_font($asset)) {
+        not_found();
+    }
+    $file = asset_path($asset);
+    if (!is_file($file)) {
+        not_found();
+    }
+    header('Content-Type: ' . $asset['mime']);
+    header('Content-Length: ' . (string) filesize($file));
+    // Immutable: the id and the version change when the file does.
+    header('Cache-Control: private, max-age=31536000, immutable');
+    header('X-Content-Type-Options: nosniff');
+    readfile($file);
+    exit;
+}
+
 if (preg_match('#^/i/(\d+)(?:/(\d+))?$#', $path, $m)) {
     if (site_is_private($config) && !current_user()) {
         not_found();

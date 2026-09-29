@@ -27,6 +27,7 @@ $expected = [
     'GET  /i/9'                    => '/i/9',
     'GET  /i/9/400'                => '/i/9/400',
     'GET  /d/9'                    => '/d/9',
+    'GET  /f/9'                    => '/f/9',
     'GET  /bundle/logos'           => '/bundle/logos',
     'GET  /search.json'            => '/search.json',
     'GET  /admin'                  => '/admin',

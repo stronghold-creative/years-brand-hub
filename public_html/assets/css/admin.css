@@ -2215,3 +2215,22 @@ form[data-guard].is-dirty {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: .75rem;
 }
+
+/* The same panel in the editor. */
+.cmp__type { margin-top: 1.5rem; }
+.cmp__type[hidden] { display: none; }
+.cmp__typehead { margin: 0 0 .5rem; font-size: 1rem; font-weight: 500; }
+.typestyle {
+  display: grid;
+  gap: .25rem;
+  padding: .625rem 0;
+  border-bottom: 1px solid var(--md-sys-color-outline-variant);
+}
+.typestyle:last-child { border-bottom: 0; }
+.typestyle__sample { margin: 0; overflow-wrap: anywhere; }
+.typestyle__spec {
+  margin: 0;
+  font-size: .6875rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--md-sys-color-on-surface-variant);
+}

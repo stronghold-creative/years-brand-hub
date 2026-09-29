@@ -174,13 +174,17 @@ $frameBase = '/components/' . rawurlencode($component['slug']) . '/frame/';
             editable fields for exactly that reason.
           </p>
           <p class="m3-field__support">
-            And <strong>type only matches if the typeface is on the server</strong>.
-            The preview loads the brand faces from
-            <code>public_html/assets/fonts/</code>; anything else falls back and
-            the component will look nearly right in a way that is hard to place.
-            The spec table under the preview says <em>not on the server</em> when
-            that is what has happened, which is the first place to look when an
-            import is close but not exact.
+            And <strong>type only matches if the typeface is here</strong>. Upload
+            the woff2 to <a href="/admin/assets">Assets</a> and it is available
+            immediately — no deploy. Name the file the way a foundry does,
+            <code>Mulish-SemiBold.woff2</code>, and it is read as Mulish at 600.
+            One file per weight you use.
+          </p>
+          <p class="m3-field__support">
+            Until it is there the component falls back to another face and looks
+            nearly right in a way that is hard to place. The spec table under the
+            preview says <em>not on the server</em> when that has happened, which
+            is the first thing to check when an import is close but not exact.
           </p>
           <p class="m3-field__support">
             Copying the component in Figma and pasting that will not work, and the
@@ -336,6 +340,8 @@ $frameBase = '/components/' . rawurlencode($component['slug']) . '/frame/';
             <?php endforeach; ?>
             <button class="m3-chip m3-chip--filter m3-state" type="button" data-frame-scheme="dark"
                     aria-pressed="false">Dark</button>
+            <button class="m3-chip m3-chip--filter m3-state" type="button" data-frame-inspect
+                    aria-pressed="false">Inspect</button>
           </span>
         </div>
 
@@ -366,6 +372,12 @@ $frameBase = '/components/' . rawurlencode($component['slug']) . '/frame/';
           doing the work.
         </p>
       <?php endif; ?>
+
+      <?php // Measured in the frame and filled in by components.js. ?>
+      <section class="cmp__type" data-text-styles-wrap hidden>
+        <h3 class="cmp__typehead">Text styles</h3>
+        <div data-text-styles></div>
+      </section>
 
       <?php // The spec of the base CSS, with every row's note editable. It sits
             // under the preview so an off-token value is seen while it is being
