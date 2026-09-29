@@ -56,6 +56,17 @@ function style_css_value(string $key): string
         : $field['default'] . ($field['unit'] ?? '');
 }
 function design_colour_tokens(): array { return ['--sand' => '#EFE9DD']; }
+// The brand faces the preview frame declares, and the spec measures a pasted
+// font-family against. Fixed here so the check does not depend on what happens
+// to be in the fonts folder.
+function brand_fonts(): array
+{
+    return ['More Years' => ['/assets/fonts/MoreYears-Regular.woff2' => 400]];
+}
+function brand_font_faces(): string
+{
+    return "@font-face{font-family:'More Years';src:url('/assets/fonts/MoreYears-Regular.woff2') format('woff2');font-weight:400}";
+}
 
 require APP_DIR . '/lib/blocks.php';
 require APP_DIR . '/lib/components.php';
@@ -398,6 +409,33 @@ ok('#FFF and #ffffff normalise alike',        spec_normalise_colour('#FFF') === 
 ok('an alpha channel is ignored',             spec_normalise_colour('#7257B7FF') === '#7257b7');
 ok('0, 0px and 0rem normalise alike',         spec_normalise_length('0px') === spec_normalise_length('0rem'));
 ok('px is not matched against rem',           spec_normalise_length('6px') !== spec_normalise_length('6rem'));
+
+echo "\nTypefaces a pasted component asks for\n";
+
+// The single likeliest reason an imported component is "nearly right": the face
+// is not on the server, so it renders in a fallback and stops matching.
+$fonts = component_spec(".a{font-family:'More Years',serif}.b{font-family:Inter,sans-serif}.c{font-family:system-ui}");
+$byValue = [];
+foreach ($fonts['groups'] as $group) {
+    foreach ($group['rows'] as $r) { $byValue[$r['value']] = $r; }
+}
+ok('a face on the server is not flagged',
+    ($byValue["'More Years',serif"]['flagged'] ?? true) === false);
+ok('a face that is not is flagged',
+    ($byValue['Inter,sans-serif']['flagged'] ?? false) === true);
+ok('and is named as missing, not as off-token',
+    ($byValue['Inter,sans-serif']['missing_font'] ?? false) === true);
+ok('a generic family counts as available',
+    ($byValue['system-ui']['flagged'] ?? true) === false);
+ok('only the first family in a stack is judged',
+    spec_font_is_available('Inter, "More Years", sans-serif') === false);
+
+ob_start();
+$spec = $fonts;
+$specEditable = null;
+require APP_DIR . '/views/component-spec.php';
+$fontTable = ob_get_clean();
+ok('the table says a font is missing',       str_contains($fontTable, 'not on the server'));
 
 echo "\nThe spec table as rendered\n";
 

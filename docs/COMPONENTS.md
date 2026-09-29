@@ -593,6 +593,28 @@ have to.
 - **A heading in the guidance is its own result**, with its anchor, exactly as a
   heading on a page is.
 
+### Getting a component to match the design exactly
+
+The frame deliberately does not load `site.css`, which is where the public site
+declares its typefaces — so a component whose CSS asked for More Years got the
+fallback, and **type imported from Figma never matched the design however
+carefully the CSS was pasted.** It was the one thing that could not be fixed by
+editing the component, because nothing about the component was wrong.
+
+`brand_font_faces()` now declares every face on the server into the frame, from
+the same `brand_fonts()` the type specimen reads, so the two can never disagree
+about which typefaces exist.
+
+**And the spec table says when a face is missing.** A `font-family` whose first
+name is not on the server is flagged as "not on the server" rather than as an
+off-token value, because it is a different problem with a different fix: upload
+the face. Only the first name in a stack is judged — the rest is by definition
+the fallback, and a component rendering in its fallback is not the component that
+was designed.
+
+So when an import is *nearly* right, the spec table is where to look. Type is
+the usual answer, and it now says so.
+
 ### Two more traps, found in phase 5
 
 1. **`.spec` was already taken.** The `spec_table` block owns `.spec`,

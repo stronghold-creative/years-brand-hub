@@ -184,6 +184,77 @@ function fonts_are_local(): bool
 }
 
 /** The interface weights actually used, so no file is asked for needlessly. */
+/**
+ * Every typeface actually on the server, read from the files themselves.
+ *
+ * Returns `['More Years' => ['/assets/fonts/MoreYears-Regular.woff2' => 400]]`,
+ * so one function answers three questions that were previously answered in three
+ * places: what the type specimen may offer, what `@font-face` the component
+ * preview needs, and whether a face is available at all.
+ *
+ * The filename is the declaration. `MoreYears-Regular.woff2` is More Years at
+ * 400; `SomeFace-Bold.woff2` is Some Face at 700. Drop a file in the folder and
+ * it works, with nothing to register — which is the same bargain the rest of this
+ * project makes, and the reason four faces were once declared in CSS for files
+ * that had never been uploaded.
+ */
+function brand_fonts(): array
+{
+    static $found = null;
+    if ($found !== null) {
+        return $found;
+    }
+
+    $weights = [
+        'thin' => 100, 'extralight' => 200, 'ultralight' => 200, 'light' => 300,
+        'regular' => 400, 'book' => 400, 'normal' => 400, 'medium' => 500,
+        'semibold' => 600, 'demibold' => 600, 'bold' => 700,
+        'extrabold' => 800, 'ultrabold' => 800, 'black' => 900, 'heavy' => 900,
+    ];
+
+    $found = [];
+    foreach (glob(ROOT_DIR . '/public_html/assets/fonts/*.woff2') ?: [] as $file) {
+        $name = basename($file, '.woff2');
+
+        // The interface face is written by font_head() with its own naming, and
+        // is not a brand face to document.
+        if (str_starts_with($name, 'plus-jakarta-sans-')) {
+            continue;
+        }
+
+        $parts  = explode('-', $name, 2);
+        $family = preg_replace('/(?<=[a-z0-9])(?=[A-Z])/', ' ', $parts[0]) ?? $parts[0];
+        $style  = strtolower(str_replace(['-', ' ', 'italic'], '', $parts[1] ?? 'Regular'));
+        $weight = $weights[$style] ?? 400;
+
+        $found[trim($family)]['/assets/fonts/' . basename($file)] = $weight;
+    }
+
+    ksort($found);
+    return $found;
+}
+
+/**
+ * `@font-face` for every brand typeface on the server.
+ *
+ * The public site declares More Years in `site.css`, but the component preview
+ * deliberately does not load `site.css` — so a component whose CSS asked for a
+ * brand face got the fallback, and type imported from Figma never matched the
+ * design. This gives that frame the real faces.
+ */
+function brand_font_faces(): string
+{
+    $css = '';
+    foreach (brand_fonts() as $family => $files) {
+        foreach ($files as $path => $weight) {
+            $css .= "@font-face{font-family:'" . $family . "';"
+                  . "src:url('" . e(asset_url($path)) . "') format('woff2');"
+                  . 'font-weight:' . $weight . ';font-style:normal;font-display:swap}';
+        }
+    }
+    return $css;
+}
+
 function interface_font_weights(): array
 {
     return [400, 500, 600, 700];

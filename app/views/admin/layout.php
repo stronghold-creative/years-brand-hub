@@ -39,7 +39,20 @@ $isCurrent = function (array $item) use ($path): bool {
 <!-- Navigation. A drawer on wide screens, a sheet behind a button on narrow. -->
 <nav class="m3-drawer" id="drawer" aria-label="Sections">
   <div class="m3-drawer__brand">
-    <span class="m3-drawer__mark">Years</span>
+    <?php
+      // The real mark rather than the word "Years" set in the interface face.
+      // The uploaded logo when there is one, and the favicon otherwise, which is
+      // the same mark the browser tab and the public site already show — so the
+      // admin stops being the one place the brand appears as plain text.
+      $adminLogo = site_logo();
+    ?>
+    <a class="m3-drawer__mark" href="/admin" aria-label="Years brand hub, back to Pages">
+      <?php if ($adminLogo): ?>
+        <img src="<?= e(asset_image_url($adminLogo, 240)) ?>" alt="Years">
+      <?php else: ?>
+        <img src="<?= e(asset_url('/assets/favicon.svg')) ?>" alt="Years">
+      <?php endif; ?>
+    </a>
     <span class="m3-drawer__sub">Brand hub</span>
     <button class="m3-icon-button m3-state m3-drawer__dismiss" type="button" data-drawer-close aria-label="Close navigation">
       <?= ui_icon('close') ?>

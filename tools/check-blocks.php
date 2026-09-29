@@ -351,6 +351,66 @@ foreach (['a --s-radius and figma_file_key', '2 * 3 = 6', 'an * orphan', '**uncl
 }
 
 /**
+ * Values written straight into a style attribute.
+ *
+ * A type specimen puts its size, weight, line height and tracking into
+ * `style="..."`. Escaping alone would stop a quote breaking out of the attribute
+ * and would happily let `red; background: url(...)` through as a declaration, so
+ * each is constrained to the shape it is meant to be. A rejected value shows as
+ * the default, which is visible; a passed one would not be.
+ */
+foreach ([
+    ['2.5rem',                  '2.5rem'],
+    ['40px',                    '40px'],
+    ['clamp(2rem, 4vw, 3rem)',  'clamp(2rem, 4vw, 3rem)'],
+    ['normal',                  'normal'],
+    ['red; background: url(x)', 'FALLBACK'],
+    ['2rem"; color: red',       'FALLBACK'],
+    ['expression(alert(1))',    'FALLBACK'],
+    ['',                        'FALLBACK'],
+] as [$input, $expected]) {
+    $got = spec_length($input, 'FALLBACK');
+    if ($got !== $expected) {
+        $problems[] = "spec_length(\"$input\") gave \"$got\", expected \"$expected\"";
+    }
+}
+
+foreach ([['700', '700'], ['bold', '700'], ['Semi Bold', '600'], ['nonsense', '400'], ['', '400']] as [$in, $want]) {
+    if (spec_weight($in) !== $want) {
+        $problems[] = "spec_weight(\"$in\") gave \"" . spec_weight($in) . "\", expected \"$want\"";
+    }
+}
+
+/**
+ * The clearspace diagram's geometry.
+ *
+ * If the clear space each side is r times the mark, the frame is (1 + 2r) marks
+ * across and the mark is 1/(1 + 2r) of it. Getting this wrong is invisible —
+ * the diagram still draws, it just claims a ratio it is not showing — which is
+ * how the previous version shipped measuring against the container instead.
+ */
+foreach ([
+    // ratio, the mark's share of the frame
+    [25,  66.6667],   // gap is a quarter of the mark each side: 1 + 0.5 marks
+    [50,  50.0],      // gap is half the mark each side:         1 + 1 marks
+    [100, 33.3333],   // gap is a full mark each side:           1 + 2 marks
+] as [$ratio, $share]) {
+    $expected = round(100 / (1 + 2 * ($ratio / 100)), 4);
+    if (abs($expected - $share) > 0.001) {
+        $problems[] = "clearspace: $ratio% should leave the mark at $share% of the frame, not $expected%";
+    }
+
+    $blocks = sanitise_blocks([[
+        'type' => 'clearspace',
+        'data' => ['asset' => 0, 'ratio' => (string) $ratio],
+        'settings' => [], 'options' => [],
+    ]]);
+    if ((string) $blocks[0]['data']['ratio'] !== (string) $ratio) {
+        $problems[] = "clearspace ratio $ratio does not survive the sanitiser";
+    }
+}
+
+/**
  * Every block type needs a group and an icon for the chooser.
  *
  * Neither fails loudly: a missing group drops the block into an "Other" heading

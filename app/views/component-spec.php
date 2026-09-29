@@ -40,7 +40,14 @@ $editable = !empty($specEditable);
             <td class="devspec__prop"><?= e($row['property']) ?></td>
             <td class="devspec__value"><code><?= e($row['value']) ?></code></td>
             <td class="devspec__token">
-              <?php if (!empty($row['partial'])): ?>
+              <?php if (!empty($row['missing_font'])): ?>
+                <?php // The likeliest reason an imported component is nearly
+                      // right: the face is not on the server, so it renders in a
+                      // fallback and silently stops matching the design. ?>
+                <span class="devspec__missingfont">not on the server</span>
+              <?php elseif (($row['token'] ?? null) === 'on the server'): ?>
+                <span class="devspec__partly">on the server</span>
+              <?php elseif (!empty($row['partial'])): ?>
                 <span class="devspec__partly">partly <code><?= e($row['token']) ?></code></span>
               <?php elseif ($row['token'] !== null): ?>
                 <code><?= e($row['token']) ?></code>

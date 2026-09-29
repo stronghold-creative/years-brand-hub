@@ -28,6 +28,23 @@
 <?php // The brand's own colour tokens, the same ones the guidelines publish. ?>
 <link rel="stylesheet" href="/tokens.css">
 <style>
+<?php
+/**
+ * The brand's own typefaces.
+ *
+ * This frame deliberately does not load site.css, which is where the public
+ * site declares its faces — so a component asking for More Years got the
+ * fallback, and type imported from Figma never matched the design however
+ * carefully the CSS was pasted. It was the one thing that could not be fixed by
+ * editing the component.
+ *
+ * Every face on the server is declared here, by the same function the type
+ * specimen reads its dropdown from, so the frame and the guidelines can never
+ * disagree about which typefaces exist.
+ */
+?>
+<?= brand_font_faces() ?>
+
 <?= style_css() ?>
 
 /* A floor, not a house style. Enough that a component is not fighting the

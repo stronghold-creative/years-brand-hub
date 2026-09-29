@@ -618,7 +618,17 @@ body.nav-open {
   align-items: baseline;
 }
 .specimen:last-child { border-bottom: 0; }
-.specimen__sample { margin: 0; overflow-wrap: anywhere; }
+/* The sample is at its real size at each width, not a claim about one. The
+   mobile value falls back to the desktop one when it is not given. */
+.specimen__sample {
+  margin: 0;
+  overflow-wrap: anywhere;
+  font-size: var(--sample-size, 2rem);
+}
+@media (max-width: 48rem) {
+  .specimen__sample { font-size: var(--sample-size-mobile, var(--sample-size, 2rem)); }
+}
+.specimen__mobile { white-space: nowrap; }
 .specimen__spec h4 { margin: 0 0 .25rem; font-size: .9375rem; font-weight: 600; }
 .specimen__spec p { margin: 0; font-size: .8125rem; color: var(--ink-faint); }
 .specimen__use { margin-top: .625rem !important; color: var(--ink-soft) !important; }
@@ -776,6 +786,10 @@ body.nav-open {
 .figure--text { max-width: 100%; }
 .figure--half { max-width: 22rem; }
 .figure--wide { width: min(58rem, calc(100vw - 2 * var(--gutter))); }
+/* No cap: the figure takes whatever the block gives it, so an image in a block
+   set to Full width is finally full width. Everything above caps at a measure,
+   which is why the widest an image could get used to be 58rem. */
+.figure--full { width: 100%; max-width: none; }
 
 /* A panel behind the image, for logos and marks that need a background. */
 .figure--frame-light img { background: var(--raised); padding: clamp(1rem, 4%, 2.5rem); }
@@ -1382,14 +1396,41 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 
 /* Clearspace --------------------------------------------------------------- */
 .clearspace { margin: 0; }
+/* The frame is the mark plus its clear space. The mark is sized as a
+   proportion of the frame — 1/(1+2r) for a ratio r — so the gap drawn on
+   every side really is r times the mark, which is the only thing this
+   diagram is for. Padding a percentage of the frame, as it did before,
+   measured the gap against the container and meant nothing. */
 .clearspace__frame {
-  padding: var(--pad, 50%);
+  position: relative;
+  display: grid;
+  place-items: center;
+  padding: 0;
   background:
     repeating-linear-gradient(45deg, var(--raised) 0 6px, transparent 6px 12px);
   border: 1px dashed var(--rule-firm);
   border-radius: var(--s-radius-inner, var(--s-radius, 6px));
+  aspect-ratio: 1;
 }
-.clearspace__mark { background: var(--page); padding: 1.5rem; display: grid; place-items: center; }
+.clearspace__mark {
+  width: var(--mark-width, 66.6667%);
+  background: var(--page);
+  padding: 1rem;
+  display: grid;
+  place-items: center;
+  outline: 1px solid var(--rule-firm);
+}
+/* The gap labelled where it is, which is how a brand guideline draws it. */
+.clearspace__gap {
+  position: absolute;
+  font-size: .75rem;
+  font-style: italic;
+  color: var(--ink-soft);
+  background: var(--page);
+  padding: 0 .25rem;
+}
+.clearspace__gap--x { left: calc((100% - var(--mark-width, 66.6667%)) / 4); top: 50%; transform: translate(-50%, -50%); }
+.clearspace__gap--y { top: calc((100% - var(--mark-width, 66.6667%)) / 4); left: 50%; transform: translate(-50%, -50%); }
 .clearspace__mark img { display: block; max-width: 100%; height: auto; }
 .clearspace__measure { margin: .75rem 0 0; font-size: .8125rem; color: var(--ink-faint); }
 
@@ -2394,10 +2435,24 @@ html, body { overflow-x: clip; }
   ));
 }
 
-/* A block with no background still takes a radius and padding if it is given
-   them: the ask was every block, and a padded block with no fill is a perfectly
-   ordinary thing to want. Nothing is emitted unless a value was set, so this
-   costs a block that has not been touched nothing at all. */
+/**
+ * A per-block value redefines the site token for everything inside the block.
+ *
+ * This is what makes the setting do anything at all. On its own it only styled
+ * the .zone wrapper — which for most blocks has no background and no border, so
+ * a radius on it was invisible and the control appeared to do nothing. What
+ * someone means by "this block's corner radius" is the corners they can see: the
+ * image, the swatch, the code box, the panel.
+ *
+ * Every one of those already reads var(--s-radius) or var(--s-pad). Redefining
+ * the token on the zone hands the whole block the new number through inheritance,
+ * with no renderer needing to know. The site's own value is untouched everywhere
+ * else.
+ */
+.zone[style*="--zone-radius"] { --s-radius: var(--zone-radius); }
+.zone[style*="--zone-pad"]    { --s-pad: var(--zone-pad); }
+
+/* And the wrapper itself, for a block that has a fill of its own to round. */
 .zone[style*="--zone-pad"] { padding: var(--zone-pad); }
 .zone[style*="--zone-radius"] { border-radius: var(--zone-radius); }
 
@@ -2477,3 +2532,19 @@ body[data-card='shadow'] .zone--bg-custom { box-shadow: 0 1px 2px rgba(31,31,31,
   font-size: .75rem;
   color: var(--ink-faint);
 }
+
+/* Lists inside body text, written as "- item" or "1. item" and converted by
+   paragraph_list(). Sized against the measure so they hang with the prose. */
+.prose__list {
+  margin: 0 0 1rem;
+  padding-left: 1.25rem;
+  max-width: var(--s-measure, 70ch);
+}
+.prose__list li { margin-bottom: .375rem; }
+.prose__list li:last-child { margin-bottom: 0; }
+.prose__list:last-child { margin-bottom: 0; }
+.zone--bg-dark .prose__list, .zone--on-dark .prose__list { color: inherit; }
+
+/* A typeface the server cannot serve. Louder than an off-token value, because
+   the component silently renders in a fallback and looks nearly right. */
+.devspec__missingfont { font-weight: 600; color: #8A2233; }

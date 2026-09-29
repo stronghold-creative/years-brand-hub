@@ -81,7 +81,8 @@ deploy can never overwrite your credentials or uploaded files.
 - 28 block types, grouped and illustrated in the chooser, each with its own
   options, inheriting from global settings
 - Body text takes bold, italic, code and links, stored as plain-text markers
-  and turned into tags at render, so nothing typed is ever stored as HTML
+  and turned into tags at render, so nothing typed is ever stored as HTML, plus
+  bulleted and numbered lists
 - Appearance with a live preview, per-field resets and contrast checks
 - Appearance: numeric global styling, colours, widths, type scale
 - Assets: upload, versioning, replace in place, ZIP bundles, gated downloads,

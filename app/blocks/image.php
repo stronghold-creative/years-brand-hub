@@ -10,7 +10,10 @@ if ($asset && asset_is_inline_image($asset)):
 <figure class="block block--image figure figure--<?= e($data['width'] ?? 'text') ?> figure--frame-<?= e($data['frame'] ?? 'none') ?> figure--fit-<?= e($fit) ?> figure--r-<?= e($radius) ?>">
   <?php $size = asset_dimensions($asset); $set = asset_srcset($asset); ?>
   <img src="<?= e(asset_image_url($asset, 800)) ?>"
-       <?php if ($set): ?>srcset="<?= e($set) ?>" sizes="(max-width: 56rem) 100vw, 46rem"<?php endif; ?>
+       <?php // A full-width image is asked to fill the block, so telling the
+             // browser 46rem would have it choose a file too small for it. ?>
+       <?php if ($set): ?>srcset="<?= e($set) ?>"
+       sizes="<?= ($data['width'] ?? 'text') === 'full' ? '100vw' : '(max-width: 56rem) 100vw, 46rem' ?>"<?php endif; ?>
        alt="<?= e($data['alt'] ?? '') ?>"
        <?php if ($size): ?>width="<?= $size['width'] ?>" height="<?= $size['height'] ?>"<?php endif; ?>
        loading="lazy" decoding="async">

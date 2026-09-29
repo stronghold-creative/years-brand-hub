@@ -9,6 +9,71 @@ declare(strict_types=1);
  *
  * Field types: text, textarea, longtext, colour, select, repeater
  */
+/**
+ * The typefaces a specimen may be set in.
+ *
+ * Every brand face actually on the server, then the two stacks the site itself
+ * uses. A dropdown rather than a text field because a family name typed with the
+ * wrong spacing or case renders the fallback and looks like the font failing to
+ * load — which is exactly the kind of wrong that is invisible to whoever typed
+ * it and obvious to everyone else.
+ */
+/**
+ * Values that are safe to write into a style attribute.
+ *
+ * A specimen puts its size, weight, line height and tracking straight into
+ * `style="..."`, so each is constrained to the shape it is meant to be rather
+ * than escaped and hoped for. `e()` alone would stop a quote breaking out of the
+ * attribute but would happily pass `red; background: url(...)` through as a
+ * declaration. These reject anything that is not the kind of value asked for and
+ * fall back to a sane default, so a typo shows as the default rather than as a
+ * broken page.
+ */
+function spec_length(string $value, string $fallback): string
+{
+    $value = trim($value);
+    // A number with a unit, or one of the functions type is genuinely written
+    // with. Anything else, including a semicolon, is not a length.
+    $ok = preg_match('/^-?[0-9.]+(px|rem|em|%|pt|vw|vh|ch|ex)?$/i', $value) === 1
+       || preg_match('/^(clamp|calc|min|max)\([^;{}"\'<>]*\)$/i', $value) === 1
+       || in_array(strtolower($value), ['normal', 'inherit', 'auto'], true);
+    return $ok ? $value : $fallback;
+}
+
+function spec_number(string $value, string $fallback): string
+{
+    $value = trim($value);
+    return preg_match('/^[0-9]*\.?[0-9]+(px|rem|em|%)?$/', $value) === 1 ? $value : $fallback;
+}
+
+function spec_weight(string $value): string
+{
+    $value = trim($value);
+    if (preg_match('/^[1-9]00$/', $value) === 1) {
+        return $value;
+    }
+    $named = ['thin' => '100', 'extralight' => '200', 'light' => '300', 'regular' => '400',
+              'normal' => '400', 'book' => '400', 'medium' => '500', 'semibold' => '600',
+              'bold' => '700', 'extrabold' => '800', 'black' => '900'];
+    return $named[strtolower(str_replace([' ', '-'], '', $value))] ?? '400';
+}
+
+function font_options(): array
+{
+    $out = [];
+    // Guarded rather than assumed: bootstrap.php loads every library, but the
+    // checks load only what they need, and a block definition that cannot be
+    // read without settings.php would make block_types() unusable on its own.
+    foreach (function_exists('brand_fonts') ? array_keys(brand_fonts()) : [] as $family) {
+        $out[$family] = $family;
+    }
+    $out['Plus Jakarta Sans'] = 'Plus Jakarta Sans (interface)';
+    $out['system-ui']         = 'System sans';
+    $out['Georgia, serif']    = 'System serif';
+    $out['ui-monospace, monospace'] = 'System mono';
+    return $out;
+}
+
 function block_types(): array
 {
     return [
@@ -130,9 +195,19 @@ function block_types(): array
                     'item'   => 'Style',
                     'fields' => [
                         'name'        => ['type' => 'text', 'label' => 'Style name'],
-                        'family'      => ['type' => 'text', 'label' => 'Typeface'],
+                        // The faces actually on the server, plus the stacks, so
+                        // nobody has to remember how a family name is spelled —
+                        // and a typo can no longer silently render the fallback.
+                        'family'      => ['type' => 'select', 'label' => 'Typeface',
+                                          'options' => font_options()],
                         'weight'      => ['type' => 'text', 'label' => 'Weight'],
-                        'size'        => ['type' => 'text', 'label' => 'Size'],
+                        'size'        => ['type' => 'text', 'label' => 'Size on desktop',
+                                          'help' => 'With its unit: 2.5rem, 40px, clamp(2rem, 4vw, 3rem).'],
+                        // Type is specified at two sizes here, so the specimen
+                        // has to be able to say both. One number was a spec that
+                        // only described half of what was designed.
+                        'size_mobile' => ['type' => 'text', 'label' => 'Size on mobile', 'optional' => true,
+                                          'help' => 'Used below 48rem. Leave blank to use the desktop size at every width.'],
                         'line_height' => ['type' => 'text', 'label' => 'Line height', 'optional' => true],
                         'tracking'    => ['type' => 'text', 'label' => 'Tracking', 'optional' => true],
                         'sample'      => ['type' => 'text', 'label' => 'Sample text'],
@@ -197,6 +272,11 @@ function block_types(): array
                     'text' => 'Text width',
                     'wide' => 'Wider than the text',
                     'half' => 'Half width',
+                    // The image could not reach the full width other blocks can,
+                    // because its own width capped it at 58rem whatever the
+                    // block's Placement said. Full fills whatever the block is
+                    // given, so Placement set to Full width now means it.
+                    'full' => 'Fill the block',
                 ]],
                 'frame'   => ['type' => 'select', 'label' => 'Background', 'options' => [
                     'none'  => 'None',
@@ -298,10 +378,14 @@ function block_types(): array
             'fields' => [
                 'heading' => ['type' => 'text',   'label' => 'Heading', 'optional' => true],
                 'asset'   => ['type' => 'asset',  'label' => 'Mark'],
-                'measure' => ['type' => 'text',   'label' => 'Clear space equals', 'optional' => true],
-                'ratio'   => ['type' => 'select', 'label' => 'Space shown', 'options' => [
-                    '25' => 'A quarter of the mark', '50' => 'Half the mark', '100' => 'The full mark',
-                ]],
+                'measure' => ['type' => 'text',   'label' => 'Clear space equals', 'optional' => true,
+                              'help' => 'The sentence under the diagram, for example "x is the height of the Y".'],
+                'unit'    => ['type' => 'text',   'label' => 'Letter on the diagram', 'optional' => true,
+                              'help' => 'Drawn in the gap on each side. Defaults to x.'],
+                'ratio'   => ['type' => 'select', 'label' => 'Clear space around it', 'options' => [
+                    '25' => 'A quarter of the mark', '50' => 'Half the mark',
+                    '75' => 'Three quarters of the mark', '100' => 'The full mark',
+                ], 'help' => 'Measured against the mark itself, not the page. Half the mark means the gap on each side is half the mark\'s width.'],
                 'note'    => ['type' => 'textarea', 'label' => 'Note', 'optional' => true],
             ],
         ],
@@ -331,7 +415,8 @@ function block_types(): array
             'icon'   => 'icons',
             'fields' => [
                 'heading' => ['type' => 'text',   'label' => 'Heading', 'optional' => true],
-                'tag'     => ['type' => 'text',   'label' => 'Asset tag'],
+                'tag'     => ['type' => 'text',   'label' => 'Asset tag',
+                              'help' => 'The tag you gave the icons in Assets. Every asset carrying it appears here, so uploading another icon with that tag adds it to this grid on its own — you do not come back and edit the block.'],
                 'note'    => ['type' => 'textarea', 'label' => 'Note', 'optional' => true],
             ],
         ],
@@ -854,7 +939,8 @@ function block_settings_fields(): array
         // Only read when the background is set to custom. Kept as its own field
         // rather than overloading the select, so switching to a named background
         // and back does not lose the colour that was chosen.
-        'background_hex' => ['type' => 'colour', 'label' => 'That colour', 'optional' => true],
+        'background_hex' => ['type' => 'colour', 'label' => 'Background colour', 'optional' => true,
+                                 'help' => 'Used when Background is set to a colour of your own. Text on it turns white automatically if the colour is dark.'],
         'spacing' => ['type' => 'select', 'label' => 'Space below', 'options' => [
             'normal' => 'Normal',
             'tight'  => 'Tight',
@@ -1263,9 +1349,59 @@ function paragraphs(string $text): string
     $parts = preg_split("/\n\s*\n/", $text) ?: [];
     $out = '';
     foreach ($parts as $part) {
-        $out .= '<p>' . rich_inline(nl2br(e(trim($part)))) . '</p>';
+        $part = trim($part);
+        if ($part === '') {
+            continue;
+        }
+        $list = paragraph_list($part);
+        $out .= $list ?? '<p>' . rich_inline(nl2br(e($part))) . '</p>';
     }
     return $out;
+}
+
+/**
+ * A block of lines that are all list items, as a list. Null if they are not.
+ *
+ * `- ` or `* ` makes a bullet, `1.` makes a number. All or nothing within a
+ * paragraph: a block where only some lines start with a dash is prose that
+ * happens to contain a dash, and turning half of it into a list would be worse
+ * than leaving it alone.
+ *
+ * `*` is accepted as a bullet only at the start of a line followed by a space,
+ * which is what keeps it from colliding with `*italic*` — an italic run has no
+ * space after its opening marker.
+ */
+function paragraph_list(string $part): ?string
+{
+    $lines = preg_split('/\n/', $part) ?: [];
+    $lines = array_values(array_filter(array_map('trim', $lines), fn($l) => $l !== ''));
+    if (count($lines) < 1) {
+        return null;
+    }
+
+    $ordered = null;
+    $items = [];
+
+    foreach ($lines as $line) {
+        if (preg_match('/^[-*]\s+(.*)$/', $line, $m)) {
+            $isOrdered = false;
+        } elseif (preg_match('/^\d+[.)]\s+(.*)$/', $line, $m)) {
+            $isOrdered = true;
+        } else {
+            return null;                       // not every line, so not a list
+        }
+        if ($ordered === null) {
+            $ordered = $isOrdered;
+        } elseif ($ordered !== $isOrdered) {
+            return null;                       // mixed, so left as written
+        }
+        $items[] = rich_inline(e(trim($m[1])));
+    }
+
+    $tag = $ordered ? 'ol' : 'ul';
+    return '<' . $tag . ' class="prose__list">'
+         . implode('', array_map(fn($i) => '<li>' . $i . '</li>', $items))
+         . '</' . $tag . '>';
 }
 
 /**

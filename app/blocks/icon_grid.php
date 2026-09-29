@@ -7,7 +7,17 @@ $names = block_option($options, 'names', 'show');
 <section class="block block--icons">
   <?php if (!empty($data['heading'])): ?><h3<?= editable('heading') ?>><?= e($data['heading']) ?></h3><?php endif; ?>
   <?php if (!$icons): ?>
-    <p class="block__empty">No assets are tagged <strong><?= e($data['tag'] ?? '') ?></strong> yet.</p>
+    <?php // An empty grid is almost always a tag that does not match, so the
+          // empty state says what to do rather than only that nothing is here. ?>
+    <p class="block__empty">
+      <?php if (trim((string) ($data['tag'] ?? '')) === ''): ?>
+        This grid has no tag yet. Give it the tag you used on the icons in Assets
+        and every one carrying it will appear here.
+      <?php else: ?>
+        Nothing in Assets is tagged <strong><?= e($data['tag']) ?></strong>.
+        Tags are matched exactly, so check the spelling against the asset.
+      <?php endif; ?>
+    </p>
   <?php else: ?>
     <ul class="icons icons--<?= e($size) ?>">
       <?php foreach ($icons as $icon): ?>

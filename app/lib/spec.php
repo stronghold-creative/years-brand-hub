@@ -174,6 +174,41 @@ function spec_rules(string $css): array
     return $rules;
 }
 
+/**
+ * Whether the first family in a font stack is one this server can actually serve.
+ *
+ * Only the first is judged: the rest of a stack is by definition the fallback,
+ * and a component that renders in its fallback is not the component that was
+ * designed. Generic families count as available — someone who asked for
+ * system-ui got system-ui.
+ */
+function spec_font_is_available(string $value): bool
+{
+    $first = trim(explode(',', $value)[0]);
+    $first = trim($first, "\"' \t");
+    if ($first === '') {
+        return false;
+    }
+
+    $generic = ['inherit', 'initial', 'system-ui', 'sans-serif', 'serif', 'monospace',
+                'ui-monospace', 'ui-sans-serif', 'ui-serif', 'cursive', 'fantasy'];
+    if (in_array(strtolower($first), $generic, true)) {
+        return true;
+    }
+
+    // The interface face is loaded into the frame by font_head().
+    if (strcasecmp($first, 'Plus Jakarta Sans') === 0) {
+        return true;
+    }
+
+    foreach (array_keys(brand_fonts()) as $family) {
+        if (strcasecmp($family, $first) === 0) {
+            return true;
+        }
+    }
+    return false;
+}
+
 /** The states a component's CSS actually defines, which is as telling as the values. */
 function spec_states(array $rules): array
 {
@@ -254,6 +289,22 @@ function component_spec(string $css, array $overrides = []): array
                     $row = ['token' => $m[1], 'partial' => false, 'flagged' => false];
                 } elseif (preg_match_all('/var\(\s*(--[a-z0-9-]+)/i', $value, $m)) {
                     $row = ['token' => implode(', ', $m[1]), 'partial' => true, 'flagged' => false];
+                } elseif ($property === 'font-family') {
+                    /**
+                     * A typeface is not a token to match, it is a file that is
+                     * either on the server or is not — and if it is not, the
+                     * component renders in a fallback and quietly stops matching
+                     * the design. That is the single thing most likely to make
+                     * an imported component "nearly right", so it is called out
+                     * here rather than left to be noticed.
+                     */
+                    $available = spec_font_is_available($value);
+                    $row = [
+                        'token'   => $available ? 'on the server' : null,
+                        'partial' => $available,
+                        'flagged' => !$available,
+                        'missing_font' => !$available,
+                    ];
                 } else {
                     $kind  = $key === 'colour' ? 'colour' : 'length';
                     $token = spec_match($value, $kind, $tokens);

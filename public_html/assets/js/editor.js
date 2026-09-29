@@ -252,6 +252,18 @@
 
     wrap.append(input, label);
     if (richBar) wrap.append(richBar);
+
+    // A field whose definition explains itself says so under the control. Some
+    // of these are not guessable from a label — "Asset tag" does not tell anyone
+    // that the grid fills itself from Assets — and a hint on the block as a whole
+    // is too far away by the time the field is being filled in.
+    if (def.help) {
+      const help = document.createElement('p');
+      help.className = 'm3-field__support';
+      help.textContent = def.help;
+      wrap.append(help);
+    }
+
     return wrap;
   }
 

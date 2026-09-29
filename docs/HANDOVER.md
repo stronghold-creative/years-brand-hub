@@ -83,6 +83,27 @@ anything the definitions do not name: open a page, save it, and whatever was not
 migrated is gone. It is idempotent and never runs on save. `do_dont`'s paired
 rows becoming two independent lists is the worked example.
 
+**Body text takes bulleted and numbered lists.** `- item` or `* item` makes a
+bullet, `1. item` a number, through `paragraph_list()`. All or nothing within a
+paragraph: a block where only some lines start with a dash is prose that happens
+to contain a dash. `*` is a bullet only when followed by a space, which is what
+keeps it from colliding with `*italic*`.
+
+**`brand_fonts()` in `settings.php` is the one answer to "which typefaces exist".**
+It reads the files themselves — `MoreYears-Regular.woff2` is More Years at 400 —
+so dropping a face into `public_html/assets/fonts/` is all that is needed. Three
+things read it: the type specimen's dropdown, the component preview's
+`@font-face`, and the spec table's check that a pasted `font-family` is one this
+server can actually serve.
+
+**Values written into a `style` attribute are constrained, not just escaped.**
+A type specimen puts its size, weight, line height and tracking straight into
+`style="…"`. `e()` alone stops a quote breaking out of the attribute and would
+happily pass `red; background: url(…)` through as a declaration, so
+`spec_length()`, `spec_number()` and `spec_weight()` reject anything that is not
+the shape asked for and fall back to a default. A rejected value shows as the
+default, which is visible; a passed one would not be.
+
 **Body text carries bold, italic, code and links — as markers, never as HTML.**
 `rich_inline()` in `blocks.php` turns `**bold**`, `*italic*`, `` `code` `` and
 `[text](https://…)` into tags at render. **It runs on already-escaped text and
@@ -115,6 +136,14 @@ same. Anything else a browser produces contributes its text and nothing more.
 the `e()` and watching it fail.
 
 **Radius and padding are per block, in pixels, and blank means follow the site.**
+A per-block value **redefines `--s-radius` and `--s-pad` on the zone**, which is
+what makes the setting do anything: on its own it styled only the wrapper, and
+for most blocks that has no background and no border, so a radius on it was
+invisible and the control appeared dead. What someone means by a block's corner
+radius is the corners they can see — the image, the swatch, the code box — and
+every one of those already reads the token, so inheritance hands them the new
+number with no renderer needing to know.
+
 `render_blocks()` emits `--zone-radius` and `--zone-pad` *only* when a block has
 a value of its own, so an untouched block gets no inline style at all and the
 stylesheet's fallback to the global Appearance setting is what runs. Blank is
