@@ -243,14 +243,23 @@ content migrates: the two column headings become the header row, and a row's not
 becomes a third column, because a full-width line under a row has nowhere to live
 in a rectangle and keeping the words beats dropping them.
 
-**Its grid is one text field, not a repeater.** A table is the one piece of
-content that already exists somewhere else: a range copied from Sheets or Excel
-arrives tab-separated, so pasting it lands correctly with nothing to do, and
-forty rows is forty lines to scan rather than forty cards to scroll past. Tabs
-are tried before pipes, and a line containing a tab is treated as tab-separated
-throughout, so a pipe inside a cell survives. The number of columns comes from
-the content, and a short row is padded so a ragged paste still renders a
-rectangle.
+**Its grid is stored as text and edited as a table.** The storage is text — rows
+on lines, cells separated by tabs — because a range copied from Sheets or Excel
+arrives that way, so pasting one lands correctly with nothing to do. The
+textarea that storage implies is *not* right for typing one, so the inspector
+renders a cell per input, with Tab and Enter moving between them and Enter on
+the last row adding another. Pasting a range into any cell fills the table from
+that cell outwards rather than putting ten rows of text into one input. The raw
+text is behind a toggle for a bulk paste or a wholesale fix.
+
+One source of truth, two ways in. `parseGrid()` in `editor.js` and
+`table_rows()` in `blocks.php` are the two halves of the same format and have to
+stay identical: tabs are tried before pipes, a line containing a tab is
+tab-separated throughout so a pipe inside a cell survives, outer pipes are
+dropped and blank rows skipped. The editor always writes tabs, because a tab
+cannot be typed into a single-line input and so can never be part of a cell's
+own text. The number of columns comes from the content, and a short row is
+padded so a ragged paste still renders a rectangle.
 
 **`columns` is two to four side by side**, each with an optional eyebrow, icon or
 image, heading, text and link. Everything but the heading is optional, so one

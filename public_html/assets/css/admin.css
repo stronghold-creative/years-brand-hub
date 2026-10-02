@@ -2256,3 +2256,90 @@ form[data-guard].is-dirty {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   color: var(--md-sys-color-on-surface-variant);
 }
+
+/* A table edited as a table.
+
+   The cells are a grid rather than a real <table> so the column count can come
+   from a custom property and the row's delete button can sit outside the
+   columns without being a cell of its own. */
+.grid-field { margin-bottom: 1.25rem; }
+.grid-field__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .5rem;
+  margin-bottom: .375rem;
+  font-size: .6875rem;
+  font-weight: 500;
+  letter-spacing: .04167em;
+  color: var(--md-sys-color-on-surface-variant);
+}
+.grid-field__swap {
+  padding: .125rem .5rem;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: .6875rem;
+  color: var(--md-sys-color-primary);
+  cursor: pointer;
+  border-radius: var(--md-sys-shape-full);
+}
+.grid-field__swap:hover { background: var(--md-sys-color-surface-container-highest); }
+
+.grid-field__table { display: grid; gap: .1875rem; }
+.grid-field__row {
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr)) 1.5rem;
+  gap: .1875rem;
+  align-items: center;
+}
+/* The column controls sit above the first row and only show on hover, so they
+   are there when wanted and silent when not. */
+.grid-field__row--head { opacity: 0; transition: opacity var(--d-swift) var(--e-out); }
+.grid-field:hover .grid-field__row--head,
+.grid-field:focus-within .grid-field__row--head { opacity: 1; }
+.grid-field__colhead { display: flex; justify-content: center; }
+
+.grid-field__cell {
+  width: 100%;
+  min-width: 0;
+  height: 2rem;
+  padding: 0 .5rem;
+  border: 1px solid var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-xs);
+  background: var(--md-sys-color-surface);
+  font: inherit;
+  font-size: .75rem;
+  color: var(--md-sys-color-on-surface);
+}
+.grid-field__cell:focus {
+  outline: none;
+  border-color: var(--md-sys-color-primary);
+  box-shadow: inset 0 0 0 1px var(--md-sys-color-primary);
+}
+/* The first row is usually the heading, so it reads as one. */
+.grid-field__row.is-header .grid-field__cell { font-weight: 600; }
+
+.grid-field__actions { display: flex; gap: .375rem; margin-top: .5rem; }
+.grid-field__add {
+  height: 1.875rem;
+  padding: 0 .75rem;
+  border: 1px dashed var(--md-sys-color-outline-variant);
+  border-radius: var(--md-sys-shape-full);
+  background: none;
+  font: inherit;
+  font-size: .75rem;
+  color: var(--md-sys-color-on-surface-variant);
+  cursor: pointer;
+}
+.grid-field__add:hover {
+  border-style: solid;
+  background: var(--md-sys-color-surface-container-highest);
+  color: var(--md-sys-color-on-surface);
+}
+
+/* One view at a time: the cells, or the raw text behind the toggle. */
+.grid-field__raw { display: none; }
+.grid-field.is-text .grid-field__raw { display: block; }
+.grid-field.is-text .grid-field__table,
+.grid-field.is-text .grid-field__actions { display: none; }

@@ -49,7 +49,10 @@ function search_block_text(array $block): array
             }
             // Anything that is not free text is not worth searching: a select
             // holds a keyword the reader never sees, an asset holds an id.
-            if (!in_array($field['type'], ['text', 'textarea', 'longtext'], true)) {
+            // A grid is free text too: a table of words is exactly the sort of
+            // thing someone searches for, and leaving it out would mean a term
+            // that is plainly on the page not being findable.
+            if (!in_array($field['type'], ['text', 'textarea', 'longtext', 'grid'], true)) {
                 continue;
             }
             $text = trim((string) (is_scalar($value) ? $value : ''));

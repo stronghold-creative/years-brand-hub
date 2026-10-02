@@ -475,6 +475,16 @@ if (($new[0]['type'] ?? '') !== 'table') {
     if (($new[0]['options']['strike'] ?? '') !== 'struck') {
         $problems[] = 'a migrated comparison table should keep its struck-through column';
     }
+
+    // And a table that never set it is plain, not struck. The old block
+    // defaulted to struck through; drawing a line through a whole column
+    // nobody asked for is not a default worth carrying forward.
+    $unset = $old;
+    unset($unset[0]['options']['strike']);
+    $plain = sanitise_blocks(block_upgrade($unset));
+    if (($plain[0]['options']['strike'] ?? '') !== 'plain') {
+        $problems[] = 'a comparison table with no strike setting should migrate as plain';
+    }
     if (($new[0]['data']['heading'] ?? '') !== 'Word swaps') {
         $problems[] = 'a migrated comparison table loses its heading';
     }

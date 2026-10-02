@@ -142,6 +142,10 @@
       return assetField(def, value, onInput);
     }
 
+    if (def.type === 'grid') {
+      return gridField(def, value, onInput);
+    }
+
     /**
      * A repeater inside a repeater, which is what a colour ramp needs: a list
      * of families, each holding its own list of steps. field() is what a
@@ -350,6 +354,229 @@
 
     input.focus();
     onInput(input.value);
+  }
+
+  /**
+   * A table, edited as a table.
+   *
+   * The grid is stored as text — rows on lines, cells separated by tabs — which
+   * is what makes pasting a spreadsheet range work. That storage is right and the
+   * textarea it implies is not: typing a table into one, counting pipes to keep
+   * the columns lined up, is worse than the repeater it replaced.
+   *
+   * So there is one source of truth and two ways into it. A cell per input, which
+   * is what typing a table should feel like, and the raw text behind a toggle for
+   * pasting a range in or fixing something wholesale.
+   *
+   * Tab and Enter move between cells, because a table where the keyboard cannot
+   * get to the next cell is a table nobody types into twice.
+   */
+  function gridField(def, value, onInput) {
+    const wrap = document.createElement('div');
+    wrap.className = 'grid-field';
+
+    // Parsed once here, held as an array, and written back as text on every
+    // change. Matches table_rows() in blocks.php, which is the other half of it.
+    let rows = parseGrid(value || '');
+    if (!rows.length) rows = [['', ''], ['', '']];
+
+    const head = document.createElement('div');
+    head.className = 'grid-field__head';
+    const title = document.createElement('span');
+    title.textContent = def.label;
+    head.append(title);
+
+    const asText = button('Paste or edit as text', () => {
+      const showing = wrap.classList.toggle('is-text');
+      asText.textContent = showing ? 'Back to the cells' : 'Paste or edit as text';
+      if (showing) {
+        raw.value = toText(rows);
+        raw.focus();
+      } else {
+        rows = parseGrid(raw.value);
+        if (!rows.length) rows = [['', '']];
+        draw();
+        commit();
+      }
+    });
+    asText.className = 'grid-field__swap';
+    head.append(asText);
+    wrap.append(head);
+
+    const table = document.createElement('div');
+    table.className = 'grid-field__table';
+    wrap.append(table);
+
+    const raw = document.createElement('textarea');
+    raw.className = 'm3-field__textarea grid-field__raw';
+    raw.rows = 8;
+    raw.spellcheck = false;
+    raw.placeholder = 'Paste a range from Sheets or Excel, or type rows with | between the cells.';
+    raw.addEventListener('input', () => {
+      rows = parseGrid(raw.value);
+      onInput(raw.value);
+    });
+    wrap.append(raw);
+
+    const actions = document.createElement('div');
+    actions.className = 'grid-field__actions';
+    const addRow = button('Add row', () => {
+      rows.push(new Array(width()).fill(''));
+      draw();
+      commit();
+      focusCell(rows.length - 1, 0);
+    });
+    const addCol = button('Add column', () => {
+      rows.forEach((row) => row.push(''));
+      draw();
+      commit();
+      focusCell(0, width() - 1);
+    });
+    addRow.className = 'grid-field__add';
+    addCol.className = 'grid-field__add';
+    actions.append(addRow, addCol);
+    wrap.append(actions);
+
+    if (def.help) {
+      const help = document.createElement('p');
+      help.className = 'm3-field__support';
+      help.textContent = def.help;
+      wrap.append(help);
+    }
+
+    function width() {
+      return rows.reduce((most, row) => Math.max(most, row.length), 1);
+    }
+
+    function commit() {
+      onInput(toText(rows));
+    }
+
+    function focusCell(r, c) {
+      const input = table.querySelector('input[data-r="' + r + '"][data-c="' + c + '"]');
+      if (input) input.focus();
+    }
+
+    function draw() {
+      const cols = width();
+      table.innerHTML = '';
+      table.style.setProperty('--cols', String(cols));
+
+      // A header strip of column controls, so a column can go without hunting
+      // through the rows for it.
+      rows.forEach((row) => { while (row.length < cols) row.push(''); });
+
+      const bar = document.createElement('div');
+      bar.className = 'grid-field__row grid-field__row--head';
+      for (let c = 0; c < cols; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'grid-field__colhead';
+        const drop = miniButton('Remove this column', '&times;', () => {
+          if (width() <= 1) return;
+          rows.forEach((row) => row.splice(c, 1));
+          draw();
+          commit();
+        }, 'is-danger');
+        cell.append(drop);
+        bar.append(cell);
+      }
+      bar.append(document.createElement('span'));
+      table.append(bar);
+
+      rows.forEach((row, r) => {
+        const line = document.createElement('div');
+        line.className = 'grid-field__row' + (r === 0 ? ' is-header' : '');
+
+        for (let c = 0; c < cols; c++) {
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.className = 'grid-field__cell';
+          input.value = row[c] || '';
+          input.dataset.r = String(r);
+          input.dataset.c = String(c);
+          input.addEventListener('input', () => { rows[r][c] = input.value; commit(); });
+
+          input.addEventListener('keydown', (event) => {
+            // Enter moves down rather than submitting anything, and adds a row
+            // at the bottom, so a table can be typed without reaching for a
+            // button between every line.
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              if (r === rows.length - 1) {
+                rows.push(new Array(width()).fill(''));
+                draw();
+                commit();
+              }
+              focusCell(r + 1, c);
+            }
+          });
+
+          /**
+           * Pasting a range into a cell fills the table from that cell.
+           *
+           * Pasting ten rows of a spreadsheet into one input otherwise puts ten
+           * rows of text into that one cell, which is the single most likely
+           * thing to be done here and the most annoying to undo.
+           */
+          input.addEventListener('paste', (event) => {
+            const text = (event.clipboardData || window.clipboardData).getData('text/plain');
+            if (!/[\t\n]/.test(text)) return;          // an ordinary paste
+            event.preventDefault();
+
+            const pasted = parseGrid(text);
+            pasted.forEach((pastedRow, dr) => {
+              while (rows.length <= r + dr) rows.push(new Array(width()).fill(''));
+              pastedRow.forEach((cellValue, dc) => {
+                while (rows[r + dr].length <= c + dc) rows[r + dr].push('');
+                rows[r + dr][c + dc] = cellValue;
+              });
+            });
+            draw();
+            commit();
+            focusCell(r, c);
+          });
+
+          line.append(input);
+        }
+
+        const drop = miniButton('Remove this row', '&times;', () => {
+          if (rows.length <= 1) return;
+          rows.splice(r, 1);
+          draw();
+          commit();
+        }, 'is-danger');
+        line.append(drop);
+        table.append(line);
+      });
+    }
+
+    draw();
+    return wrap;
+  }
+
+  /** Matches table_rows() in blocks.php. Tabs first, pipes as the fallback. */
+  function parseGrid(text) {
+    return String(text)
+      .split(/\r\n|\r|\n/)
+      .map((line) => {
+        const trimmed = line.trim();
+        if (trimmed === '') return null;
+        if (line.includes('\t')) return line.split('\t').map((c) => c.trim());
+        const inner = trimmed.replace(/^\|/, '').replace(/\|$/, '');
+        return inner.split('|').map((c) => c.trim());
+      })
+      .filter((row) => row && row.join('') !== '');
+  }
+
+  /**
+   * Written back with tabs, never pipes.
+   *
+   * A pipe typed into a cell would split it in two on the next read; a tab
+   * cannot be typed into a single-line input at all, so it can never appear in a
+   * cell's own text and is always a separator.
+   */
+  function toText(rows) {
+    return rows.map((row) => row.join('\t')).join('\n');
   }
 
   /**

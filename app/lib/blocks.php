@@ -372,8 +372,8 @@ function block_types(): array
             'icon'   => 'compare',
             'fields' => [
                 'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
-                'grid'    => ['type' => 'longtext', 'label' => 'The table',
-                              'help' => 'Paste from Sheets or Excel and the columns come across. Typing it by hand, separate the cells with a tab or a | and put each row on its own line. The first row is the heading unless you turn that off.'],
+                'grid'    => ['type' => 'grid', 'label' => 'The table',
+                              'help' => 'Type into the cells, or paste a range straight out of Sheets or Excel and the columns come across.'],
                 'caption' => ['type' => 'text', 'label' => 'Caption', 'optional' => true],
             ],
         ],
@@ -1220,7 +1220,11 @@ function block_upgrade(array $blocks): array
                 'header'  => 'yes',
                 'density' => (string) ($block['options']['density'] ?? 'normal'),
                 'lines'   => 'rows',
-                'strike'  => (string) ($block['options']['strike'] ?? 'struck'),
+                // What it was set to, and plain when it was never set. The old
+                // block defaulted to struck through; the new one does not,
+                // because a line through a whole column is a strong statement to
+                // make on a table's behalf without being asked.
+                'strike'  => (string) ($block['options']['strike'] ?? 'plain'),
                 'first'   => 'normal',
             ];
             continue;
