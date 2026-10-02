@@ -146,6 +146,13 @@
       return gridField(def, value, onInput);
     }
 
+    // A body field shows its formatting rather than its markers. Only
+    // longtext: a single-line label renders through e() and would store the
+    // markers as literal asterisks.
+    if (def.type === 'longtext') {
+      return richText(def, value, onInput);
+    }
+
     /**
      * A repeater inside a repeater, which is what a colour ramp needs: a list
      * of families, each holding its own list of steps. field() is what a
@@ -168,20 +175,17 @@
     wrap.className = 'm3-field' + (dense ? ' m3-field--dense' : '');
     const id = 'f' + Math.random().toString(36).slice(2, 9);
     let input;
-    let richBar = null;
 
     if (def.type === 'longtext' || def.type === 'textarea') {
       input = document.createElement('textarea');
       input.className = 'm3-field__textarea';
       input.rows = def.type === 'longtext' ? 5 : 2;
       input.placeholder = ' ';
+      // A longtext never reaches here — it is handled above by richText(), which
+      // shows its formatting rather than its markers. This is a plain textarea
+      // for the short ones, whose text renders through e() and would store a
+      // marker as literal asterisks.
       input.value = value || '';
-      // Only a longtext renders through paragraphs(), so only a longtext can
-      // hold formatting. A textarea's markers would show as asterisks.
-      if (def.type === 'longtext') {
-        wrap.classList.add('m3-field--rich');
-        richBar = buildRichBar(input, onInput);
-      }
     } else if (def.type === 'select') {
       wrap.classList.add('m3-field--select');
       input = document.createElement('select');
@@ -255,7 +259,6 @@
     label.textContent = def.label + (def.optional ? ' (optional)' : '');
 
     wrap.append(input, label);
-    if (richBar) wrap.append(richBar);
 
     // A field whose definition explains itself says so under the control. Some
     // of these are not guessable from a label — "Asset tag" does not tell anyone
@@ -282,26 +285,149 @@
    * Wrapping a selection twice unwraps it, so the buttons toggle rather than
    * stacking asterisks up.
    */
-  function buildRichBar(input, onInput) {
+  /**
+   * Markers to HTML, for showing a body field as what it will be.
+   *
+   * The inverse of serialiseRich() below, and the same conversion rich_inline()
+   * does in blocks.php — three implementations of one format, which is two more
+   * than anybody wants, and the reason the format is four markers and not a
+   * language. Keep them in step.
+   */
+  function renderRich(text) {
+    const escaped = String(text || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+
+    return escaped
+      .replace(/\*\*(?=\S)(.+?)(?<=\S)\*\*/gs, '<strong>$1</strong>')
+      .replace(/__(?=\S)(.+?)(?<=\S)__/gs, '<u>$1</u>')
+      .replace(/(?<![\w*])\*(?=\S)([^*]+?)(?<=\S)\*(?![\w*])/gs, '<em>$1</em>')
+      .replace(/`(?=\S)([^`]+?)(?<=\S)`/gs, '<code>$1</code>')
+      .replace(/\[(?=\S)([^\]]+?)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2">$1</a>')
+      .replace(/\n/g, '<br>');
+  }
+
+  /** The DOM back to markers. Mirrors serialise() in preview-bridge.js. */
+  function serialiseRich(node) {
+    let out = '';
+
+    node.childNodes.forEach((child) => {
+      if (child.nodeType === Node.TEXT_NODE) {
+        out += child.nodeValue.replace(/ /g, ' ');
+        return;
+      }
+      if (child.nodeType !== Node.ELEMENT_NODE) return;
+
+      const tag = child.tagName.toLowerCase();
+      if (tag === 'br') { out += '\n'; return; }
+
+      // A paragraph or div is a line break in a field that stores plain text:
+      // contenteditable makes them when Enter is pressed.
+      if (tag === 'p' || tag === 'div') {
+        const inner = serialiseRich(child);
+        out += (out === '' || out.endsWith('\n') ? '' : '\n') + inner;
+        return;
+      }
+
+      const inner = serialiseRich(child);
+      if (inner.trim() === '') { out += inner; return; }
+
+      if (tag === 'strong' || tag === 'b')      { out += '**' + inner + '**'; }
+      else if (tag === 'em' || tag === 'i')     { out += '*' + inner + '*'; }
+      else if (tag === 'u')                     { out += '__' + inner + '__'; }
+      else if (tag === 'code')                  { out += '`' + inner + '`'; }
+      else if (tag === 'a' && /^https?:\/\//i.test(child.getAttribute('href') || '')) {
+        out += '[' + inner + '](' + child.getAttribute('href') + ')';
+      } else                                    { out += inner; }
+    });
+
+    return out;
+  }
+
+  /**
+   * A body field that shows its formatting instead of its markers.
+   *
+   * What is stored is still plain text with `**` in it, which is what keeps the
+   * escaping rule true — but nobody should have to type that or look at it. The
+   * field is contenteditable, the buttons apply formatting to the selection, and
+   * it is serialised back to markers on every change.
+   *
+   * The same pair of conversions the canvas uses, so text formatted in one place
+   * reads correctly in the other.
+   */
+  function richText(def, value, onInput) {
+    const wrap = document.createElement('div');
+    wrap.className = 'm3-field m3-field--rich';
+
+    const box = document.createElement('div');
+    box.className = 'm3-field__input richtext';
+    box.contentEditable = 'true';
+    box.spellcheck = true;
+    box.innerHTML = renderRich(value || '');
+
+    const label = document.createElement('span');
+    label.className = 'm3-field__label richtext__label';
+    label.textContent = def.label + (def.optional ? ' (optional)' : '');
+
+    const send = () => onInput(serialiseRich(box));
+    box.addEventListener('input', send);
+
+    // Pasting brings a document's markup with it; only the text is wanted, and
+    // the formatting buttons are how it gets any.
+    box.addEventListener('paste', (event) => {
+      event.preventDefault();
+      const text = (event.clipboardData || window.clipboardData).getData('text/plain');
+      document.execCommand('insertText', false, text);
+    });
+
+    box.addEventListener('keydown', (event) => {
+      const accel = event.metaKey || event.ctrlKey;
+      if (!accel) return;
+      const key = event.key.toLowerCase();
+      if (key !== 'b' && key !== 'i' && key !== 'u') return;
+      event.preventDefault();
+      document.execCommand(key === 'b' ? 'bold' : key === 'i' ? 'italic' : 'underline');
+      send();
+    });
+
+    wrap.append(box, label, richBar(box, send));
+    return wrap;
+  }
+
+  /**
+   * The formatting buttons for a contenteditable field.
+   *
+   * mousedown is prevented on each, or clicking the button takes focus away from
+   * the text and the selection it was about to format is gone.
+   */
+  function richBar(box, send) {
     const bar = document.createElement('div');
     bar.className = 'richbar';
 
-    const marks = [
-      ['Bold', '**', 'B', 'richbar__btn--bold'],
-      ['Italic', '*', 'I', 'richbar__btn--italic'],
-      ['Code', '`', '<>', ''],
-    ];
-
-    marks.forEach(([title, mark, glyph, extra]) => {
+    [
+      ['Bold', 'bold', 'B', 'richbar__btn--bold'],
+      ['Italic', 'italic', 'I', 'richbar__btn--italic'],
+      ['Underline', 'underline', 'U', 'richbar__btn--under'],
+    ].forEach(([title, command, glyph, extra]) => {
       const button = document.createElement('button');
       button.type = 'button';
       button.className = 'richbar__btn ' + extra;
-      button.title = title + (mark === '`' ? '' : ' (' + (isMac() ? '⌘' : 'Ctrl-') + glyph.toLowerCase() + ')');
+      button.title = title + ' (' + (isMac() ? '⌘' : 'Ctrl-') + glyph.toLowerCase() + ')';
       button.textContent = glyph;
       button.addEventListener('mousedown', (event) => event.preventDefault());
-      button.addEventListener('click', () => wrapSelection(input, mark, mark, onInput));
+      button.addEventListener('click', () => { document.execCommand(command); send(); });
       bar.append(button);
     });
+
+    const code = document.createElement('button');
+    code.type = 'button';
+    code.className = 'richbar__btn';
+    code.title = 'Code';
+    code.textContent = '<>';
+    code.addEventListener('mousedown', (event) => event.preventDefault());
+    code.addEventListener('click', () => { wrapSelectionWith(box, 'code'); send(); });
+    bar.append(code);
 
     const link = document.createElement('button');
     link.type = 'button';
@@ -312,247 +438,37 @@
     link.addEventListener('click', () => {
       const url = window.prompt('Link to (http:// or https://)');
       if (!url || !/^https?:\/\//i.test(url)) return;
-      wrapSelection(input, '[', '](' + url + ')', onInput);
+      document.execCommand('createLink', false, url);
+      send();
     });
     bar.append(link);
 
-    const note = document.createElement('span');
-    note.className = 'richbar__note';
-    note.textContent = '**bold**, *italic*';
-    bar.append(note);
-
     return bar;
+  }
+
+  /** execCommand has no code command, so the selection is wrapped by hand. */
+  function wrapSelectionWith(box, tag) {
+    const selection = window.getSelection();
+    if (!selection || selection.rangeCount === 0) return;
+    const range = selection.getRangeAt(0);
+    if (!box.contains(range.commonAncestorContainer) || range.collapsed) return;
+
+    const wrapper = document.createElement(tag);
+    try {
+      range.surroundContents(wrapper);
+    } catch (error) {
+      // surroundContents refuses a selection that crosses an element boundary;
+      // extracting and re-inserting copes with it.
+      wrapper.append(range.extractContents());
+      range.insertNode(wrapper);
+    }
+    selection.removeAllRanges();
   }
 
   function isMac() {
     return /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '');
   }
 
-  function wrapSelection(input, before, after, onInput) {
-    const start = input.selectionStart;
-    const end = input.selectionEnd;
-    const value = input.value;
-    const chosen = value.slice(start, end);
-
-    // Already wrapped, so this is an unwrap. Without it a second click gives
-    // ****bold****, which renders as literal asterisks around bold text.
-    const outside = value.slice(Math.max(0, start - before.length), start) === before
-                 && value.slice(end, end + after.length) === after;
-
-    if (outside) {
-      input.value = value.slice(0, start - before.length) + chosen + value.slice(end + after.length);
-      input.setSelectionRange(start - before.length, end - before.length);
-    } else if (chosen.startsWith(before) && chosen.endsWith(after) && chosen.length > before.length + after.length) {
-      const inner = chosen.slice(before.length, chosen.length - after.length);
-      input.value = value.slice(0, start) + inner + value.slice(end);
-      input.setSelectionRange(start, start + inner.length);
-    } else {
-      input.value = value.slice(0, start) + before + chosen + after + value.slice(end);
-      // Nothing selected leaves the cursor between the markers, ready to type.
-      input.setSelectionRange(start + before.length, start + before.length + chosen.length);
-    }
-
-    input.focus();
-    onInput(input.value);
-  }
-
-  /**
-   * A table, edited as a table.
-   *
-   * The grid is stored as text — rows on lines, cells separated by tabs — which
-   * is what makes pasting a spreadsheet range work. That storage is right and the
-   * textarea it implies is not: typing a table into one, counting pipes to keep
-   * the columns lined up, is worse than the repeater it replaced.
-   *
-   * So there is one source of truth and two ways into it. A cell per input, which
-   * is what typing a table should feel like, and the raw text behind a toggle for
-   * pasting a range in or fixing something wholesale.
-   *
-   * Tab and Enter move between cells, because a table where the keyboard cannot
-   * get to the next cell is a table nobody types into twice.
-   */
-  function gridField(def, value, onInput) {
-    const wrap = document.createElement('div');
-    wrap.className = 'grid-field';
-
-    // Parsed once here, held as an array, and written back as text on every
-    // change. Matches table_rows() in blocks.php, which is the other half of it.
-    let rows = parseGrid(value || '');
-    if (!rows.length) rows = [['', ''], ['', '']];
-
-    const head = document.createElement('div');
-    head.className = 'grid-field__head';
-    const title = document.createElement('span');
-    title.textContent = def.label;
-    head.append(title);
-
-    const asText = button('Paste or edit as text', () => {
-      const showing = wrap.classList.toggle('is-text');
-      asText.textContent = showing ? 'Back to the cells' : 'Paste or edit as text';
-      if (showing) {
-        raw.value = toText(rows);
-        raw.focus();
-      } else {
-        rows = parseGrid(raw.value);
-        if (!rows.length) rows = [['', '']];
-        draw();
-        commit();
-      }
-    });
-    asText.className = 'grid-field__swap';
-    head.append(asText);
-    wrap.append(head);
-
-    const table = document.createElement('div');
-    table.className = 'grid-field__table';
-    wrap.append(table);
-
-    const raw = document.createElement('textarea');
-    raw.className = 'm3-field__textarea grid-field__raw';
-    raw.rows = 8;
-    raw.spellcheck = false;
-    raw.placeholder = 'Paste a range from Sheets or Excel, or type rows with | between the cells.';
-    raw.addEventListener('input', () => {
-      rows = parseGrid(raw.value);
-      onInput(raw.value);
-    });
-    wrap.append(raw);
-
-    const actions = document.createElement('div');
-    actions.className = 'grid-field__actions';
-    const addRow = button('Add row', () => {
-      rows.push(new Array(width()).fill(''));
-      draw();
-      commit();
-      focusCell(rows.length - 1, 0);
-    });
-    const addCol = button('Add column', () => {
-      rows.forEach((row) => row.push(''));
-      draw();
-      commit();
-      focusCell(0, width() - 1);
-    });
-    addRow.className = 'grid-field__add';
-    addCol.className = 'grid-field__add';
-    actions.append(addRow, addCol);
-    wrap.append(actions);
-
-    if (def.help) {
-      const help = document.createElement('p');
-      help.className = 'm3-field__support';
-      help.textContent = def.help;
-      wrap.append(help);
-    }
-
-    function width() {
-      return rows.reduce((most, row) => Math.max(most, row.length), 1);
-    }
-
-    function commit() {
-      onInput(toText(rows));
-    }
-
-    function focusCell(r, c) {
-      const input = table.querySelector('input[data-r="' + r + '"][data-c="' + c + '"]');
-      if (input) input.focus();
-    }
-
-    function draw() {
-      const cols = width();
-      table.innerHTML = '';
-      table.style.setProperty('--cols', String(cols));
-
-      // A header strip of column controls, so a column can go without hunting
-      // through the rows for it.
-      rows.forEach((row) => { while (row.length < cols) row.push(''); });
-
-      const bar = document.createElement('div');
-      bar.className = 'grid-field__row grid-field__row--head';
-      for (let c = 0; c < cols; c++) {
-        const cell = document.createElement('div');
-        cell.className = 'grid-field__colhead';
-        const drop = miniButton('Remove this column', '&times;', () => {
-          if (width() <= 1) return;
-          rows.forEach((row) => row.splice(c, 1));
-          draw();
-          commit();
-        }, 'is-danger');
-        cell.append(drop);
-        bar.append(cell);
-      }
-      bar.append(document.createElement('span'));
-      table.append(bar);
-
-      rows.forEach((row, r) => {
-        const line = document.createElement('div');
-        line.className = 'grid-field__row' + (r === 0 ? ' is-header' : '');
-
-        for (let c = 0; c < cols; c++) {
-          const input = document.createElement('input');
-          input.type = 'text';
-          input.className = 'grid-field__cell';
-          input.value = row[c] || '';
-          input.dataset.r = String(r);
-          input.dataset.c = String(c);
-          input.addEventListener('input', () => { rows[r][c] = input.value; commit(); });
-
-          input.addEventListener('keydown', (event) => {
-            // Enter moves down rather than submitting anything, and adds a row
-            // at the bottom, so a table can be typed without reaching for a
-            // button between every line.
-            if (event.key === 'Enter') {
-              event.preventDefault();
-              if (r === rows.length - 1) {
-                rows.push(new Array(width()).fill(''));
-                draw();
-                commit();
-              }
-              focusCell(r + 1, c);
-            }
-          });
-
-          /**
-           * Pasting a range into a cell fills the table from that cell.
-           *
-           * Pasting ten rows of a spreadsheet into one input otherwise puts ten
-           * rows of text into that one cell, which is the single most likely
-           * thing to be done here and the most annoying to undo.
-           */
-          input.addEventListener('paste', (event) => {
-            const text = (event.clipboardData || window.clipboardData).getData('text/plain');
-            if (!/[\t\n]/.test(text)) return;          // an ordinary paste
-            event.preventDefault();
-
-            const pasted = parseGrid(text);
-            pasted.forEach((pastedRow, dr) => {
-              while (rows.length <= r + dr) rows.push(new Array(width()).fill(''));
-              pastedRow.forEach((cellValue, dc) => {
-                while (rows[r + dr].length <= c + dc) rows[r + dr].push('');
-                rows[r + dr][c + dc] = cellValue;
-              });
-            });
-            draw();
-            commit();
-            focusCell(r, c);
-          });
-
-          line.append(input);
-        }
-
-        const drop = miniButton('Remove this row', '&times;', () => {
-          if (rows.length <= 1) return;
-          rows.splice(r, 1);
-          draw();
-          commit();
-        }, 'is-danger');
-        line.append(drop);
-        table.append(line);
-      });
-    }
-
-    draw();
-    return wrap;
-  }
 
   /** Matches table_rows() in blocks.php. Tabs first, pipes as the fallback. */
   function parseGrid(text) {

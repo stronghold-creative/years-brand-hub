@@ -159,8 +159,22 @@ renders as literal asterisks — visible and harmless.
 It also means a pasted Word document arrives as text and stays text: there is no
 sanitiser to keep in step with a browser's idea of what it may produce.
 
-Underscores are deliberately *not* italic markers. A brand hub writes down
-`--s-radius` and `figma_file_key` constantly.
+A *single* underscore is deliberately not a marker — a brand hub writes down
+`--s-radius` and `figma_file_key` constantly — but a double one appears in
+neither token names nor prose, so `__underline__` is unambiguous. Underline is
+offered because it was asked for; on the web it reads as a link, so it is worth
+using sparingly.
+
+**Nobody types the markers.** A `longtext` field in the inspector is a
+contenteditable showing its formatting, with B, I and U applying it to the
+selection; the canvas puts the same buttons over selected text. The markers are
+the storage, not the interface.
+
+**That means three implementations of one format**: `rich_inline()` in
+`blocks.php`, `renderRich()` in `editor.js`, and `serialiseRich()` there with
+`serialise()` in `preview-bridge.js` going the other way. Two more than anyone
+wants, and the reason the format is four markers rather than a language. Change
+one and change the others.
 
 Only `longtext` fields have it, because only they render through `paragraphs()`.
 A single-line label renders through `e()` and would show the markers as
@@ -210,6 +224,18 @@ dark colour someone has just chosen is the obvious way for this to go wrong.
 setting through `block_option($options, $key, $fallback, $siteKey)`. That is
 what makes Appearance in the admin move every block not deliberately overridden.
 
+**`editor_note` is a block only signed-in people can see.** It is not hidden
+with CSS or removed afterwards — the renderer returns before writing anything
+when `can_edit()` is false, so the text is absent from the HTML. A note saying
+"check this with legal before we publish" sitting in the page source of a
+public site is the whole problem rather than a near miss.
+
+Its definition carries `'private' => true`, which also keeps it out of a
+reader's **search index** — a note that cannot be seen on the page but can be
+found by searching for it would be worse than one left in plain sight.
+`check-blocks.php` asserts both halves for every private block, in both
+directions, and was verified by deleting the guard and watching it fail.
+
 **`clearspace` shows a diagram you uploaded, not one it draws.** A clearspace
 diagram is a designed thing — corner marks, the measured letter called out,
 guides where the construction actually is — and a generated one can only ever
@@ -228,7 +254,7 @@ nothing on the left is the counterpart of anything on the right. A column with
 nothing in it is not drawn, so a one-sided block shows one column rather than
 one column and a gap. Old paired content is folded in by `block_upgrade()`.
 
-The 29 block types: heading, rich_text, colour_palette, colour_ramp,
+The 30 block types: heading, rich_text, editor_note, colour_palette, colour_ramp,
 colour_story, type_specimen, do_dont, image, image_grid, columns, table,
 download_list, callout, clearspace, spacing_scale, icon_grid, contrast_pairs,
 misuse_gallery, spec_table, link_list, contacts, checklist, video, tabs,
@@ -393,6 +419,20 @@ takes a `chrome` value: `index` (the default — the grid, components, 404) or
   that has to stay visible, so a slim bar returns with the mark, the menu
   button and the name of the section being read.
 
+**The browser tab icon comes from Settings.** `site_icon_head()` writes the
+`<link rel="icon">` for every page — it was spelled out in seven views, which
+is seven places to forget, and the reason the admin and the previews would have
+gone on showing the built-in mark after a real one was set. It uses the Icon
+setting, then the Logo, then the bundled file; they are separate settings
+because a logo is usually a wordmark and a wordmark at sixteen pixels is a
+smudge.
+
+It is served from `/site-icon`, which is **ungated** unlike every other asset
+route. A favicon is requested before anyone has signed in, and on a private
+site the sign-in page is the first page shown — one that 404s there is a broken
+tab icon on the only page some people see. A brand mark is not what a private
+site is keeping private, and the sign-in page already shows it.
+
 **The mark is written by `site_mark()`,** because reading pages put it in the
 rail and narrow ones put it in the bar. That is the same markup in two places,
 which is normally how markup drifts, so it has one source.
@@ -467,7 +507,7 @@ link list get it too.
 styled in `admin.css`), always centred rather than anchored, because it is opened
 from the outline, the canvas and the keyboard. The choices are a **grid of
 cards**, `auto-fill minmax(14rem, 1fr)` in a 52rem dialog, so most of the
-twenty-nine block types are visible at once; below 30rem it falls back to one
+thirty block types are visible at once; below 30rem it falls back to one
 column. Search filters on label, hint and group.
 
 **The cards are grouped and each carries an icon.** Twenty-eight choices in one
@@ -615,7 +655,7 @@ over any row.
   and unknown in the other.
 - **The class prefix is `devspec`, not `spec`** — the `spec_table` block already
   owns `.spec` on the public side, and `.spec { display: grid }` took the table
-  apart. Check a class name against the stylesheet before using it; 29 block types
+  apart. Check a class name against the stylesheet before using it; 30 block types
   have had most of the obvious ones.
 
 **Phase 6 shipped the import** (`app/lib/import.php`). One box on the component
@@ -852,7 +892,7 @@ green run, then Settings, Apply updates.
 
 ## 8. State of the build
 
-**Working:** deploy pipeline, three-column editor, 29 block types, 26 numeric
+**Working:** deploy pipeline, three-column editor, 30 block types, 26 numeric
 appearance settings, asset library with generated image variants and gated
 downloads, upload from inside the editor's picker, sections as scrolling pages
 with a hero opener, version history with collapsing and pruning, people and
@@ -927,7 +967,7 @@ has caught something real:
 - `check-routes.php` renders no pages; it asserts every URL the interface calls
   matches a route. It found a route that was never inserted and two patterns
   with one backslash too many.
-- `check-blocks.php` renders all 29 block types three times — empty, full, and
+- `check-blocks.php` renders all 30 block types three times — empty, full, and
   "gappy", which is full but with the first row of every repeater left blank —
   through the sanitiser first, and reports anything that throws, shows nothing,
   or puts an empty value into an attribute that will be read as a colour or a

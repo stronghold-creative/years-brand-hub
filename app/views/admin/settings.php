@@ -33,8 +33,18 @@
       <label class="m3-field__label" for="footer_note">Footer note</label>
     </div>
 
-    <div class="m3-field field--asset" id="logo-picker" data-cover="<?= (int) setting('site_logo', 0) ?>"></div>
+    <div class="m3-field field--asset" data-asset-setting="site_logo"
+         data-label="Logo, shown in the top bar"
+         data-cover="<?= (int) setting('site_logo', 0) ?>"></div>
     <input type="hidden" name="site_logo" id="site_logo" value="<?= (int) setting('site_logo', 0) ?>">
+
+    <div class="m3-field field--asset" data-asset-setting="site_icon"
+         data-label="Icon, shown on the browser tab"
+         data-cover="<?= (int) setting('site_icon', 0) ?>"></div>
+    <input type="hidden" name="site_icon" id="site_icon" value="<?= (int) setting('site_icon', 0) ?>">
+    <p class="m3-field__support">A square mark reads best at 16 pixels — a wide
+       wordmark becomes a smudge. Leave it empty and the logo is used, and the
+       built-in mark if there is no logo either.</p>
 
     <label class="m3-switch">
       <input class="m3-switch__input" type="checkbox" name="require_login_to_view" value="1"

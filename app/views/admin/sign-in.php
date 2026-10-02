@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light dark">
 <title>Sign in</title>
-<link rel="icon" href="<?= e(asset_url('/assets/favicon.svg')) ?>" type="image/svg+xml">
+<?= site_icon_head() ?>
 <?= font_head() ?>
 <link rel="stylesheet" href="<?= e(asset_url('/assets/css/admin.css')) ?>">
 </head>

@@ -613,13 +613,20 @@
   // ------------------------------------------------------------ logo picker
 
   // The shared picker from picker.js, the same dialog the block editor uses.
-  feature('logo picker', function () {
-    const logoMount = document.getElementById('logo-picker');
-    if (!logoMount) return;
-    const hidden = document.getElementById('site_logo');
+  // One picker, used by every asset setting. It was written for the logo and
+  // then wanted again for the site icon; a second copy is how two pickers end
+  // up behaving differently.
+  feature('asset settings', function () {
+    document.querySelectorAll('[data-asset-setting]').forEach(assetSetting);
+  });
+
+  function assetSetting(logoMount) {
+    const hidden = document.getElementById(logoMount.dataset.assetSetting);
+    if (!hidden) return;
 
     const paint = async (id) => {
-      logoMount.innerHTML = '<span class="field__label">Logo, shown in the top bar</span>';
+      logoMount.innerHTML = '<span class="field__label"></span>';
+      logoMount.querySelector('.field__label').textContent = logoMount.dataset.label || 'Image';
       const row = document.createElement('div');
       row.className = 'assetpick';
 
@@ -661,7 +668,7 @@
     };
 
     paint(logoMount.dataset.cover || '0');
-  });
+  }
 
   // ------------------------------------------------------- scroll shadow
 

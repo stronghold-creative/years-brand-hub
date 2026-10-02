@@ -2343,3 +2343,40 @@ form[data-guard].is-dirty {
 .grid-field.is-text .grid-field__raw { display: block; }
 .grid-field.is-text .grid-field__table,
 .grid-field.is-text .grid-field__actions { display: none; }
+
+/* A body field that shows its formatting rather than its markers. It is a
+   contenteditable, so it needs the outlined-field treatment by hand. */
+.richtext {
+  min-height: 6.5rem;
+  padding: 1.125rem 1rem .75rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  cursor: text;
+}
+.richtext:focus {
+  outline: none;
+  border-color: var(--md-sys-color-primary);
+  box-shadow: inset 0 0 0 1px var(--md-sys-color-primary);
+}
+.richtext strong { font-weight: 600; }
+.richtext em { font-style: italic; }
+.richtext u { text-decoration: underline; }
+.richtext code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: .8125rem;
+  padding: .0625rem .25rem;
+  border-radius: 3px;
+  background: var(--md-sys-color-surface-container-highest);
+}
+.richtext a { color: var(--md-sys-color-primary); }
+/* The label floats as it does on a real field; a contenteditable is never
+   :placeholder-shown, so it simply sits up. */
+.richtext__label {
+  top: .375rem;
+  left: .75rem;
+  font-size: .6875rem;
+  background: var(--md-sys-color-surface-container-low);
+  padding: 0 .25rem;
+}
+.richbar__btn--under { text-decoration: underline; }

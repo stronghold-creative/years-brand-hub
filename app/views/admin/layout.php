@@ -28,7 +28,7 @@ $isCurrent = function (array $item) use ($path): bool {
 <meta name="color-scheme" content="light dark">
 <title><?= e($title ?? 'Admin') ?> &middot; Years brand hub</title>
 <?php // The same mark as the front end. The admin is the same site. ?>
-<link rel="icon" href="<?= e(asset_url('/assets/favicon.svg')) ?>" type="image/svg+xml">
+<?= site_icon_head() ?>
 <?= font_head() ?>
 <link rel="stylesheet" href="<?= e(asset_url('/assets/css/admin.css')) ?>">
 </head>
@@ -50,7 +50,8 @@ $isCurrent = function (array $item) use ($path): bool {
       <?php if ($adminLogo): ?>
         <img src="<?= e(asset_image_url($adminLogo, 240)) ?>" alt="Years">
       <?php else: ?>
-        <img src="<?= e(asset_url('/assets/favicon.svg')) ?>" alt="Years">
+        <?php // The same icon as the tab, so the two cannot disagree. ?>
+        <img src="/site-icon" alt="Years">
       <?php endif; ?>
     </a>
     <span class="m3-drawer__sub">Brand hub</span>

@@ -24,11 +24,24 @@ declare(strict_types=1);
  * colours and asset ids are not text anyone would search for, and a repeater
  * is walked for the text inside it.
  */
-function search_block_text(array $block): array
+function search_block_text(array $block, bool $includePrivate = false): array
 {
     $type = (string) ($block['type'] ?? '');
     $def  = block_types()[$type] ?? null;
     if (!$def) {
+        return ['heading' => '', 'body' => ''];
+    }
+
+    /**
+     * A block marked private is not in a reader's index.
+     *
+     * A note to editors is not written into a reader's page at all, and a note
+     * that cannot be seen but *can* be found by searching for it would be worse
+     * than one left in plain sight: it would look like the site was hiding
+     * something and failing at it. An editor's copy of the index keeps them,
+     * which is the same rule drafts follow.
+     */
+    if (!empty($def['private']) && !$includePrivate) {
         return ['heading' => '', 'body' => ''];
     }
 
@@ -97,7 +110,9 @@ function search_entries(bool $includeDrafts): array
         $marks  = [];
 
         foreach ($blocks as $block) {
-            $found = search_block_text($block);
+            // The editor's copy of the index carries private blocks; a
+            // reader's does not. Same flag that carries drafts.
+            $found = search_block_text($block, $includeDrafts);
             if ($found['heading'] !== '') {
                 $marks[] = [
                     'title'  => $found['heading'],
@@ -168,7 +183,9 @@ function search_component_entries(bool $includeDrafts): array
         }
 
         foreach (json_decode((string) $row['docs'], true) ?: [] as $block) {
-            $found = search_block_text($block);
+            // The editor's copy of the index carries private blocks; a
+            // reader's does not. Same flag that carries drafts.
+            $found = search_block_text($block, $includeDrafts);
             if ($found['heading'] !== '') {
                 $marks[] = ['title' => $found['heading'], 'anchor' => (string) ($block['settings']['anchor'] ?? '')];
             }

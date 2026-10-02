@@ -850,6 +850,35 @@ if (preg_match('#^/admin/users/(\d+)/delete$#', $path, $m) && $method === 'POST'
 // rather than download, and are not counted as downloads. Anchored, so
 // /i/9/anything cannot reach here on a partial match.
 /**
+ * The mark on the browser tab.
+ *
+ * Ungated on purpose, unlike every other asset route. A favicon is requested
+ * before anyone has signed in — the sign-in page is the first page a private
+ * site shows — and one that 404s there is a broken tab icon for the only page
+ * some people ever see. A brand mark is not what a private site is keeping
+ * private, and the sign-in page already shows it.
+ *
+ * Falls through to the built-in file rather than 404ing when nothing is set, so
+ * the tag this answers is never wrong.
+ */
+if ($path === '/site-icon') {
+    $icon = site_icon();
+    $file = $icon ? asset_path($icon) : '';
+
+    if (!$icon || !is_file($file)) {
+        $file = ROOT_DIR . '/public_html/assets/favicon.svg';
+        header('Content-Type: image/svg+xml');
+    } else {
+        header('Content-Type: ' . $icon['mime']);
+    }
+
+    header('Cache-Control: public, max-age=86400');
+    header('X-Content-Type-Options: nosniff');
+    readfile($file);
+    exit;
+}
+
+/**
  * A font file, for `@font-face`.
  *
  * Its own route rather than `/i/`, which serves inline media and rightly refuses
@@ -1283,6 +1312,7 @@ if ($path === '/admin/settings') {
         setting_save('site_name', trim($_POST['site_name'] ?? '') ?: 'Years brand hub');
         setting_save('footer_note', trim($_POST['footer_note'] ?? ''));
         setting_save('site_logo', (string) (int) ($_POST['site_logo'] ?? 0));
+        setting_save('site_icon', (string) (int) ($_POST['site_icon'] ?? 0));
         redirect('/admin/settings?notice=Saved.');
     }
     view('admin/settings', [

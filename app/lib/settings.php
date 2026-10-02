@@ -124,6 +124,50 @@ function site_logo(): ?array
  * visible. That is two places in the document, which is normally how markup
  * drifts, so the markup itself lives here and both places call this.
  */
+/**
+ * The mark for the browser tab.
+ *
+ * The icon setting if there is one, the logo if not, and null to fall back to the
+ * built-in file. They are separate settings because they are different jobs: a
+ * logo is usually a wordmark and a wordmark at sixteen pixels is a smudge.
+ */
+function site_icon(): ?array
+{
+    $id = (int) setting('site_icon', 0);
+    if ($id > 0 && function_exists('asset_find')) {
+        $asset = asset_find($id);
+        if ($asset && asset_is_inline_image($asset)) {
+            return $asset;
+        }
+    }
+    return site_logo();
+}
+
+/**
+ * The `<link rel="icon">` for any page on the site.
+ *
+ * One function because the tag was written out in seven views, which is seven
+ * places to forget — and the reason the admin, the previews and the sign-in page
+ * would otherwise have carried on showing the built-in mark after the real one
+ * was set.
+ *
+ * It points at `/site-icon` rather than at `/i/{id}`, because `/i/` is closed to
+ * anyone not signed in on a private site and the sign-in page is exactly where
+ * the tab icon is wanted. A brand mark on a browser tab is not what a private
+ * site is keeping private; the sign-in page shows the same mark already.
+ */
+function site_icon_head(): string
+{
+    $icon = site_icon();
+    if (!$icon) {
+        return '<link rel="icon" href="' . e(asset_url('/assets/favicon.svg')) . '" type="image/svg+xml">';
+    }
+    // The asset version busts the cache when the icon is replaced in place, and
+    // a browser caches a favicon harder than almost anything else.
+    return '<link rel="icon" href="/site-icon?v=' . (int) ($icon['version'] ?? 1) . '"'
+         . ' type="' . e($icon['mime']) . '">';
+}
+
 function site_mark(string $class = 'mark'): string
 {
     $logo = site_logo();

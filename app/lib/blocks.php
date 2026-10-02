@@ -92,6 +92,29 @@ function block_types(): array
             ],
         ],
 
+        /**
+         * A note to whoever is editing, never shown to a reader.
+         *
+         * The renderer returns nothing at all unless the person reading can edit
+         * — not hidden with CSS, not loaded and then removed, simply not written.
+         * Its text is also kept out of the public search index, because a note
+         * that cannot be seen on the page but can be found by searching for it is
+         * worse than one that is plainly visible.
+         */
+        'editor_note' => [
+            'label'  => 'Note to editors',
+            'hint'   => 'Only visible to people signed in. Something to come back to, a question, a decision still open.',
+            'group'  => 'Text',
+            'icon'   => 'note',
+            'private' => true,
+            'fields' => [
+                'heading' => ['type' => 'text', 'label' => 'What it is about', 'optional' => true],
+                'body'    => ['type' => 'longtext', 'label' => 'The note'],
+                'who'     => ['type' => 'text', 'label' => 'For whom', 'optional' => true,
+                              'help' => 'A name, or a team. Left empty it is for whoever gets here first.'],
+            ],
+        ],
+
         'rich_text' => [
             'label'  => 'Text',
             'hint'   => 'Plain paragraphs. Blank line starts a new paragraph.',
@@ -694,6 +717,11 @@ function block_types(): array
 function block_options(string $type): array
 {
     $sets = [
+        'editor_note' => [
+            'tone' => ['label' => 'Tone', 'options' => [
+                'note' => 'A note', 'question' => 'An open question', 'todo' => 'Still to do',
+            ]],
+        ],
         'rich_text' => [
             'size'  => ['label' => 'Text size', 'options' => [
                 'inherit' => 'Site default', 'small' => 'Small', 'normal' => 'Normal',
@@ -1618,6 +1646,16 @@ function rich_inline(string $escaped): string
     // first two of a `**`. The tags it writes contain no asterisks, so the
     // second pass cannot reach inside them.
     $out = preg_replace('/\*\*(?=\S)(.+?)(?<=\S)\*\*/s', '<strong>$1</strong>', $escaped) ?? $escaped;
+    /**
+     * Underline, as a double underscore.
+     *
+     * A single underscore is deliberately not a marker — a brand hub writes
+     * `--s-radius` and `figma_file_key` constantly — but a double one appears in
+     * neither token names nor prose, so it is unambiguous. Underline is offered
+     * because it was asked for; on the web it reads as a link, so it is worth
+     * using sparingly and never on something that is not one.
+     */
+    $out = preg_replace('/__(?=\S)(.+?)(?<=\S)__/s', '<u>$1</u>', $out) ?? $out;
     $out = preg_replace('/(?<![\w*])\*(?=\S)([^*]+?)(?<=\S)\*(?![\w*])/s', '<em>$1</em>', $out) ?? $out;
     $out = preg_replace('/`(?=\S)([^`]+?)(?<=\S)`/s', '<code>$1</code>', $out) ?? $out;
 

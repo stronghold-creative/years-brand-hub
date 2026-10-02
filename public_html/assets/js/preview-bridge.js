@@ -62,6 +62,32 @@
       to   { opacity: 1; transform: translateY(-100%); }
     }
 
+    /* The formatting toolbar over a selection. Fixed, because the canvas
+       scrolls under it and the numbers come from getBoundingClientRect. */
+    .ed-format {
+      position: fixed;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 2px;
+      padding: 3px;
+      background: #231E2E;
+      border-radius: 7px;
+      box-shadow: 0 6px 20px rgba(0,0,0,.28);
+      z-index: 10;
+    }
+    .ed-format[hidden] { display: none; }
+    .ed-format__btn {
+      width: 26px; height: 26px;
+      border: 0; border-radius: 5px;
+      background: none; color: #fff;
+      font: 500 12px/1 system-ui, sans-serif;
+      cursor: pointer;
+    }
+    .ed-format__btn:hover { background: rgba(255,255,255,.14); }
+    .ed-format__b { font-weight: 700; }
+    .ed-format__i { font-style: italic; }
+    .ed-format__u { text-decoration: underline; }
+
     .ed-insert {
       position: relative;
       height: 26px;
@@ -123,6 +149,73 @@
 
   const label = document.createElement('span');
   label.className = 'ed-label';
+
+  /**
+   * A formatting toolbar over selected text on the canvas.
+   *
+   * The shortcuts worked already, but a shortcut nobody is told about is a
+   * feature nobody has. Selecting words and being offered bold is how every
+   * other editor behaves, and it is where the formatting is actually wanted —
+   * looking at the sentence, not at a field in a panel.
+   *
+   * Only in a multiline region: the single-line ones are labels and captions
+   * that render through e(), where a marker would show as literal asterisks.
+   */
+  const toolbar = document.createElement('div');
+  toolbar.className = 'ed-format';
+  toolbar.hidden = true;
+
+  [['B', 'bold', 'ed-format__b'], ['I', 'italic', 'ed-format__i'], ['U', 'underline', 'ed-format__u']]
+    .forEach(([glyph, command, className]) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'ed-format__btn ' + className;
+      button.textContent = glyph;
+      // Without this the click takes focus off the text and the selection it was
+      // about to format no longer exists.
+      button.addEventListener('mousedown', (event) => event.preventDefault());
+      button.addEventListener('click', () => {
+        const field = document.activeElement && document.activeElement.closest('[data-field]');
+        document.execCommand(command);
+        if (field) field.dispatchEvent(new Event('input', { bubbles: true }));
+        placeToolbar();
+      });
+      toolbar.append(button);
+    });
+
+  document.body.append(toolbar);
+
+  function placeToolbar() {
+    const selection = window.getSelection();
+    if (!selection || selection.isCollapsed || selection.rangeCount === 0) {
+      toolbar.hidden = true;
+      return;
+    }
+
+    const node = selection.anchorNode;
+    const host = node && (node.nodeType === Node.ELEMENT_NODE ? node : node.parentElement);
+    const field = host && host.closest('[data-field]');
+    if (!field || field.dataset.multiline === undefined) {
+      toolbar.hidden = true;
+      return;
+    }
+
+    const rect = selection.getRangeAt(0).getBoundingClientRect();
+    if (rect.width === 0 && rect.height === 0) {
+      toolbar.hidden = true;
+      return;
+    }
+
+    toolbar.hidden = false;
+    // Above the selection, or below it when the selection is at the very top.
+    const top = rect.top > 44 ? rect.top - 38 : rect.bottom + 8;
+    toolbar.style.left = Math.max(8, rect.left + rect.width / 2) + 'px';
+    toolbar.style.top = top + 'px';
+  }
+
+  document.addEventListener('selectionchange', placeToolbar);
+  window.addEventListener('scroll', placeToolbar, true);
+  window.addEventListener('resize', placeToolbar);
 
   function send(message) {
     window.parent.postMessage(Object.assign({ from: 'preview' }, message), window.location.origin);
@@ -285,6 +378,7 @@
 
       if (tag === 'strong' || tag === 'b')  { out += '**' + inner + '**'; }
       else if (tag === 'em' || tag === 'i') { out += '*' + inner + '*'; }
+      else if (tag === 'u')                 { out += '__' + inner + '__'; }
       else if (tag === 'code')              { out += '`' + inner + '`'; }
       else if (tag === 'a' && /^https?:\/\//i.test(child.getAttribute('href') || '')) {
         out += '[' + inner + '](' + child.getAttribute('href') + ')';
@@ -341,9 +435,10 @@
          * serialise() reads back to the same markers.
          */
         const accel = event.metaKey || event.ctrlKey;
-        if (accel && node.dataset.multiline !== undefined && (event.key === 'b' || event.key === 'i')) {
+        const key = event.key.toLowerCase();
+        if (accel && node.dataset.multiline !== undefined && (key === 'b' || key === 'i' || key === 'u')) {
           event.preventDefault();
-          document.execCommand(event.key === 'b' ? 'bold' : 'italic');
+          document.execCommand(key === 'b' ? 'bold' : key === 'i' ? 'italic' : 'underline');
           // execCommand does not fire input, so the change has to be sent.
           node.dispatchEvent(new Event('input', { bubbles: true }));
           return;

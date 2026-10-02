@@ -57,7 +57,7 @@ $sample = sanitise_blocks([
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Appearance preview</title>
-<link rel="icon" href="<?= e(asset_url('/assets/favicon.svg')) ?>" type="image/svg+xml">
+<?= site_icon_head() ?>
 <?= font_head() ?>
 <link rel="stylesheet" href="<?= e(asset_url('/assets/css/site.css')) ?>">
 <style id="live"><?= style_css() ?></style>

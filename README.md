@@ -78,7 +78,7 @@ deploy can never overwrite your credentials or uploaded files.
 ## What is built
 
 - Block editor: outline, live canvas, contextual inspector
-- 29 block types, grouped and illustrated in the chooser, each with its own
+- 30 block types, grouped and illustrated in the chooser, each with its own
   options, inheriting from global settings
 - Body text takes bold, italic, code and links, stored as plain-text markers
   and turned into tags at render, so nothing typed is ever stored as HTML, plus

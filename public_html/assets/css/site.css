@@ -2764,3 +2764,50 @@ body[data-card='shadow'] .zone--bg-custom { box-shadow: 0 1px 2px rgba(31,31,31,
   .cols__list { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
   .cols--ruled .cols__item { padding-left: 0; border-left: 0; padding-top: 1.25rem; border-top: 1px solid var(--rule); }
 }
+
+/* A note to editors. Written into the page only for someone signed in, so this
+   never reaches a reader — but it is styled to be unmistakably not part of the
+   guidelines either, because the person who can see it is reading the page as a
+   reader most of the time. */
+.note {
+  margin: 0;
+  padding: var(--s-pad, 1.75rem);
+  border-radius: var(--s-radius, 6px);
+  border: 1px dashed #C9A227;
+  background: #FFFBEF;
+  /* Hatched, so it reads as scaffolding at a glance rather than as a callout
+     that happens to be yellow. */
+  background-image: repeating-linear-gradient(
+    135deg, rgba(201, 162, 39, .05) 0 8px, transparent 8px 16px
+  );
+}
+.note__flag {
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+  flex-wrap: wrap;
+  margin: 0 0 .625rem;
+}
+.note__badge {
+  font-size: .625rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: .1875rem .5rem;
+  border-radius: 999px;
+  background: #C9A227;
+  color: #2B2000;
+}
+.note--question .note__badge { background: #7257B7; color: #fff; }
+.note--todo .note__badge { background: #A02F4B; color: #fff; }
+.note__only { font-size: .6875rem; color: #8A6D12; }
+.note__heading { margin: 0 0 .375rem; font-size: 1rem; }
+.note__body { color: #4A3B10; }
+.note__body p { margin: 0 0 .5rem; }
+.note__body p:last-child { margin-bottom: 0; }
+.note__who { margin: .625rem 0 0; font-size: .8125rem; color: #8A6D12; }
+
+/* Underline in body text. Written as __like this__ and offered because it was
+   asked for; on the web an underline reads as a link, so it is worth keeping
+   for the few places it genuinely means emphasis. */
+.block u, .reader__body u { text-decoration: underline; text-underline-offset: .15em; }

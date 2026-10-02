@@ -169,6 +169,8 @@ function block_groups(): array
 function block_icon_set(): array
 {
     return [
+        // A note pinned to the page: a page with a corner turned down.
+        'note'       => '<path d="M19 3H5a1 1 0 0 0-1 1v16a1 1 0 0 0 1 1h9l6-6V4a1 1 0 0 0-1-1Z"/><path d="M14 21v-5a1 1 0 0 1 1-1h5"/><path d="M8 8h8"/><path d="M8 12h5"/>',
         'heading'    => '<path d="M5 5v14"/><path d="M13 5v14"/><path d="M5 12h8"/><path d="M17 10h2v9"/>',
         'text'       => '<path d="M4 6h16"/><path d="M4 11h16"/><path d="M4 16h11"/>',
         'quote'      => '<path d="M9 7H5.5A1.5 1.5 0 0 0 4 8.5V12h5V7Z"/><path d="M4 12c0 3 1.5 4.5 4 5"/><path d="M20 7h-3.5A1.5 1.5 0 0 0 15 8.5V12h5V7Z"/><path d="M15 12c0 3 1.5 4.5 4 5"/>',

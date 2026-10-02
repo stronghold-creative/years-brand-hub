@@ -31,7 +31,11 @@ function db_one(string $sql, array $params = []): ?array { return null; }
 function db_all(string $sql, array $params = []): array { return []; }
 function setting(string $key, $fallback = '') { return $fallback; }
 function style_value(string $key): string { return ''; }
-function can_edit(): bool { return false; }
+// Switchable, because a block marked private renders only for someone who can
+// edit — and both halves of that are worth asserting: that it appears for an
+// editor, and that it is absent for everyone else.
+$CAN_EDIT = false;
+function can_edit(): bool { global $CAN_EDIT; return $CAN_EDIT; }
 
 /** One image and one video, so asset fields have something to resolve to. */
 function check_assets(): array
@@ -67,6 +71,9 @@ require APP_DIR . '/lib/http.php';
 require APP_DIR . '/lib/icons.php';
 require APP_DIR . '/lib/fontmetrics.php';
 require APP_DIR . '/lib/blocks.php';
+// For the private-block assertions: a note kept out of the page has to be kept
+// out of a reader's search index too, and that lives here.
+require APP_DIR . '/lib/search.php';
 
 /* ------------------------------------------------------------ sample content */
 
@@ -250,7 +257,12 @@ foreach (['empty', 'filled', 'gappy'] as $mode) {
         $shows = block_shows_something($html);
         printf("  %-18s %s\n", $type, $shows ? 'shows' : 'nothing');
 
-        if ($mode === 'filled' && !$shows) {
+        // A private block renders nothing for a reader on purpose, which is
+        // the whole point of it, so it is asserted separately below rather
+        // than failing here.
+        $isPrivate = !empty(block_types()[$type]['private']);
+
+        if ($mode === 'filled' && !$shows && !$isPrivate) {
             $problems[] = "filled/$type: renders nothing even with content in it";
         }
         // In the editor every block must be visible, or a new one cannot be seen
@@ -323,6 +335,7 @@ foreach ([
     ['**bold**',                    '<strong>bold</strong>',        'bold'],
     ['*italic*',                    '<em>italic</em>',              'italic'],
     ['`--s-radius`',                '<code>--s-radius</code>',      'code'],
+    ['__underlined__',              '<u>underlined</u>',          'underline'],
     ['[Years](https://years.com)',  '<a href="https://years.com">Years</a>', 'a link'],
 ] as [$input, $expected, $what]) {
     if (!str_contains(paragraphs($input), $expected)) {
@@ -343,9 +356,11 @@ foreach ([
 
 // Token names and arithmetic are ordinary content in a brand hub and must come
 // out exactly as they went in.
-foreach (['a --s-radius and figma_file_key', '2 * 3 = 6', 'an * orphan', '**unclosed'] as $plain) {
+foreach (['a --s-radius and figma_file_key', '2 * 3 = 6', 'an * orphan', '**unclosed',
+          'snake_case and figma_file_key'] as $plain) {
     $rendered = paragraphs($plain);
-    if (str_contains($rendered, '<em>') || str_contains($rendered, '<strong>')) {
+    if (str_contains($rendered, '<em>') || str_contains($rendered, '<strong>')
+        || str_contains($rendered, '<u>')) {
         $problems[] = "rich_inline formats \"$plain\", which is plain text";
     }
 }
@@ -487,6 +502,59 @@ if (($new[0]['type'] ?? '') !== 'table') {
     }
     if (($new[0]['data']['heading'] ?? '') !== 'Word swaps') {
         $problems[] = 'a migrated comparison table loses its heading';
+    }
+}
+
+/**
+ * A block marked private must not reach a reader.
+ *
+ * Not hidden, not removed afterwards — absent from the HTML. A note saying
+ * "check this with legal before we publish" sitting in the page source of a
+ * public site is the whole problem rather than a near miss, and nothing about
+ * the rendered page would show it had happened.
+ */
+foreach (block_types() as $type => $def) {
+    if (empty($def['private'])) {
+        continue;
+    }
+
+    $secret = 'SENSITIVE-' . strtoupper($type);
+    $filled = sanitise_blocks([[
+        'type' => $type,
+        'data' => array_map(
+            fn($field) => $field['type'] === 'repeater' ? [] : $secret,
+            $def['fields']
+        ),
+        'settings' => [], 'options' => [],
+    ]]);
+
+    foreach ([false => 'a reader', true => 'an editor'] as $canEdit => $who) {
+        $CAN_EDIT = (bool) $canEdit;
+        ob_start();
+        render_blocks($filled);
+        $html = ob_get_clean();
+        $leaked = str_contains($html, $secret);
+
+        if (!$canEdit && $leaked) {
+            $problems[] = "$type is private but its text reaches a reader's page";
+        }
+        if ($canEdit && !$leaked) {
+            $problems[] = "$type is private but does not render for an editor either";
+        }
+    }
+    $CAN_EDIT = false;
+
+    // And the same text must stay out of a reader's search index, or it is
+    // findable on a page it cannot be seen on — worse than leaving it visible.
+    $block = $filled[0];
+    $public  = search_block_text($block, false);
+    $private = search_block_text($block, true);
+
+    if (str_contains($public['heading'] . $public['body'], $secret)) {
+        $problems[] = "$type is private but is in a reader's search index";
+    }
+    if (!str_contains($private['heading'] . $private['body'], $secret)) {
+        $problems[] = "$type is private but is missing from an editor's search index";
     }
 }
 
