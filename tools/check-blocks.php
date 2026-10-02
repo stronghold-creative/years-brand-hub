@@ -411,6 +411,76 @@ foreach ([
 }
 
 /**
+ * A table's grid, which is stored as text so it can be pasted.
+ *
+ * The parsing is the whole feature: get it wrong and a pasted table silently
+ * lands in one column, or a cell containing a pipe splits in half.
+ */
+foreach ([
+    ['a tab-separated paste',     "A\tB\tC",        [['A', 'B', 'C']]],
+    ['pipes, typed by hand',      'A | B',          [['A', 'B']]],
+    ['pipes at the ends',         '| A | B |',      [['A', 'B']]],
+    ['a pipe inside a tabbed row', "A|B\tC",        [['A|B', 'C']]],
+    ['a blank row',               "A | B\n |\nC|D", [['A', 'B'], ['C', 'D']]],
+    ['nothing at all',            '',               []],
+] as [$what, $grid, $expected]) {
+    if (table_rows($grid) !== $expected) {
+        $problems[] = "table_rows gets $what wrong: " . json_encode(table_rows($grid));
+    }
+}
+
+// A ragged paste still has to render a rectangle; the renderer pads to the
+// widest row, so the width it works from must be the widest and not the first.
+$ragged = table_rows("A\tB\tC\nD\tE");
+if (max(array_map('count', $ragged)) !== 3) {
+    $problems[] = 'a ragged table should take its width from its widest row';
+}
+
+/**
+ * The comparison table that became a table.
+ *
+ * It is the first migration to change a block's *type* rather than its data, and
+ * a page using one would simply lose it if this stopped working — sanitise_blocks
+ * drops a type the definitions no longer name.
+ */
+$old = [[
+    'type' => 'comparison_table',
+    'data' => [
+        'heading' => 'Word swaps',
+        'left'    => 'We say',
+        'right'   => 'We do not say',
+        'rows'    => [
+            ['left' => 'Send', 'right' => 'Dispatch', 'note' => 'Warmer'],
+            ['left' => 'Fix',  'right' => 'Resolve',  'note' => ''],
+        ],
+    ],
+    'settings' => [],
+    'options'  => ['density' => 'compact', 'strike' => 'struck'],
+]];
+$new = sanitise_blocks(block_upgrade($old));
+
+if (($new[0]['type'] ?? '') !== 'table') {
+    $problems[] = 'a comparison table does not become a table';
+} else {
+    $rows = table_rows((string) $new[0]['data']['grid']);
+    if (count($rows) !== 3) {
+        $problems[] = 'a migrated comparison table should keep its heading row and both rows';
+    }
+    if (($rows[0][2] ?? '') !== 'Note') {
+        $problems[] = 'a migrated comparison table with notes should gain a Note column';
+    }
+    if (($rows[1][0] ?? '') !== 'Send' || ($rows[1][1] ?? '') !== 'Dispatch') {
+        $problems[] = 'a migrated comparison table loses its cells';
+    }
+    if (($new[0]['options']['strike'] ?? '') !== 'struck') {
+        $problems[] = 'a migrated comparison table should keep its struck-through column';
+    }
+    if (($new[0]['data']['heading'] ?? '') !== 'Word swaps') {
+        $problems[] = 'a migrated comparison table loses its heading';
+    }
+}
+
+/**
  * Every block type needs a group and an icon for the chooser.
  *
  * Neither fails loudly: a missing group drops the block into an "Other" heading

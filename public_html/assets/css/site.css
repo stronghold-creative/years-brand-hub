@@ -552,7 +552,6 @@ body.nav-open {
 
 .block { margin: 0 0 4rem; max-width: 100%; }
 /* A wide table or grid scrolls inside itself rather than widening the page. */
-.block--comparison { overflow-x: auto; }
 /* Block headings sit under the chapter heading, so they are h3. */
 .block h3 {
   font-size: 1.125rem;
@@ -812,23 +811,39 @@ body.nav-open {
   .figure--wide { width: 100%; }
 }
 
-/* ----------------------------------------------------------- comparison */
 
-.comparison { width: 100%; border-collapse: collapse; font-size: .9375rem; }
-.comparison th {
+/* Tables -------------------------------------------------------------------
+
+   Any number of columns, from a grid typed or pasted into one field. A wide
+   table scrolls rather than crushing its columns: five columns of words at
+   phone width is unreadable either way, and scrolling at least keeps the
+   words. */
+.table__scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.table { width: 100%; border-collapse: collapse; font-size: .9375rem; }
+.table th {
   text-align: left;
-  font-size: .75rem;
-  font-weight: 600;
+  font-size: .6875rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
   color: var(--ink-faint);
-  padding: 0 0 .625rem;
+  padding: 0 1.5rem .625rem 0;
   border-bottom: 1px solid var(--rule-firm);
+  white-space: nowrap;
 }
-.comparison th:first-child { padding-right: 1.5rem; }
-.comparison td { padding: .8125rem 0; border-bottom: 1px solid var(--rule); vertical-align: top; }
-.comparison td:first-child { padding-right: 1.5rem; width: 50%; }
-.comparison__yes { color: var(--ink); }
-.comparison__no  { color: var(--ink-soft); text-decoration: line-through; text-decoration-color: var(--negative); }
-.comparison__noterow td { padding-top: 0; font-size: .8125rem; color: var(--ink-faint); border-bottom: 1px solid var(--rule); }
+.table th:last-child, .table td:last-child { padding-right: 0; }
+.table td { padding: .8125rem 1.5rem .8125rem 0; vertical-align: top; }
+.table--compact td { padding-top: .4375rem; padding-bottom: .4375rem; }
+.table--lines-rows td { border-bottom: 1px solid var(--rule); }
+.table--lines-grid td, .table--lines-grid th { border: 1px solid var(--rule); padding-left: .75rem; }
+.table--lines-none td { border-bottom: 0; }
+.table--first-strong td:first-child { font-weight: 600; }
+/* A this-not-that table: what the old comparison block did, as a style. */
+.table--strike-struck td:nth-child(2) {
+  color: var(--ink-soft);
+  text-decoration: line-through;
+  text-decoration-color: var(--negative);
+}
 
 /* ===========================================================================
    Block zones
@@ -1190,8 +1205,6 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 .callout--quiet { background: none; border-left: 1px solid var(--rule); color: var(--ink-soft); }
 
 /* Comparison */
-.comparison--compact td { padding: .4375rem 0; }
-.comparison--plain .comparison__no { text-decoration: none; }
 
 /* Downloads */
 .downloads--cards {
@@ -1231,8 +1244,6 @@ body[data-card='shadow'] .swatches--cards .swatch { box-shadow: 0 1px 2px rgba(3
 .rules--rows { display: block; }
 .rules--rows .rules__col + .rules__col { margin-top: 2rem; }
 .callout--bar { border-left: 2px solid var(--accent); }
-.comparison--normal td { padding: .8125rem 0; }
-.comparison--struck .comparison__no { text-decoration: line-through; text-decoration-color: var(--negative); }
 .downloads--list { display: block; }
 .figure--fit-natural img { aspect-ratio: auto; object-fit: contain; }
 .imagegrid--gap-normal { gap: 1.5rem; }
@@ -2669,4 +2680,87 @@ body[data-card='shadow'] .zone--bg-custom { box-shadow: 0 1px 2px rgba(31,31,31,
   font-size: .75rem;
   font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
   color: var(--ink-faint);
+}
+
+/* Steps with a bullet or no marker. The grid column collapses when there is no
+   marker, so an unmarked list is not indented past a gap holding nothing. */
+.steps--bullet .steps__item { grid-template-columns: .75rem minmax(0, 1fr); gap: .75rem; }
+.steps--none .steps__item { grid-template-columns: minmax(0, 1fr); gap: 0; }
+.steps--bullet, .steps--none { gap: 1rem; }
+.steps__number--dot {
+  width: .375rem;
+  height: .375rem;
+  margin-top: .5rem;
+  border-radius: 999px;
+  background: var(--accent);
+  justify-self: center;
+}
+.steps--bullet .steps__number, .steps--none .steps__number {
+  background: none;
+  color: inherit;
+  font-size: inherit;
+}
+
+/* Columns -------------------------------------------------------------------
+
+   Two to four side by side. --across is set by the renderer and capped at the
+   number of items, so three columns holding two items is two columns rather
+   than two and a hole. */
+.cols__intro { max-width: var(--s-measure, 70ch); margin: 0 0 1.5rem; color: var(--ink-soft); }
+.cols__intro p:last-child { margin-bottom: 0; }
+.cols__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(var(--across, 3), minmax(0, 1fr));
+  gap: 1.75rem;
+}
+.cols__item { min-width: 0; display: grid; align-content: start; gap: .5rem; }
+.cols--centre .cols__item { justify-items: center; text-align: center; }
+
+.cols__icon { display: block; }
+.cols__icon img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.cols--icon-small .cols__icon  { width: 1.75rem; height: 1.75rem; }
+.cols--icon-medium .cols__icon { width: 2.75rem; height: 2.75rem; }
+.cols--icon-large .cols__icon  { width: 4rem; height: 4rem; }
+
+.cols__image { display: block; width: 100%; margin-bottom: .25rem; }
+.cols__image img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--s-radius-inner, var(--s-radius, 6px));
+}
+
+.cols__eyebrow {
+  font-size: .6875rem;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.cols__title { margin: 0; font-size: 1rem; font-weight: 600; }
+.cols__body { font-size: .9375rem; color: var(--ink-soft); }
+.cols__body p { margin: 0 0 .5rem; }
+.cols__body p:last-child { margin-bottom: 0; }
+.cols__link { font-size: .875rem; }
+
+/* Cards and rules are the same columns with an edge drawn round or between. */
+.cols--card .cols__item {
+  padding: var(--s-pad, 1.75rem);
+  background: var(--raised);
+  border-radius: var(--s-radius, 6px);
+}
+.cols--ruled .cols__item { padding-left: 1.25rem; border-left: 1px solid var(--rule); }
+.cols--ruled.cols--centre .cols__item { padding-left: 0; border-left: 0; padding-top: 1.25rem; border-top: 1px solid var(--rule); }
+
+/* Four across is unreadable on a tablet and two is the most that fits a phone;
+   a column of a dozen words does not need its own breakpoint below that. */
+@media (max-width: 62rem) {
+  .cols__list { grid-template-columns: repeat(min(var(--across, 3), 2), minmax(0, 1fr)); }
+}
+@media (max-width: 40rem) {
+  .cols__list { grid-template-columns: minmax(0, 1fr); gap: 1.5rem; }
+  .cols--ruled .cols__item { padding-left: 0; border-left: 0; padding-top: 1.25rem; border-top: 1px solid var(--rule); }
 }

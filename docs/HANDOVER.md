@@ -228,13 +228,41 @@ nothing on the left is the counterpart of anything on the right. A column with
 nothing in it is not drawn, so a one-sided block shows one column rather than
 one column and a gap. Old paired content is folded in by `block_upgrade()`.
 
-The 28 block types: heading, rich_text, colour_palette, colour_ramp,
-colour_story, type_specimen, do_dont, image, image_grid, comparison_table,
+The 29 block types: heading, rich_text, colour_palette, colour_ramp,
+colour_story, type_specimen, do_dont, image, image_grid, columns, table,
 download_list, callout, clearspace, spacing_scale, icon_grid, contrast_pairs,
 misuse_gallery, spec_table, link_list, contacts, checklist, video, tabs,
 accordion, code, steps, hero, quote. Every one of them has appearance options;
 clearspace, video and accordion had none until 26 September and so could not
 follow the site's appearance at all.
+
+**`table` replaced `comparison_table`,** which could only ever be two columns. A
+comparison is a *style* of table — the second column struck through — rather than
+a different kind of content, so it is an option on the one block. Existing
+content migrates: the two column headings become the header row, and a row's note
+becomes a third column, because a full-width line under a row has nowhere to live
+in a rectangle and keeping the words beats dropping them.
+
+**Its grid is one text field, not a repeater.** A table is the one piece of
+content that already exists somewhere else: a range copied from Sheets or Excel
+arrives tab-separated, so pasting it lands correctly with nothing to do, and
+forty rows is forty lines to scan rather than forty cards to scroll past. Tabs
+are tried before pipes, and a line containing a tab is treated as tab-separated
+throughout, so a pipe inside a cell survives. The number of columns comes from
+the content, and a short row is padded so a ragged paste still renders a
+rectangle.
+
+**`columns` is two to four side by side**, each with an optional eyebrow, icon or
+image, heading, text and link. Everything but the heading is optional, so one
+block covers a row of values, a numbered set of principles and three picture-led
+cards rather than three block types that differ only in what they show. The
+column count is a maximum: it is capped at the number of items, because three
+columns holding two leaves a hole and a hole looks like something failed to load.
+
+**`steps` is also a plain list.** The marker can be a bullet or nothing, and the
+element follows it — an ordered list with bullet markers tells a screen reader
+the order matters when it does not, so the tag changes rather than the numbers
+being hidden by CSS.
 
 **Every type also carries a `group` and an `icon`,** which is how the chooser
 sorts and illustrates it. `block_groups()` in `icons.php` gives the order and
@@ -417,11 +445,20 @@ in edit mode, never on the public site. Both sides validate origin.
 
 Saving reloads the iframe. Autosave fires 700ms after typing stops.
 
+**A repeater's rows are collapsed, and one opens at a time.** A row is a single
+titled line that opens on click; reordering and deleting work from that line,
+because those are what someone does while looking at the whole list. A panel of
+twenty expanded rows is one nobody can see the shape of — you scroll past four
+looking for the twelfth — and leaving several open puts most of that back. A
+newly added row opens itself and takes focus, so adding and typing is one
+movement. It applies to every repeater in every block, so a colour ramp and a
+link list get it too.
+
 **Adding a block** opens a centred dialog (`.blockmenu`, built in `editor.js`,
 styled in `admin.css`), always centred rather than anchored, because it is opened
 from the outline, the canvas and the keyboard. The choices are a **grid of
 cards**, `auto-fill minmax(14rem, 1fr)` in a 52rem dialog, so most of the
-twenty-eight block types are visible at once; below 30rem it falls back to one
+twenty-nine block types are visible at once; below 30rem it falls back to one
 column. Search filters on label, hint and group.
 
 **The cards are grouped and each carries an icon.** Twenty-eight choices in one
@@ -569,7 +606,7 @@ over any row.
   and unknown in the other.
 - **The class prefix is `devspec`, not `spec`** — the `spec_table` block already
   owns `.spec` on the public side, and `.spec { display: grid }` took the table
-  apart. Check a class name against the stylesheet before using it; 28 block types
+  apart. Check a class name against the stylesheet before using it; 29 block types
   have had most of the obvious ones.
 
 **Phase 6 shipped the import** (`app/lib/import.php`). One box on the component
@@ -806,7 +843,7 @@ green run, then Settings, Apply updates.
 
 ## 8. State of the build
 
-**Working:** deploy pipeline, three-column editor, 28 block types, 26 numeric
+**Working:** deploy pipeline, three-column editor, 29 block types, 26 numeric
 appearance settings, asset library with generated image variants and gated
 downloads, upload from inside the editor's picker, sections as scrolling pages
 with a hero opener, version history with collapsing and pruning, people and
@@ -881,7 +918,7 @@ has caught something real:
 - `check-routes.php` renders no pages; it asserts every URL the interface calls
   matches a route. It found a route that was never inserted and two patterns
   with one backslash too many.
-- `check-blocks.php` renders all 28 block types three times — empty, full, and
+- `check-blocks.php` renders all 29 block types three times — empty, full, and
   "gappy", which is full but with the first row of every repeater left blank —
   through the sanitiser first, and reports anything that throws, shows nothing,
   or puts an empty value into an attribute that will be read as a colour or a

@@ -368,6 +368,16 @@
     return fallback;
   }
 
+  /**
+   * Which row to open when the panel is next built.
+   *
+   * Adding a row rebuilds the whole repeater, so the new row cannot open
+   * itself from the click that created it — by the time it exists, that
+   * element has been thrown away. The index is left here instead and read
+   * once as the rows are built.
+   */
+  let openOnBuild = -1;
+
   function repeater(def, rows, onChange, dense) {
     const wrap = document.createElement('div');
     wrap.className = 'repeater' + (dense ? ' repeater--nested' : '');
@@ -406,11 +416,26 @@
       grip.addEventListener('touchstart', () => { item.draggable = true; }, { passive: true });
       bar.append(grip);
 
-      const name = document.createElement('span');
+      /**
+       * The row's name, which is also what opens it.
+       *
+       * Rows are collapsed to this one line, and one is open at a time. A list
+       * of twenty expanded rows is a panel nobody can see the shape of: you
+       * scroll past four rows looking for the twelfth, and reordering means
+       * holding the whole order in your head. Twenty titled lines fit on a
+       * screen, and the one being worked on is the one that is open.
+       *
+       * A button, not a div with a click handler, so it is reachable by keyboard
+       * and announces its state without anything else being added.
+       */
+      const name = document.createElement('button');
+      name.type = 'button';
       name.className = 'repeater__name';
       name.textContent = rowTitle(def, row, index);
       // The number stays available as the position, since the name replaced it.
       name.title = (def.item || 'Item') + ' ' + (index + 1);
+      name.setAttribute('aria-expanded', 'false');
+      name.addEventListener('click', () => openRow(item, !item.classList.contains('is-open')));
       bar.append(name);
 
       // Compact controls, and disabled at the ends rather than doing nothing
@@ -437,11 +462,18 @@
       bar.append(up, down, remove);
       item.append(bar);
 
+      // The fields live in their own element so collapsing hides them without
+      // hiding the bar that reorders and deletes the row — both of which should
+      // work from the collapsed line, which is the whole point of collapsing.
+      const fields = document.createElement('div');
+      fields.className = 'repeater__fields';
+      item.append(fields);
+
       Object.entries(def.fields).forEach(([key, fieldDef]) => {
         // inPlace comes back from a nested repeater: adding or removing one of
         // its rows changes the shape of the panel and has to rebuild it, where
         // typing in one of its fields does not.
-        item.append(field(fieldDef, row[key], (value, inPlace) => {
+        fields.append(field(fieldDef, row[key], (value, inPlace) => {
           row[key] = value;
           // Keep the row's own label in step as it is typed.
           name.textContent = rowTitle(def, row, index);
@@ -450,7 +482,38 @@
       });
 
       wrap.append(item);
+
+      // A row added just now is the one being filled in, so it opens itself.
+      // Anything already there stays shut.
+      if (index === openOnBuild) openRow(item, true);
     });
+    openOnBuild = -1;
+
+    /**
+     * Opens one row and closes the rest.
+     *
+     * One at a time rather than several, because the reason to collapse at all
+     * is to be able to see the list; leaving three open and scrolling past them
+     * is most of the original problem back again.
+     */
+    function openRow(item, open) {
+      wrap.querySelectorAll('.repeater__item.is-open').forEach((other) => {
+        if (other === item) return;
+        other.classList.remove('is-open');
+        const button = other.querySelector('.repeater__name');
+        if (button) button.setAttribute('aria-expanded', 'false');
+      });
+
+      item.classList.toggle('is-open', open);
+      const button = item.querySelector('.repeater__name');
+      if (button) button.setAttribute('aria-expanded', open ? 'true' : 'false');
+
+      if (open) {
+        // Into the first field, so opening a row and typing is one movement.
+        const first = item.querySelector('.repeater__fields input, .repeater__fields textarea, .repeater__fields select');
+        if (first) first.focus({ preventScroll: true });
+      }
+    }
 
     // Dragging a row to reorder it. Up and down remain, because they are the
     // ones a keyboard can reach; this is for a palette of eleven steps where
@@ -500,6 +563,7 @@
     const add = button('Add ' + (def.item || 'item').toLowerCase(), () => {
       remember();
       rows.push(blankRow(def.fields));
+      openOnBuild = rows.length - 1;
       onChange(rows);
     });
     add.className = 'repeater__add';

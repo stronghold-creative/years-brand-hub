@@ -316,25 +316,65 @@ function block_types(): array
             ],
         ],
 
-        'comparison_table' => [
-            'label'  => 'Comparison table',
-            'hint'   => 'Two columns, for this-not-that guidance. Words we use against words we avoid, for example.',
-            'group'  => 'Guidance',
+        /**
+         * A table of any width, typed or pasted.
+         *
+         * This replaces the two-column comparison table, which could only ever be
+         * two columns and whose content migrates into here. A comparison is one
+         * style of table rather than a different kind of thing.
+         *
+         * The grid is one field rather than a repeater of rows, because a table
+         * is the one piece of content that already exists somewhere else: pasting
+         * it out of a spreadsheet brings the columns with it, and forty rows is
+         * forty lines to scan rather than forty cards to scroll past.
+         */
+        /**
+         * Two, three or four columns side by side.
+         *
+         * Everything in a column is optional except the heading, so the same
+         * block covers a row of values with icons, a set of principles with
+         * numbers over them, and three cards each leading with a picture —
+         * rather than three block types that differ only in what they show.
+         */
+        'columns' => [
+            'label'  => 'Columns',
+            'hint'   => 'Two to four side by side, each with an icon or image, a heading and a few lines.',
+            'group'  => 'Layout',
+            'icon'   => 'grid',
+            'fields' => [
+                'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
+                'intro'   => ['type' => 'textarea', 'label' => 'Introduction', 'optional' => true],
+                'items'   => [
+                    'type'   => 'repeater',
+                    'label'  => 'Columns',
+                    'item'   => 'Column',
+                    'fields' => [
+                        'eyebrow'  => ['type' => 'text',  'label' => 'Small label above', 'optional' => true,
+                                       'help' => 'A number, a step, a category. Sits over the heading.'],
+                        'icon'     => ['type' => 'asset', 'label' => 'Icon', 'optional' => true,
+                                       'help' => 'A small square mark from the asset library. An SVG keeps its edges at any size.'],
+                        'image'    => ['type' => 'asset', 'label' => 'Image', 'optional' => true,
+                                       'help' => 'Leads the column instead of the icon, where a picture says more than a mark. If both are set the image wins.'],
+                        'title'    => ['type' => 'text',  'label' => 'Heading'],
+                        'body'     => ['type' => 'longtext', 'label' => 'Text', 'optional' => true],
+                        'link_text'=> ['type' => 'text',  'label' => 'Link text', 'optional' => true],
+                        'link_url' => ['type' => 'text',  'label' => 'Link address', 'optional' => true,
+                                       'help' => 'A page on this site, like /s/foundations, or a full https:// address.'],
+                    ],
+                ],
+            ],
+        ],
+
+        'table' => [
+            'label'  => 'Table',
+            'hint'   => 'Any number of columns. Paste it straight out of a spreadsheet.',
+            'group'  => 'Reference',
             'icon'   => 'compare',
             'fields' => [
                 'heading' => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
-                'left'    => ['type' => 'text', 'label' => 'Left column heading'],
-                'right'   => ['type' => 'text', 'label' => 'Right column heading'],
-                'rows'    => [
-                    'type'   => 'repeater',
-                    'label'  => 'Rows',
-                    'item'   => 'Row',
-                    'fields' => [
-                        'left'  => ['type' => 'text', 'label' => 'Left'],
-                        'right' => ['type' => 'text', 'label' => 'Right'],
-                        'note'  => ['type' => 'text', 'label' => 'Note', 'optional' => true],
-                    ],
-                ],
+                'grid'    => ['type' => 'longtext', 'label' => 'The table',
+                              'help' => 'Paste from Sheets or Excel and the columns come across. Typing it by hand, separate the cells with a tab or a | and put each row on its own line. The first row is the heading unless you turn that off.'],
+                'caption' => ['type' => 'text', 'label' => 'Caption', 'optional' => true],
             ],
         ],
 
@@ -602,8 +642,8 @@ function block_types(): array
         ],
 
         'steps' => [
-            'label'  => 'Steps',
-            'hint'   => 'A numbered process, in order.',
+            'label'  => 'Steps or a list',
+            'hint'   => 'A numbered process, or a plain bulleted list, each line with its own detail.',
             'group'  => 'Text',
             'icon'   => 'steps',
             'fields' => [
@@ -791,12 +831,41 @@ function block_options(string $type): array
                 'natural' => 'Natural height', 'square' => 'Square', 'wide' => 'Wide crop',
             ]],
         ],
-        'comparison_table' => [
-            'density' => ['label' => 'Row height', 'options' => [
-                'compact' => 'Compact', 'normal' => 'Normal',
+        'columns' => [
+            // Across is a maximum, not a promise: three columns with two items in
+            // them is two columns, because a hole is worse than a wider card.
+            'across' => ['label' => 'Columns', 'options' => [
+                '3' => 'Three', '2' => 'Two', '4' => 'Four',
             ]],
-            'strike' => ['label' => 'Right column', 'options' => [
-                'struck' => 'Struck through', 'plain' => 'Plain',
+            'style' => ['label' => 'Treatment', 'options' => [
+                'plain' => 'Plain', 'card' => 'Cards', 'ruled' => 'Separated by a line',
+            ]],
+            'align' => ['label' => 'Alignment', 'options' => [
+                'left' => 'Left', 'centre' => 'Centred',
+            ]],
+            'icon_size' => ['label' => 'Icon size', 'options' => [
+                'medium' => 'Medium', 'small' => 'Small', 'large' => 'Large',
+            ]],
+        ],
+
+        'table' => [
+            'header' => ['label' => 'First row', 'options' => [
+                'yes' => 'Is the heading', 'no' => 'Is ordinary content',
+            ]],
+            'density' => ['label' => 'Row height', 'options' => [
+                'normal' => 'Normal', 'compact' => 'Compact',
+            ]],
+            'lines' => ['label' => 'Lines', 'options' => [
+                'rows' => 'Between rows', 'none' => 'None', 'grid' => 'A full grid',
+            ]],
+            // The old comparison table, kept as a style rather than a block type:
+            // a this-not-that table is a table with the second column struck
+            // through, not a different kind of content.
+            'strike' => ['label' => 'Second column', 'options' => [
+                'plain' => 'Plain', 'struck' => 'Struck through, for this-not-that',
+            ]],
+            'first' => ['label' => 'First column', 'options' => [
+                'normal' => 'Normal', 'strong' => 'Bolder, as a row label',
             ]],
         ],
         'download_list' => [
@@ -838,7 +907,15 @@ function block_options(string $type): array
             'style' => ['label' => 'Tab style', 'options' => ['underline' => 'Underline', 'pill' => 'Pills']],
         ],
         'steps' => [
-            'style' => ['label' => 'Marker', 'options' => ['number' => 'Numbered', 'line' => 'Numbered with a line']],
+            // A list of things to do in order and a list that is simply a list
+            // are the same block with a different marker. The numbering was the
+            // only thing that made this "steps".
+            'style' => ['label' => 'Marker', 'options' => [
+                'number' => 'Numbered',
+                'line'   => 'Numbered, joined by a line',
+                'bullet' => 'Bulleted',
+                'none'   => 'No marker',
+            ]],
         ],
         'hero' => [
             'label'  => 'Hero',
@@ -1097,6 +1174,58 @@ function sanitise_fields(array $fields, array $values, int $depth = 0): array
 function block_upgrade(array $blocks): array
 {
     foreach ($blocks as $i => $block) {
+        /**
+         * The two-column comparison table became a table of any width.
+         *
+         * Its rows go into the grid as text, its two column headings become the
+         * header row, and the struck-through right column survives as the style
+         * option that now does that job — so a page that used one looks the same
+         * afterwards. A row's note was a full-width line under the row; there is
+         * nowhere for that in a rectangular table, so it becomes a third column,
+         * which keeps the words rather than dropping them.
+         */
+        if (($block['type'] ?? '') === 'comparison_table') {
+            $data = $block['data'] ?? [];
+            $hasNotes = false;
+            foreach ((array) ($data['rows'] ?? []) as $row) {
+                if (trim((string) ($row['note'] ?? '')) !== '') {
+                    $hasNotes = true;
+                    break;
+                }
+            }
+
+            $lines = [];
+            $head = [(string) ($data['left'] ?? ''), (string) ($data['right'] ?? '')];
+            if ($hasNotes) {
+                $head[] = 'Note';
+            }
+            $lines[] = implode(' | ', $head);
+
+            foreach ((array) ($data['rows'] ?? []) as $row) {
+                $cells = [(string) ($row['left'] ?? ''), (string) ($row['right'] ?? '')];
+                if ($hasNotes) {
+                    $cells[] = (string) ($row['note'] ?? '');
+                }
+                // A pipe inside a cell would split it, so it is spelled out.
+                $lines[] = implode(' | ', array_map(fn($c) => str_replace('|', '/', trim($c)), $cells));
+            }
+
+            $blocks[$i]['type'] = 'table';
+            $blocks[$i]['data'] = [
+                'heading' => (string) ($data['heading'] ?? ''),
+                'grid'    => implode("\n", $lines),
+                'caption' => '',
+            ];
+            $blocks[$i]['options'] = [
+                'header'  => 'yes',
+                'density' => (string) ($block['options']['density'] ?? 'normal'),
+                'lines'   => 'rows',
+                'strike'  => (string) ($block['options']['strike'] ?? 'struck'),
+                'first'   => 'normal',
+            ];
+            continue;
+        }
+
         if (($block['type'] ?? '') !== 'do_dont' || empty($block['data']['pairs'])) {
             continue;
         }
@@ -1371,6 +1500,47 @@ function paragraphs(string $text): string
         }
         $list = paragraph_list($part);
         $out .= $list ?? '<p>' . rich_inline(nl2br(e($part))) . '</p>';
+    }
+    return $out;
+}
+
+/**
+ * A pasted or typed grid, as rows of cells.
+ *
+ * Tabs first, because that is what a spreadsheet puts on the clipboard and the
+ * whole point of storing a table as text — a copied range from Sheets or Excel
+ * lands correctly with nothing to do. A pipe is the fallback for typing one by
+ * hand, where tabs are awkward to enter and invisible once they are there.
+ *
+ * A row is split on one or the other, never both: a line containing a tab is
+ * treated as tab-separated throughout, so a pipe inside a cell survives.
+ */
+function table_rows(string $grid): array
+{
+    $out = [];
+    foreach (preg_split('/\r\n|\r|\n/', trim($grid)) ?: [] as $line) {
+        if (trim($line) === '') {
+            continue;
+        }
+        $cells = str_contains($line, "\t")
+            ? explode("\t", $line)
+            : explode('|', $line);
+        // A row written |like|this| has an empty cell at each end that nobody
+        // meant, so the outer pipes are dropped before splitting matters.
+        if (!str_contains($line, "\t")) {
+            $trimmed = trim($line);
+            if (str_starts_with($trimmed, '|') || str_ends_with($trimmed, '|')) {
+                $cells = explode('|', trim($trimmed, '|'));
+            }
+        }
+        $cells = array_map('trim', $cells);
+        // A line like " | " is a blank row someone left in a spreadsheet, not a
+        // row of empty cells they meant. An all-empty row renders as a stripe of
+        // nothing and is almost never wanted.
+        if (implode('', $cells) === '') {
+            continue;
+        }
+        $out[] = $cells;
     }
     return $out;
 }
