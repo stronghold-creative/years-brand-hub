@@ -137,6 +137,24 @@
 
   // ------------------------------------------------------------ field markup
 
+  /**
+   * A field's label, and the whole of it on hover.
+   *
+   * The label is one line in a 21rem panel, so a long one is cut with an
+   * ellipsis rather than wrapped through the bottom of its own box. The title
+   * is what makes that honest: the words are still readable without having to
+   * guess at them.
+   *
+   * It goes on the control, not on the label: the label is pointer-events:none
+   * so that clicking it reaches the input underneath, and a title on something
+   * the pointer cannot reach never appears.
+   */
+  function labelText(label, def, control) {
+    const text = def.label + (def.optional ? ' (optional)' : '');
+    label.textContent = text;
+    if (control) control.title = text;
+  }
+
   function field(def, value, onInput, dense) {
     if (def.type === 'asset') {
       return assetField(def, value, onInput);
@@ -237,7 +255,7 @@
       const label = document.createElement('label');
       label.className = 'm3-field__label';
       label.htmlFor = id;
-      label.textContent = def.label + (def.optional ? ' (optional)' : '');
+      labelText(label, def, input);
       wrap.classList.add('m3-field--colour');
       wrap.append(input, label, chip);
       return wrap;
@@ -256,7 +274,7 @@
     const label = document.createElement('label');
     label.className = 'm3-field__label';
     label.htmlFor = id;
-    label.textContent = def.label + (def.optional ? ' (optional)' : '');
+    labelText(label, def, input);
 
     wrap.append(input, label);
 
@@ -368,7 +386,7 @@
 
     const label = document.createElement('span');
     label.className = 'm3-field__label richtext__label';
-    label.textContent = def.label + (def.optional ? ' (optional)' : '');
+    labelText(label, def, box);
 
     const send = () => onInput(serialiseRich(box));
     box.addEventListener('input', send);
@@ -469,6 +487,210 @@
     return /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent || '');
   }
 
+  /**
+   * A table, edited as a table.
+   *
+   * The grid is stored as text — rows on lines, cells separated by tabs — which
+   * is what makes pasting a spreadsheet range work. That storage is right and the
+   * textarea it implies is not: typing a table into one, counting pipes to keep
+   * the columns lined up, is worse than the repeater it replaced.
+   *
+   * So there is one source of truth and two ways into it. A cell per input, which
+   * is what typing a table should feel like, and the raw text behind a toggle for
+   * pasting a range in or fixing something wholesale.
+   *
+   * Tab and Enter move between cells, because a table where the keyboard cannot
+   * get to the next cell is a table nobody types into twice.
+   *
+   * This is called by field() for every `grid` field, and losing it took the
+   * inspector down for any block holding one — the panel is built in one pass, so
+   * a missing function is a blank panel rather than a missing field. The check in
+   * tools/check-blocks.php now asserts that every field type the definitions use
+   * has a builder here, so the next one cannot go unnoticed.
+   */
+  function gridField(def, value, onInput) {
+    const wrap = document.createElement('div');
+    wrap.className = 'grid-field';
+
+    // Parsed once here, held as an array, and written back as text on every
+    // change. Matches table_rows() in blocks.php, which is the other half of it.
+    let rows = parseGrid(value || '');
+    if (!rows.length) rows = [['', ''], ['', '']];
+
+    const head = document.createElement('div');
+    head.className = 'grid-field__head';
+    const title = document.createElement('span');
+    title.className = 'grid-field__title';
+    title.textContent = def.label;
+    head.append(title);
+
+    const asText = button('Edit as text', () => {
+      const showing = wrap.classList.toggle('is-text');
+      asText.textContent = showing ? 'Back to the cells' : 'Edit as text';
+      if (showing) {
+        raw.value = toText(rows);
+        raw.focus();
+      } else {
+        rows = parseGrid(raw.value);
+        if (!rows.length) rows = [['', '']];
+        draw();
+        commit();
+      }
+    });
+    asText.className = 'grid-field__swap m3-state';
+    head.append(asText);
+    wrap.append(head);
+
+    const table = document.createElement('div');
+    table.className = 'grid-field__table';
+    wrap.append(table);
+
+    const raw = document.createElement('textarea');
+    raw.className = 'm3-field__textarea grid-field__raw';
+    raw.rows = 8;
+    raw.spellcheck = false;
+    raw.placeholder = 'Paste a range from Sheets or Excel, or type rows with | between the cells.';
+    raw.addEventListener('input', () => {
+      rows = parseGrid(raw.value);
+      onInput(raw.value);
+    });
+    wrap.append(raw);
+
+    const actions = document.createElement('div');
+    actions.className = 'grid-field__actions';
+    const addRow = button('Add row', () => {
+      rows.push(new Array(width()).fill(''));
+      draw();
+      commit();
+      focusCell(rows.length - 1, 0);
+    });
+    const addCol = button('Add column', () => {
+      rows.forEach((row) => row.push(''));
+      draw();
+      commit();
+      focusCell(0, width() - 1);
+    });
+    addRow.className = 'grid-field__add m3-state';
+    addCol.className = 'grid-field__add m3-state';
+    actions.append(addRow, addCol);
+    wrap.append(actions);
+
+    if (def.help) {
+      const help = document.createElement('p');
+      help.className = 'm3-field__support';
+      help.textContent = def.help;
+      wrap.append(help);
+    }
+
+    function width() {
+      return rows.reduce((most, row) => Math.max(most, row.length), 1);
+    }
+
+    function commit() {
+      onInput(toText(rows));
+    }
+
+    function focusCell(r, c) {
+      const input = table.querySelector('input[data-r="' + r + '"][data-c="' + c + '"]');
+      if (input) input.focus();
+    }
+
+    function draw() {
+      const cols = width();
+      table.innerHTML = '';
+      table.style.setProperty('--cols', String(cols));
+
+      // A header strip of column controls, so a column can go without hunting
+      // through the rows for it.
+      rows.forEach((row) => { while (row.length < cols) row.push(''); });
+
+      const bar = document.createElement('div');
+      bar.className = 'grid-field__row grid-field__row--head';
+      for (let c = 0; c < cols; c++) {
+        const cell = document.createElement('div');
+        cell.className = 'grid-field__colhead';
+        const drop = miniButton('Remove this column', '&times;', () => {
+          if (width() <= 1) return;
+          rows.forEach((row) => row.splice(c, 1));
+          draw();
+          commit();
+        }, 'is-danger');
+        cell.append(drop);
+        bar.append(cell);
+      }
+      bar.append(document.createElement('span'));
+      table.append(bar);
+
+      rows.forEach((row, r) => {
+        const line = document.createElement('div');
+        line.className = 'grid-field__row' + (r === 0 ? ' is-header' : '');
+
+        for (let c = 0; c < cols; c++) {
+          const input = document.createElement('input');
+          input.type = 'text';
+          input.className = 'grid-field__cell';
+          input.value = row[c] || '';
+          input.dataset.r = String(r);
+          input.dataset.c = String(c);
+          input.addEventListener('input', () => { rows[r][c] = input.value; commit(); });
+
+          input.addEventListener('keydown', (event) => {
+            // Enter moves down rather than submitting anything, and adds a row
+            // at the bottom, so a table can be typed without reaching for a
+            // button between every line.
+            if (event.key === 'Enter') {
+              event.preventDefault();
+              if (r === rows.length - 1) {
+                rows.push(new Array(width()).fill(''));
+                draw();
+                commit();
+              }
+              focusCell(r + 1, c);
+            }
+          });
+
+          /**
+           * Pasting a range into a cell fills the table from that cell.
+           *
+           * Pasting ten rows of a spreadsheet into one input otherwise puts ten
+           * rows of text into that one cell, which is the single most likely
+           * thing to be done here and the most annoying to undo.
+           */
+          input.addEventListener('paste', (event) => {
+            const text = (event.clipboardData || window.clipboardData).getData('text/plain');
+            if (!/[\t\n]/.test(text)) return;          // an ordinary paste
+            event.preventDefault();
+
+            const pasted = parseGrid(text);
+            pasted.forEach((pastedRow, dr) => {
+              while (rows.length <= r + dr) rows.push(new Array(width()).fill(''));
+              pastedRow.forEach((cellValue, dc) => {
+                while (rows[r + dr].length <= c + dc) rows[r + dr].push('');
+                rows[r + dr][c + dc] = cellValue;
+              });
+            });
+            draw();
+            commit();
+            focusCell(r, c);
+          });
+
+          line.append(input);
+        }
+
+        const drop = miniButton('Remove this row', '&times;', () => {
+          if (rows.length <= 1) return;
+          rows.splice(r, 1);
+          draw();
+          commit();
+        }, 'is-danger');
+        line.append(drop);
+        table.append(line);
+      });
+    }
+
+    draw();
+    return wrap;
+  }
 
   /** Matches table_rows() in blocks.php. Tabs first, pipes as the fallback. */
   function parseGrid(text) {

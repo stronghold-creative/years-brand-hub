@@ -292,6 +292,15 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
               color var(--md-sys-motion-short) var(--md-sys-motion-standard);
   transform-origin: left top;
   background: var(--md-sys-color-surface);
+  /* A label is one line. Wrapped, it pushed its second line through the
+     bottom of the field at rest and sat across the border once floated —
+     which is what a long label did in the inspector's 21rem panel. The
+     cut-off ones carry the whole text as a title, and a label that needs
+     more words than this has them in its support text underneath. */
+  max-width: calc(100% - 1rem);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .m3-field__input:focus + .m3-field__label,
 .m3-field__input:not(:placeholder-shown) + .m3-field__label,
@@ -883,8 +892,19 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
   padding: .625rem 1rem;
   border-bottom: 1px solid var(--md-sys-color-outline-variant);
   background: var(--md-sys-color-surface);
+  /* Narrow, the tools drop to a line of their own. They used to stay put and
+     squeeze everything beside them instead, which turned the page's name into
+     one letter and "All changes saved" into three lines of two words. */
+  flex-wrap: wrap;
 }
-.ed__name { font-size: 1rem; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ed__name {
+  font-size: 1rem; font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  /* It gives up its own width before anything else does, down to a point. */
+  flex: 0 1 auto; min-width: 4rem;
+}
+/* Nothing in the bar is ever two lines. */
+.ed__bar .m3-chip { white-space: nowrap; flex: none; }
 .ed__tools { margin-left: auto; display: flex; align-items: center; gap: .25rem; }
 .ed__widths { display: flex; gap: .25rem; margin: 0 .5rem; }
 
@@ -1014,9 +1034,15 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 .ed__count { margin-left: auto; font-weight: 400; }
 
 .outline { list-style: none; margin: 0; padding: 0 .5rem; overflow-y: auto; overscroll-behavior: contain; flex: 1; min-height: 0; }
+/* Two columns, not three: the five row actions are laid over the row rather
+   than given a column of their own. They are 9rem of a 17rem panel, and a
+   column that wide left "Two columns of guidance" four words on four lines
+   even though the actions themselves were invisible until the row was
+   pointed at. Whatever is permanently on screen should be the name. */
 .outline__row {
+  position: relative;
   display: grid;
-  grid-template-columns: 1rem minmax(0, 1fr) auto;
+  grid-template-columns: 1rem minmax(0, 1fr);
   align-items: center;
   gap: .25rem;
   border-radius: var(--md-sys-shape-s);
@@ -1044,14 +1070,36 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
   font: inherit;
   min-width: 0;
 }
-.outline__type { font-size: .8125rem; font-weight: 500; color: var(--md-sys-color-on-surface); }
+.outline__type {
+  font-size: .8125rem; font-weight: 500; color: var(--md-sys-color-on-surface);
+  /* One line, like the line under it. A block type's name is short; a name
+     that is not gets an ellipsis and keeps every row the same height. */
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
 .outline__desc {
   font-size: .75rem;
   color: var(--md-sys-color-on-surface-variant);
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .outline__row.is-selected .outline__type { color: var(--md-sys-color-on-secondary-container); }
-.outline__acts { display: flex; gap: .125rem; padding-right: .25rem; }
+
+/* Over the right of the row, on its own surface, so the name underneath is
+   never shortened for the sake of buttons that are not being used. */
+.outline__acts {
+  position: absolute;
+  top: 50%;
+  right: .25rem;
+  transform: translateY(-50%);
+  display: flex;
+  gap: .125rem;
+  padding: .125rem;
+  border-radius: var(--md-sys-shape-full);
+  background: var(--md-sys-color-surface-container);
+  /* It is over the name while it is showing, so it reads as a thing on top
+     rather than part of the row. */
+  box-shadow: 0 1px 3px rgb(0 0 0 / .28);
+}
+.outline__row.is-selected .outline__acts { background: var(--md-sys-color-secondary-container); }
 
 /* A small square icon button, shared by outline rows and repeater rows. */
 .miniact {
@@ -1069,12 +1117,27 @@ a { color: var(--md-sys-color-primary); text-underline-offset: 2px; }
 .miniact.is-danger:hover { color: var(--md-sys-color-error); }
 .miniact:disabled { opacity: .3; cursor: default; background: none; }
 
-/* In the outline they stay out of the way until the row is pointed at. */
-.outline__acts .miniact { opacity: 0; }
-.outline__row:hover .outline__acts .miniact,
-.outline__row:focus-within .outline__acts .miniact { opacity: 1; }
-.outline__row:hover .outline__acts .miniact:disabled,
-.outline__row:focus-within .outline__acts .miniact:disabled { opacity: .3; }
+/* In the outline they stay out of the way until the row is pointed at. The
+   whole strip goes, not just its ink: an invisible button that still takes
+   a click is a trap, and one that still takes space is the reason the names
+   were wrapping. */
+.outline__acts { opacity: 0; pointer-events: none; }
+.outline__row:hover .outline__acts,
+.outline__row:focus-within .outline__acts { opacity: 1; pointer-events: auto; }
+.outline__acts .miniact:disabled { opacity: .3; }
+
+/* No hover to reveal them on, so they are simply there, in a column of their
+   own as they were — a touch screen cannot point at a row without tapping it. */
+@media (hover: none) {
+  .outline__row { grid-template-columns: 1rem minmax(0, 1fr) auto; }
+  .outline__acts {
+    position: static;
+    transform: none;
+    background: none;
+    opacity: 1;
+    pointer-events: auto;
+  }
+}
 .outline__empty { padding: .75rem 1rem; font-size: .8125rem; color: var(--md-sys-color-on-surface-variant); }
 
 .outline__add {
@@ -1477,7 +1540,11 @@ form[data-guard].is-dirty {
 }
 @media (max-width: 62rem) {
   .ed { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto auto auto auto; height: auto; }
-  .ed__outline { border-right: 0; border-bottom: 1px solid var(--md-sys-color-outline-variant); max-height: 16rem; }
+  /* A height rather than a maximum. Stacked, the row is as tall as its
+     content, and a column flex child with flex: 1 of an auto height collapses
+     to its minimum — which left the list of blocks one row tall with a
+     thousand pixels of blocks inside it. */
+  .ed__outline { border-right: 0; border-bottom: 1px solid var(--md-sys-color-outline-variant); height: 16rem; }
   .ed__canvas { height: 60vh; }
   .ed__inspector { border-left: 0; border-top: 1px solid var(--md-sys-color-outline-variant); }
   .ed.is-outlinehidden { grid-template-columns: minmax(0, 1fr); }
@@ -2286,12 +2353,28 @@ form[data-guard].is-dirty {
 }
 .grid-field__swap:hover { background: var(--md-sys-color-surface-container-highest); }
 
-.grid-field__table { display: grid; gap: .1875rem; }
+/* Past four columns the cells would be too narrow to read what is in them,
+   so the table scrolls sideways instead of squeezing. Each cell keeps a
+   floor of 4rem; below that the panel scrolls. The floor is what it is so
+   that a three-column table — every migrated comparison table is one — still
+   fits the narrow inspector without scrolling at all. */
+.grid-field__table { display: grid; gap: .1875rem; overflow-x: auto; padding-bottom: .25rem; }
 .grid-field__row {
   display: grid;
-  grid-template-columns: repeat(var(--cols, 2), minmax(0, 1fr)) 1.5rem;
+  /* The last column holds the row's delete button, which is a .miniact and
+     1.75rem wide. A narrower column here put it over the panel's edge. */
+  grid-template-columns: repeat(var(--cols, 2), minmax(4rem, 1fr)) 1.75rem;
   gap: .1875rem;
   align-items: center;
+  min-width: 100%;
+}
+/* Scrolled sideways, the row's delete button stays where it can be reached
+   rather than disappearing off the end of a wide table. */
+.grid-field__row > .miniact,
+.grid-field__row--head > span:last-child {
+  position: sticky;
+  right: 0;
+  background: var(--md-sys-color-surface);
 }
 /* The column controls sit above the first row and only show on hover, so they
    are there when wanted and silent when not. */

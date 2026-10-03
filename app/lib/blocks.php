@@ -160,7 +160,8 @@ function block_types(): array
                     'label'  => 'Families',
                     'item'   => 'Family',
                     'fields' => [
-                        'name'  => ['type' => 'text', 'label' => 'Family name, for example Purple'],
+                        'name'  => ['type' => 'text', 'label' => 'Family name',
+                                    'help' => 'For example Purple.'],
                         'note'  => ['type' => 'text', 'label' => 'Note', 'optional' => true],
                         // A repeater inside a repeater, so a family can have
                         // eleven steps or three, and the labels are yours.
@@ -259,8 +260,10 @@ function block_types(): array
             'icon'   => 'dodont',
             'fields' => [
                 'heading'    => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
-                'do_label'   => ['type' => 'text', 'label' => 'Left column heading', 'optional' => true],
-                'dont_label' => ['type' => 'text', 'label' => 'Right column heading', 'optional' => true],
+                'do_label'   => ['type' => 'text', 'label' => 'Left heading', 'optional' => true,
+                                 'help' => 'The heading over the left column.'],
+                'dont_label' => ['type' => 'text', 'label' => 'Right heading', 'optional' => true,
+                                 'help' => 'The heading over the right column.'],
                 'dos' => [
                     'type'   => 'repeater',
                     'label'  => 'Left column',
@@ -289,7 +292,8 @@ function block_types(): array
             'icon'   => 'image',
             'fields' => [
                 'asset'   => ['type' => 'asset', 'label' => 'Image'],
-                'alt'     => ['type' => 'text', 'label' => 'Alt text, describing the image for screen readers'],
+                'alt'     => ['type' => 'text', 'label' => 'Alt text',
+                              'help' => 'What the image shows, for anyone using a screen reader.'],
                 'caption' => ['type' => 'text', 'label' => 'Caption', 'optional' => true],
                 'width'   => ['type' => 'select', 'label' => 'Width', 'options' => [
                     'text' => 'Text width',
@@ -372,7 +376,7 @@ function block_types(): array
                     'label'  => 'Columns',
                     'item'   => 'Column',
                     'fields' => [
-                        'eyebrow'  => ['type' => 'text',  'label' => 'Small label above', 'optional' => true,
+                        'eyebrow'  => ['type' => 'text',  'label' => 'Small label', 'optional' => true,
                                        'help' => 'A number, a step, a category. Sits over the heading.'],
                         'icon'     => ['type' => 'asset', 'label' => 'Icon', 'optional' => true,
                                        'help' => 'A small square mark from the asset library. An SVG keeps its edges at any size.'],
@@ -408,7 +412,8 @@ function block_types(): array
             'icon'   => 'download',
             'fields' => [
                 'heading'   => ['type' => 'text', 'label' => 'Heading', 'optional' => true],
-                'tag'       => ['type' => 'text', 'label' => 'Asset tag, for example: logo'],
+                'tag'       => ['type' => 'text', 'label' => 'Asset tag',
+                                'help' => 'The tag you gave the files in Assets, for example logo.'],
                 'intro'     => ['type' => 'textarea', 'label' => 'Intro', 'optional' => true],
                 'bundle'    => ['type' => 'select', 'label' => 'Download all button', 'options' => [
                     'yes' => 'Show it',
@@ -444,13 +449,13 @@ function block_types(): array
                               'help' => 'Export the clearspace diagram from Figma as a PNG or SVG and upload it here. A drawn diagram will always beat a generated one — it can show the corner marks, the measured letter and the exact construction you designed.'],
                 'measure' => ['type' => 'text',   'label' => 'Clear space equals', 'optional' => true,
                               'help' => 'The sentence under the diagram, for example "x is the height of the Y in the wordmark".'],
-                'unit'    => ['type' => 'text',   'label' => 'Letter on the generated diagram', 'optional' => true,
-                              'help' => 'Only used when there is no diagram uploaded. Defaults to x.'],
+                'unit'    => ['type' => 'text',   'label' => 'Diagram letter', 'optional' => true,
+                              'help' => 'The letter drawn on the generated diagram. Only used when there is no diagram uploaded. Defaults to x.'],
                 'ratio'   => ['type' => 'select', 'label' => 'Clear space around it', 'options' => [
                     '25' => 'A quarter of the mark', '50' => 'Half the mark',
                     '75' => 'Three quarters of the mark', '100' => 'The full mark',
                 ], 'help' => 'Only used when there is no diagram uploaded, to draw a rough one from the mark.'],
-                'inset'   => ['type' => 'number', 'label' => 'Where the guides sit', 'unit' => '%',
+                'inset'   => ['type' => 'number', 'label' => 'Guide position', 'unit' => '%',
                               'optional' => true, 'min' => 0, 'max' => 45,
                               'help' => 'The margin the guides are drawn at, as a percentage of the image. Leave blank for 8%.'],
                 'note'    => ['type' => 'textarea', 'label' => 'Note', 'optional' => true],
@@ -604,7 +609,8 @@ function block_types(): array
             'icon'   => 'video',
             'fields' => [
                 'heading' => ['type' => 'text',  'label' => 'Heading', 'optional' => true],
-                'url'     => ['type' => 'text',  'label' => 'YouTube or Vimeo address', 'optional' => true],
+                'url'     => ['type' => 'text',  'label' => 'Video address', 'optional' => true,
+                              'help' => 'A YouTube or Vimeo link.'],
                 // The only asset field that wants video rather than an image.
                 'asset'   => ['type' => 'asset', 'label' => 'Or an uploaded MP4', 'accept' => 'video', 'optional' => true],
                 'caption' => ['type' => 'text',  'label' => 'Caption', 'optional' => true],
@@ -687,7 +693,7 @@ function block_types(): array
             'group'  => 'Layout',
             'icon'   => 'hero',
             'fields' => [
-                'label'   => ['type' => 'text',     'label' => 'Small label above', 'optional' => true],
+                'label'   => ['type' => 'text',     'label' => 'Small label', 'optional' => true],
                 'lines'   => ['type' => 'longtext', 'label' => 'Headline, one line per line'],
                 'standfirst' => ['type' => 'textarea', 'label' => 'Standfirst', 'optional' => true],
                 'background' => ['type' => 'colour', 'label' => 'Background colour'],
@@ -949,7 +955,7 @@ function block_options(string $type): array
             'label'  => 'Hero',
             'hint'   => 'A full-bleed opener. Each line is sized to fill the width.',
             'fields' => [
-                'label'   => ['type' => 'text',     'label' => 'Small label above', 'optional' => true],
+                'label'   => ['type' => 'text',     'label' => 'Small label', 'optional' => true],
                 'lines'   => ['type' => 'longtext', 'label' => 'Headline, one line per line'],
                 'standfirst' => ['type' => 'textarea', 'label' => 'Standfirst', 'optional' => true],
                 'background' => ['type' => 'colour', 'label' => 'Background colour'],

@@ -1,7 +1,7 @@
 # Years brand hub: handover
 
 Everything needed to pick this up cold, including in a new conversation with no
-memory of the previous one. Last updated 27 September 2026.
+memory of the previous one. Last updated 3 October 2026.
 
 ---
 
@@ -503,6 +503,24 @@ newly added row opens itself and takes focus, so adding and typing is one
 movement. It applies to every repeater in every block, so a colour ramp and a
 link list get it too.
 
+**The outline's row actions are laid over the row, not beside it.** Five
+buttons is 9rem of a 17rem panel, and they held that width while invisible —
+which is why a block called "Two columns of guidance" used to arrive on four
+lines. They are absolutely positioned now, on their own surface, revealed on
+hover or focus, and the name has the full width and one line with an ellipsis.
+Where there is no hover to reveal them on (`@media (hover: none)`) they go back
+to a column of their own, because a touch screen cannot point at a row without
+tapping it.
+
+**A table is edited as a table.** `gridField()` in `editor.js` renders a cell
+per input over the stored text; Tab moves across, Enter moves down and adds a
+row at the bottom, and pasting a spreadsheet range into any cell fills the
+table from that cell outwards. The raw text is behind "Edit as text" for a bulk
+paste or a wholesale fix. Past four columns the cells would be unreadably
+narrow, so the panel scrolls sideways instead of squeezing, with each row's
+delete button stuck to the right edge; a three-column table — every migrated
+comparison table is one — still fits the narrow inspector without scrolling.
+
 **Adding a block** opens a centred dialog (`.blockmenu`, built in `editor.js`,
 styled in `admin.css`), always centred rather than anchored, because it is opened
 from the outline, the canvas and the keyboard. The choices are a **grid of
@@ -736,6 +754,27 @@ cannot be forged. This is a deliberate exception to the rule in section 4; do no
 ---
 
 ## 6. Traps, every one of which has bitten
+
+**The inspector is built in the browser, so a missing builder is a dead block
+type and nothing on the server can see it.** `field()` in `editor.js` routes a
+field's `type` to the function that builds it. A rewrite of the rich-text
+section took `gridField()` out with it, `field()` carried on calling it, and
+every table in the hub — including the migrated comparison tables — opened to a
+half-built panel that could not be edited. The page rendered perfectly, the
+block was intact in the database, and all five checks passed, because the
+failure was a `ReferenceError` in a browser nobody was watching.
+`check-blocks.php` now asserts that every field type the definitions use has a
+builder in `editor.js` and that `field()` still calls it. Keep the two lists at
+the bottom of that check up to date when a field type is added, or the check
+will say so.
+
+**A label is one line, and the inspector is 21rem — 19rem on a laptop.** Past
+about thirty characters it is cut with an ellipsis. Before that it wrapped, and
+a wrapped floating label pushes its second line out through the bottom of its
+own field at rest and sits across the border once it floats. What a field means
+belongs in `'help'`, which has the whole width and as many lines as it needs.
+`check-blocks.php` fails a label longer than thirty characters, counting the
+` (optional)` the editor adds.
 
 **MySQL escapes backslashes in string literals.** JSON written into a migration
 needs `'` doubled *and* `\` doubled, or `\n` becomes a real newline and the JSON
@@ -975,7 +1014,11 @@ has caught something real:
   to be visible, which is what the editor canvas depends on, and checks that
   every `editable()` path resolves *and* that the text on the page matches the
   value it points at. The gappy pass exists for that last check: it is the only
-  one that produces a list with a hole in it.
+  one that produces a list with a hole in it. It also reads `editor.js` as text
+  and asserts that every field type the definitions use has a builder there and
+  is still routed to it, and that no label is too long for the inspector —
+  the two ways a block becomes uneditable without anything on the server
+  noticing.
 - `check-components.php` asserts the things the preview frame's safety rests on:
   the sandbox attribute read off the rendered page and compared exactly, the
   content security policy's `'none'` directives, that a hostile variant's markup

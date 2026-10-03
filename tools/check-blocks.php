@@ -582,6 +582,86 @@ foreach (block_types() as $type => $def) {
     }
 }
 
+/**
+ * The editor has to be able to build every field the definitions use.
+ *
+ * This is the check that would have caught a `grid` field whose builder had
+ * been dropped from editor.js in an unrelated rewrite: field() fell through to
+ * a function that no longer existed, the inspector threw half way through
+ * building the panel, and every table in the hub became uneditable — in the
+ * one place nothing on the server can see, because the panel is built in the
+ * browser from a schema the server only hands over.
+ *
+ * Reading the file as text rather than running it is crude, and it is what can
+ * be done from PHP. It asserts the two things that matter: that a builder with
+ * the right name exists, and that field() still routes the type to it.
+ */
+$editorJs = (string) file_get_contents(ROOT_DIR . '/public_html/assets/js/editor.js');
+
+// Every field type anywhere in the definitions, at any depth.
+$fieldTypes = [];
+$collect = function (array $fields) use (&$collect, &$fieldTypes): void {
+    foreach ($fields as $field) {
+        $fieldTypes[$field['type']] = true;
+        if ($field['type'] === 'repeater') {
+            $collect($field['fields']);
+        }
+    }
+};
+foreach (block_types() as $def) {
+    $collect($def['fields']);
+}
+$collect(block_settings_fields());
+
+// The types field() builds inline, rather than handing to a function of their
+// own. A type not named here needs a builder, and the builder has to be there.
+$inline = ['text', 'textarea', 'select', 'colour', 'number'];
+$builders = ['longtext' => 'richText', 'repeater' => 'repeater', 'asset' => 'assetField', 'grid' => 'gridField'];
+
+foreach (array_keys($fieldTypes) as $type) {
+    if (in_array($type, $inline, true)) {
+        continue;
+    }
+    if (!isset($builders[$type])) {
+        $problems[] = "the definitions use the field type \"$type\", which this check does not know about:"
+                    . ' add it to $inline or to $builders in tools/check-blocks.php';
+        continue;
+    }
+    $builder = $builders[$type];
+    if (!str_contains($editorJs, "function $builder(")) {
+        $problems[] = "editor.js has no $builder(), so a \"$type\" field cannot be edited at all";
+    }
+    if (!str_contains($editorJs, $builder . '(def')) {
+        $problems[] = "editor.js never calls $builder(), so a \"$type\" field falls through to a plain text box";
+    }
+}
+
+/**
+ * A field label is one line in a 21rem panel.
+ *
+ * Past about thirty characters it is cut with an ellipsis, which is better than
+ * what it used to do — wrap through the bottom of its own box — but it is still
+ * a label nobody can read. What the field means belongs in its help text, which
+ * has the whole width and as many lines as it needs.
+ */
+$longest = 30;
+$checkLabels = function (array $fields, string $where) use (&$checkLabels, &$problems, $longest): void {
+    foreach ($fields as $key => $field) {
+        $shown = $field['label'] . (!empty($field['optional']) ? ' (optional)' : '');
+        if (strlen($shown) > $longest) {
+            $problems[] = "$where.$key is labelled \"$shown\", which is too long for the inspector"
+                        . ' (' . strlen($shown) . " characters, $longest is the most): shorten it and put the rest in 'help'";
+        }
+        if ($field['type'] === 'repeater') {
+            $checkLabels($field['fields'], "$where.$key");
+        }
+    }
+};
+foreach (block_types() as $type => $def) {
+    $checkLabels($def['fields'], $type);
+}
+$checkLabels(block_settings_fields(), 'settings');
+
 echo "\n" . str_repeat('=', 60) . "\n";
 
 // Said plainly rather than passing quietly at reduced strength, so a run that
